@@ -20,11 +20,21 @@ struct DogListView: View {
     var body: some View {
         Group {
             if dogs.isEmpty && sharedDogs.isEmpty {
-                ContentUnavailableView(
-                    "Inga hundar än",
-                    systemImage: "pawprint",
-                    description: Text("Lägg till din första hund för att börja logga.")
-                )
+                VStack(spacing: 20) {
+                    Image("Canine360Logo")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(maxWidth: 220)
+                        .accessibilityLabel("Canine360")
+                    Text("Välkommen till Canine360")
+                        .font(.title3.weight(.semibold))
+                    Text("Lägg till din första hund för att börja logga.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                }
+                .padding()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 List {
                     Section {

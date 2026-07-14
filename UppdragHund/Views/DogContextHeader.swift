@@ -14,9 +14,11 @@ struct DogContextHeader: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: "shield.fill")
-                .font(.title2)
-                .foregroundStyle(.tint)
+            Image("Canine360Logo")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 40, height: 40)
+                .accessibilityLabel("Canine360")
 
             VStack(alignment: .leading, spacing: 0) {
                 HStack(spacing: 4) {
