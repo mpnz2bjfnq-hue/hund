@@ -9,8 +9,8 @@ struct DogContextHeader: View {
     let dog: Dog
 
     @State private var showingShare = false
-    @State private var showingFriends = false
     @State private var showingProfile = false
+    @State private var currentUser = CurrentUserStore.shared
 
     var body: some View {
         HStack(spacing: 12) {
@@ -48,20 +48,14 @@ struct DogContextHeader: View {
                 .accessibilityLabel("Dela hund")
             }
 
-            Menu {
-                Button("Profil", systemImage: "person.crop.circle") {
-                    showingProfile = true
-                }
-                Button("Vänner", systemImage: "person.2") {
-                    showingFriends = true
-                }
+            Button {
+                showingProfile = true
             } label: {
-                Image(systemName: "person.crop.circle.fill")
-                    .font(.title2)
+                ProfileAvatar(photoData: currentUser.profile?.photoData, size: 34)
                     .frame(width: 44, height: 44)
                     .contentShape(Rectangle())
             }
-            .accessibilityLabel("Profilmeny")
+            .accessibilityLabel("Min profil")
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 4)
@@ -78,8 +72,10 @@ struct DogContextHeader: View {
                 ProfileView()
             }
         }
-        .sheet(isPresented: $showingFriends) {
-            FriendsView()
+        .task {
+            if currentUser.profile == nil {
+                await currentUser.refresh()
+            }
         }
     }
 }

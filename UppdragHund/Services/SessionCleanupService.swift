@@ -12,6 +12,7 @@ import SwiftData
 enum SessionCleanupService {
     @MainActor
     static func handleSignOut(context: ModelContext, activeDogStore: ActiveDogStore) {
+        CurrentUserStore.shared.clear()
         do {
             // Delade hundar (ägda av någon annan) tas bort — cascade städar posterna.
             let sharedDogs = try context.fetch(
