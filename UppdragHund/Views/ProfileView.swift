@@ -22,7 +22,7 @@ struct ProfileView: View {
     @State private var friendCount: Int?
     @State private var isLoading = true
     @State private var isPresentingNewPost = false
-    @State private var isPresentingEdit = false
+    @State private var editingProfile: UserProfile?
     @State private var isPresentingFriends = false
     @State private var postPendingDelete: ProfilePost?
 
@@ -119,11 +119,9 @@ struct ProfileView: View {
         .sheet(isPresented: $isPresentingNewPost) {
             NewPostView(onPosted: { Task { await load() } })
         }
-        .sheet(isPresented: $isPresentingEdit) {
-            if let profile {
-                EditProfileView(currentProfile: profile)
-                    .onDisappear { Task { await load() } }
-            }
+        .sheet(item: $editingProfile) { profile in
+            EditProfileView(currentProfile: profile)
+                .onDisappear { Task { await load() } }
         }
         .sheet(isPresented: $isPresentingFriends) {
             FriendsView()
@@ -161,7 +159,7 @@ struct ProfileView: View {
             }
             if isOwnProfile {
                 Button {
-                    isPresentingEdit = true
+                    editingProfile = profile
                 } label: {
                     Label("Redigera profil", systemImage: "pencil")
                         .font(.footnote.weight(.medium))
@@ -169,6 +167,7 @@ struct ProfileView: View {
                 .buttonStyle(.bordered)
                 .controlSize(.small)
                 .padding(.top, 2)
+                .disabled(profile == nil)
             }
         }
         .frame(maxWidth: .infinity)
