@@ -15,6 +15,11 @@ final class AuthService {
     private(set) var currentUserID: String?
     private(set) var isSignedIn = false
 
+    /// Namnet Firebase känner till (kan vara nil för vissa Apple-inloggningar).
+    var currentDisplayName: String? {
+        Auth.auth().currentUser?.displayName
+    }
+
     private var currentNonce: String?
     private var authStateHandle: AuthStateDidChangeListenerHandle?
 

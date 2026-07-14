@@ -16,12 +16,31 @@ final class FriendsRepository {
     func ensureProfile(uid: String, displayName: String, email: String?) async throws {
         let ref = db.collection("users").document(uid)
         let snapshot = try await ref.getDocument()
-        if snapshot.exists {
+
+        // Redan en giltig profil? (Har både namn och användarnamn.)
+        if snapshot.exists,
+           let existingName = snapshot.get("displayName") as? String, !existingName.isEmpty,
+           let existingHandle = snapshot.get("handle") as? String, !existingHandle.isEmpty {
             return
         }
-        let handle = try await generateUniqueHandle()
-        let profile = UserProfile(displayName: displayName, handle: handle, email: email, createdAt: .now)
-        try ref.setData(from: profile)
+
+        // Skapa eller REPARERA. Ett halvt dokument kan ha uppstått om t.ex.
+        // dogSummaries skrevs innan profilen fanns. Behåll ett ev. befintligt
+        // handle och merge:a så vi inte tappar dogSummaries/photoData.
+        let handle: String
+        if let existingHandle = snapshot.get("handle") as? String, !existingHandle.isEmpty {
+            handle = existingHandle
+        } else {
+            handle = try await generateUniqueHandle()
+        }
+        let existingCreatedAt = (snapshot.get("createdAt") as? Timestamp)?.dateValue()
+        let profile = UserProfile(
+            displayName: displayName,
+            handle: handle,
+            email: email,
+            createdAt: existingCreatedAt ?? .now
+        )
+        try ref.setData(from: profile, merge: true)
     }
 
     func fetchMyProfile(uid: String) async throws -> UserProfile? {

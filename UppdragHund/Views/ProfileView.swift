@@ -243,11 +243,17 @@ struct ProfileView: View {
         loadError = nil
         defer { isLoading = false }
         do {
-            var fetched = try await FriendsRepository.shared.fetchMyProfile(uid: uid)
-            // Själv-läkning: saknas den egna profilen (t.ex. skapades aldrig),
-            // försök skapa den och hämta igen.
+            // Fånga avkodningsfel separat: ett halvt profil-dokument (t.ex. bara
+            // dogSummaries) ska repareras, inte behandlas som ett hårt fel.
+            var fetched: UserProfile?
+            do {
+                fetched = try await FriendsRepository.shared.fetchMyProfile(uid: uid)
+            } catch {
+                fetched = nil
+            }
+            // Själv-läkning: saknas/trasig egen profil → skapa/reparera och hämta igen.
             if fetched == nil, isOwnProfile {
-                let name = AuthService.shared.currentUserID.flatMap { _ in profile?.displayName } ?? "Hundägare"
+                let name = AuthService.shared.currentDisplayName ?? "Hundägare"
                 try await FriendsRepository.shared.ensureProfile(uid: uid, displayName: name, email: nil)
                 fetched = try await FriendsRepository.shared.fetchMyProfile(uid: uid)
             }
