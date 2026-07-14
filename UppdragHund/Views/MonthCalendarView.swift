@@ -7,7 +7,7 @@ import SwiftUI
 
 struct MonthCalendarView: View {
     @Binding var displayedMonth: Date
-    var isHighlighted: (Date) -> Bool = { _ in false }
+    var heatPhase: (Date) -> HeatPhase? = { _ in nil }
     var isPredicted: (Date) -> Bool = { _ in false }
     var hasNote: (Date) -> Bool = { _ in false }
     var onSelectDay: (Date) -> Void = { _ in }
@@ -95,7 +95,7 @@ struct MonthCalendarView: View {
 
     @ViewBuilder
     private func dayCell(for date: Date) -> some View {
-        let highlighted = isHighlighted(date)
+        let phase = heatPhase(date)
         let predicted = isPredicted(date)
         let noted = hasNote(date)
         let isToday = calendar.isDateInToday(date)
@@ -110,11 +110,11 @@ struct MonthCalendarView: View {
                     .foregroundStyle(.primary)
                     .frame(width: 32, height: 32)
                     .background(
-                        Circle().fill(highlighted ? Color.orange.opacity(0.35) : Color.clear)
+                        Circle().fill(Theme.Colors.heat.opacity(phase?.fillOpacity ?? 0))
                     )
                     .overlay(
                         Circle().strokeBorder(
-                            predicted ? Color.orange : .clear,
+                            predicted ? Theme.Colors.heat : .clear,
                             style: StrokeStyle(lineWidth: 1.5, dash: [3, 2])
                         )
                     )
@@ -131,13 +131,13 @@ struct MonthCalendarView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(accessibilityLabel(for: date, highlighted: highlighted, predicted: predicted, noted: noted, isToday: isToday))
+        .accessibilityLabel(accessibilityLabel(for: date, phase: phase, predicted: predicted, noted: noted, isToday: isToday))
     }
 
-    private func accessibilityLabel(for date: Date, highlighted: Bool, predicted: Bool, noted: Bool, isToday: Bool) -> String {
+    private func accessibilityLabel(for date: Date, phase: HeatPhase?, predicted: Bool, noted: Bool, isToday: Bool) -> String {
         var parts = [date.formatted(date: .complete, time: .omitted)]
         if isToday { parts.append("Idag") }
-        if highlighted { parts.append("Löp") }
+        if let phase { parts.append("Löp – \(phase.displayName)") }
         if predicted { parts.append("Förväntat löp") }
         if noted { parts.append("Har loggning") }
         return parts.joined(separator: ", ")

@@ -62,38 +62,42 @@ struct KalenderView: View {
                 VStack(alignment: .leading, spacing: 12) {
                     MonthCalendarView(
                         displayedMonth: $displayedMonth,
-                        isHighlighted: isDateInAnyCycle,
+                        heatPhase: heatPhase(for:),
                         isPredicted: isPredictedStartDate,
                         hasNote: hasDiaryEntry,
                         onSelectDay: { day in selectedDay = SelectedDay(date: day) }
                     )
-                    .padding()
-                    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16))
+                    .cardStyle()
 
                     HStack(spacing: 16) {
                         HStack(spacing: 6) {
-                            Circle().fill(Color.orange.opacity(0.35)).frame(width: 10, height: 10)
-                            Text("Löp")
+                            Circle().fill(Theme.Colors.heat.opacity(HeatPhase.proestrus.fillOpacity)).frame(width: 10, height: 10)
+                            Text("Förlöp")
                         }
                         HStack(spacing: 6) {
-                            Circle().strokeBorder(Color.orange, style: StrokeStyle(lineWidth: 1.5, dash: [3, 2])).frame(width: 10, height: 10)
-                            Text("Förväntat löp")
+                            Circle().fill(Theme.Colors.heat.opacity(HeatPhase.estrus.fillOpacity)).frame(width: 10, height: 10)
+                            Text("Höglöp")
+                        }
+                        HStack(spacing: 6) {
+                            Circle().strokeBorder(Theme.Colors.heat, style: StrokeStyle(lineWidth: 1.5, dash: [3, 2])).frame(width: 10, height: 10)
+                            Text("Förväntat")
                         }
                     }
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.Colors.textSecondary)
                 }
 
                 predictionCard
 
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Löphistorik (\(historyEntries.count))")
-                        .font(.headline)
+                        .font(Theme.Typography.sectionTitle)
+                        .foregroundStyle(Theme.Colors.textPrimary)
 
                     if historyEntries.isEmpty {
                         Text("Inga avslutade löp loggade än.")
                             .font(.footnote)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Theme.Colors.textSecondary)
                     } else {
                         VStack(spacing: 8) {
                             ForEach(historyEntries, id: \.cycle.persistentModelID) { entry in
@@ -110,6 +114,7 @@ struct KalenderView: View {
             }
             .padding()
         }
+        .background(Theme.Colors.screenBackground)
         .task(id: prediction.nextExpectedStartDate) {
             guard let nextStart = prediction.nextExpectedStartDate else {
                 NotificationService.cancelHeatPredictionNotification(for: dog)
@@ -153,12 +158,9 @@ struct KalenderView: View {
     private var actionCard: some View {
         if let ongoingCycle {
             VStack(alignment: .leading, spacing: 8) {
-                Label(
-                    "Löp pågår sedan \(ongoingCycle.startDate.formatted(date: .abbreviated, time: .omitted))",
-                    systemImage: "flame.fill"
-                )
-                .font(.headline)
-                .foregroundStyle(.orange)
+                Label(ongoingHeatSummary(ongoingCycle), systemImage: "flame.fill")
+                    .font(.headline)
+                    .foregroundStyle(Theme.Colors.heat)
 
                 if access.canModify(entryCreatedByUid: ongoingCycle.createdByUid) {
                     Button("Avsluta löp") {
@@ -185,6 +187,7 @@ struct KalenderView: View {
         VStack(alignment: .leading, spacing: 6) {
             Label("Prognosdata (\(dog.breed))", systemImage: "info.circle")
                 .font(.subheadline.bold())
+                .foregroundStyle(Theme.Colors.textPrimary)
 
             if let nextStart = prediction.nextExpectedStartDate {
                 Text("Nästa förväntade löp: \(nextStart.formatted(date: .abbreviated, time: .omitted))")
@@ -193,9 +196,9 @@ struct KalenderView: View {
             Text("Löplängd: ~\(prediction.predictedDurationDays) dagar (\(basisText))")
         }
         .font(.footnote)
-        .foregroundStyle(.secondary)
-        .padding()
-        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .foregroundStyle(Theme.Colors.textSecondary)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .cardStyle()
     }
 
     private var basisText: String {
@@ -207,13 +210,21 @@ struct KalenderView: View {
         }
     }
 
-    private func isDateInAnyCycle(_ date: Date) -> Bool {
-        let day = calendar.startOfDay(for: date)
-        return dog.heatCycles.contains { cycle in
-            let start = calendar.startOfDay(for: cycle.startDate)
-            let end = calendar.startOfDay(for: cycle.endDate ?? .now)
-            return day >= start && day <= end
+    private func heatPhase(for date: Date) -> HeatPhase? {
+        for cycle in dog.heatCycles {
+            if let phase = HeatPhase.phase(on: date, in: cycle, calendar: calendar) {
+                return phase
+            }
         }
+        return nil
+    }
+
+    private func ongoingHeatSummary(_ cycle: HeatCycle) -> String {
+        let start = calendar.startOfDay(for: cycle.startDate)
+        let today = calendar.startOfDay(for: .now)
+        let day = (calendar.dateComponents([.day], from: start, to: today).day ?? 0) + 1
+        let phase = HeatPhase.forDayInCycle(day)
+        return "Löp pågår – Dag \(day) · \(phase.displayName)"
     }
 
     private func isPredictedStartDate(_ date: Date) -> Bool {
@@ -250,11 +261,11 @@ private struct HeatCycleRow: View {
                     }
                     if let deviation = entry.deviationFromPredictedDays, deviation != 0 {
                         Text("· \(deviation > 0 ? "+\(deviation)" : "\(deviation)") dagar mot beräknat")
-                            .foregroundStyle(.orange)
+                            .foregroundStyle(Theme.Colors.heat)
                     }
                 }
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Theme.Colors.textSecondary)
             }
 
             Spacer()
@@ -268,12 +279,11 @@ private struct HeatCycleRow: View {
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Theme.Colors.textSecondary)
                 .accessibilityLabel("Ta bort löp")
             }
         }
-        .padding()
-        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .cardStyle()
     }
 }
 

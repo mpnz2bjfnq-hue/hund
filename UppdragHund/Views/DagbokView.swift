@@ -52,6 +52,7 @@ struct DagbokView: View {
                         photoGrid
                     }
                 }
+                .background(Theme.Colors.screenBackground)
             }
         }
         .navigationTitle("Dagbok")
@@ -101,25 +102,28 @@ struct DagbokView: View {
                 description: Text("Tryck på + för att logga hur \(dog.name) mår idag.")
             )
         } else {
-            List {
-                ForEach(sortedEntries) { entry in
-                    NavigationLink {
-                        DiaryEntryDetailView(entry: entry)
-                    } label: {
-                        DiaryEntryRow(entry: entry)
-                    }
-                    .swipeActions(edge: .trailing) {
-                        if access.canModify(entryCreatedByUid: entry.createdByUid) {
-                            Button(role: .destructive) {
-                                entryPendingDelete = entry
-                            } label: {
-                                Label("Ta bort", systemImage: "trash")
+            ScrollView {
+                LazyVStack(spacing: Theme.Spacing.m) {
+                    ForEach(sortedEntries) { entry in
+                        NavigationLink {
+                            DiaryEntryDetailView(entry: entry)
+                        } label: {
+                            DiaryEntryRow(entry: entry).cardStyle()
+                        }
+                        .buttonStyle(.plain)
+                        .contextMenu {
+                            if access.canModify(entryCreatedByUid: entry.createdByUid) {
+                                Button(role: .destructive) {
+                                    entryPendingDelete = entry
+                                } label: {
+                                    Label("Ta bort", systemImage: "trash")
+                                }
                             }
                         }
                     }
                 }
+                .padding(Theme.Spacing.l)
             }
-            .listStyle(.plain)
         }
     }
 
