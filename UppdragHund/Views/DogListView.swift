@@ -14,7 +14,7 @@ struct DogListView: View {
     @State private var isPresentingAddDog = false
     @State private var dogPendingEdit: Dog?
     @State private var dogPendingDelete: Dog?
-    @State private var showingShareComingSoon = false
+    @State private var dogPendingShare: Dog?
 
     var body: some View {
         Group {
@@ -62,10 +62,8 @@ struct DogListView: View {
         .sheet(item: $dogPendingEdit) { dog in
             AddDogView(dogToEdit: dog)
         }
-        .alert("Kommer snart", isPresented: $showingShareComingSoon) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text("Delning mellan användare är inte tillgängligt än.")
+        .sheet(item: $dogPendingShare) { dog in
+            ShareDogView(dog: dog)
         }
         .confirmationDialog(
             "Ta bort \(dogPendingDelete?.name ?? "hund")?",
@@ -138,12 +136,14 @@ struct DogListView: View {
             }
             .tint(.blue)
 
-            Button {
-                showingShareComingSoon = true
-            } label: {
-                Label("Dela", systemImage: "square.and.arrow.up")
+            if !dog.isShared {
+                Button {
+                    dogPendingShare = dog
+                } label: {
+                    Label("Dela", systemImage: "square.and.arrow.up")
+                }
+                .tint(.indigo)
             }
-            .tint(.gray)
         }
     }
 

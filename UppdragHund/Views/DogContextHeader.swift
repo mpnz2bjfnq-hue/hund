@@ -8,7 +8,7 @@ import SwiftUI
 struct DogContextHeader: View {
     let dog: Dog
 
-    @State private var showingShareComingSoon = false
+    @State private var showingShare = false
     @State private var showingFriends = false
     @State private var showingProfile = false
 
@@ -35,14 +35,16 @@ struct DogContextHeader: View {
 
             Spacer(minLength: 8)
 
-            Button {
-                showingShareComingSoon = true
-            } label: {
-                Image(systemName: "person.badge.plus")
-                    .frame(width: 44, height: 44)
-                    .contentShape(Rectangle())
+            if !dog.isShared {
+                Button {
+                    showingShare = true
+                } label: {
+                    Image(systemName: "person.badge.plus")
+                        .frame(width: 44, height: 44)
+                        .contentShape(Rectangle())
+                }
+                .accessibilityLabel("Dela hund")
             }
-            .accessibilityLabel("Dela hund")
 
             Menu {
                 Button("Profil", systemImage: "person.crop.circle") {
@@ -66,10 +68,8 @@ struct DogContextHeader: View {
             Divider()
         }
         .dynamicTypeSize(...DynamicTypeSize.accessibility1)
-        .alert("Kommer snart", isPresented: $showingShareComingSoon) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text("Delning mellan användare är inte tillgängligt än.")
+        .sheet(isPresented: $showingShare) {
+            ShareDogView(dog: dog)
         }
         .sheet(isPresented: $showingProfile) {
             NavigationStack {
