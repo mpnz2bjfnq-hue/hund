@@ -32,6 +32,11 @@ final class CurrentUserStore {
         profile = try? await FriendsRepository.shared.fetchMyProfile(uid: uid)
     }
 
+    /// Sätt profilen direkt (t.ex. när en vy redan hämtat den).
+    func setProfile(_ profile: UserProfile) {
+        self.profile = profile
+    }
+
     /// Uppdatera lokalt direkt efter en lyckad redigering (optimistiskt).
     func apply(displayName: String? = nil, handle: String? = nil, photoData: Data?? = nil) {
         guard var updated = profile else { return }

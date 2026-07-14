@@ -22,6 +22,8 @@ struct ProfileView: View {
     @State private var friendCount: Int?
     @State private var isLoading = true
     @State private var isPresentingNewPost = false
+    @State private var isPresentingEdit = false
+    @State private var isPresentingFriends = false
     @State private var postPendingDelete: ProfilePost?
 
     private var resolvedUID: String? {
@@ -117,6 +119,15 @@ struct ProfileView: View {
         .sheet(isPresented: $isPresentingNewPost) {
             NewPostView(onPosted: { Task { await load() } })
         }
+        .sheet(isPresented: $isPresentingEdit) {
+            if let profile {
+                EditProfileView(currentProfile: profile)
+                    .onDisappear { Task { await load() } }
+            }
+        }
+        .sheet(isPresented: $isPresentingFriends) {
+            FriendsView()
+        }
         .confirmationDialog(
             "Ta bort uppdateringen?",
             isPresented: Binding(
@@ -140,15 +151,24 @@ struct ProfileView: View {
 
     private var header: some View {
         VStack(spacing: 8) {
-            Image(systemName: "person.crop.circle.fill")
-                .font(.system(size: 76))
-                .foregroundStyle(.tint)
+            ProfileAvatar(photoData: profile?.photoData, size: 92)
             Text(profile?.displayName ?? (isOwnProfile ? "Din profil" : "Profil"))
                 .font(.title2.bold())
             if let handle = profile?.handle {
-                Text(handle)
+                Text("@\(handle)")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
+            }
+            if isOwnProfile {
+                Button {
+                    isPresentingEdit = true
+                } label: {
+                    Label("Redigera profil", systemImage: "pencil")
+                        .font(.footnote.weight(.medium))
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .padding(.top, 2)
             }
         }
         .frame(maxWidth: .infinity)
@@ -159,7 +179,16 @@ struct ProfileView: View {
         HStack {
             statTile(value: "\(dogCount)", label: "Hundar")
             Divider()
-            statTile(value: friendCount.map(String.init) ?? "–", label: "Vänner")
+            if isOwnProfile {
+                Button {
+                    isPresentingFriends = true
+                } label: {
+                    statTile(value: friendCount.map(String.init) ?? "–", label: "Vänner")
+                }
+                .buttonStyle(.plain)
+            } else {
+                statTile(value: friendCount.map(String.init) ?? "–", label: "Vänner")
+            }
             Divider()
             statTile(value: "\(posts.count)", label: "Inlägg")
         }
@@ -173,6 +202,7 @@ struct ProfileView: View {
             Text(label).font(.caption).foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity)
+        .contentShape(Rectangle())
     }
 
     private func dogCard(_ dog: DogDisplay) -> some View {
@@ -204,6 +234,9 @@ struct ProfileView: View {
             posts = try await PostsRepository.shared.posts(forUid: uid)
             // Vänners vänlista är privat per reglerna — bara läsbar för egen profil.
             friendCount = isOwnProfile ? try await FriendsRepository.shared.friends(for: uid).count : nil
+            if isOwnProfile, let profile {
+                CurrentUserStore.shared.setProfile(profile)
+            }
         } catch {
             // Behåll det som redan laddats; tyst fel (offline etc.)
         }
