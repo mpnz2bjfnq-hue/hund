@@ -14,27 +14,37 @@ struct HundtraningView: View {
     @State private var isPresentingNewSession = false
     @State private var sessionPendingDelete: TrainingSession?
 
+    private var access: DogAccess {
+        DogAccess(dog: dog, currentUid: AuthService.shared.currentUserID)
+    }
+
     private var sortedSessions: [TrainingSession] {
         dog.trainingSessions.sorted { $0.date > $1.date }
     }
 
     var body: some View {
         Group {
-            if sortedSessions.isEmpty {
+            if !access.isModuleVisible(.training) {
+                ModuleNotSharedView()
+            } else if sortedSessions.isEmpty {
                 ContentUnavailableView(
                     "Ingen träning loggad",
                     systemImage: "dumbbell",
-                    description: Text("Tryck på + för att logga ett träningspass för \(dog.name).")
+                    description: Text(access.canLog(in: .training)
+                        ? "Tryck på + för att logga ett träningspass för \(dog.name)."
+                        : "Inget loggat än.")
                 )
             } else {
                 List {
                     ForEach(sortedSessions) { session in
                         TrainingSessionRow(session: session)
                             .swipeActions(edge: .trailing) {
-                                Button(role: .destructive) {
-                                    sessionPendingDelete = session
-                                } label: {
-                                    Label("Ta bort", systemImage: "trash")
+                                if access.canModify(entryCreatedByUid: session.createdByUid) {
+                                    Button(role: .destructive) {
+                                        sessionPendingDelete = session
+                                    } label: {
+                                        Label("Ta bort", systemImage: "trash")
+                                    }
                                 }
                             }
                     }
@@ -47,11 +57,13 @@ struct HundtraningView: View {
             ToolbarItem(placement: .cancellationAction) {
                 Button("Stäng") { dismiss() }
             }
-            ToolbarItem(placement: .primaryAction) {
-                Button {
-                    isPresentingNewSession = true
-                } label: {
-                    Label("Logga", systemImage: "plus")
+            if access.canLog(in: .training) {
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                        isPresentingNewSession = true
+                    } label: {
+                        Label("Logga", systemImage: "plus")
+                    }
                 }
             }
         }
@@ -104,6 +116,7 @@ private struct TrainingSessionRow: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
+            LoggedByLine(name: session.createdByName)
         }
         .padding(.vertical, 2)
     }

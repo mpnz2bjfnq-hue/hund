@@ -27,7 +27,7 @@ struct DogContextHeader: View {
                         .lineLimit(1)
                 }
                 .foregroundStyle(.tint)
-                Text(dog.breed)
+                Text(dog.isShared ? "Delas av \(dog.ownerDisplayName ?? "vän")" : dog.breed)
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)

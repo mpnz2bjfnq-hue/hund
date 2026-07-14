@@ -19,6 +19,10 @@ struct DagbokView: View {
         case photos = "Foton"
     }
 
+    private var access: DogAccess {
+        DogAccess(dog: dog, currentUid: AuthService.shared.currentUserID)
+    }
+
     private var sortedEntries: [DiaryEntry] {
         dog.diaryEntries.sorted { $0.date > $1.date }
     }
@@ -28,30 +32,38 @@ struct DagbokView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            Picker("Vy", selection: $selectedSegment) {
-                ForEach(Segment.allCases, id: \.self) { segment in
-                    Text(segment.rawValue).tag(segment)
-                }
-            }
-            .pickerStyle(.segmented)
-            .padding()
+        Group {
+            if !access.isModuleVisible(.diary) {
+                ModuleNotSharedView()
+            } else {
+                VStack(spacing: 0) {
+                    Picker("Vy", selection: $selectedSegment) {
+                        ForEach(Segment.allCases, id: \.self) { segment in
+                            Text(segment.rawValue).tag(segment)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .padding()
 
-            switch selectedSegment {
-            case .symptom:
-                symptomList
-            case .photos:
-                photoGrid
+                    switch selectedSegment {
+                    case .symptom:
+                        symptomList
+                    case .photos:
+                        photoGrid
+                    }
+                }
             }
         }
         .navigationTitle("Dagbok")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                Button {
-                    isPresentingNewEntry = true
-                } label: {
-                    Label("Logga idag", systemImage: "plus")
+            if access.canLog(in: .diary) {
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                        isPresentingNewEntry = true
+                    } label: {
+                        Label("Logga idag", systemImage: "plus")
+                    }
                 }
             }
         }
@@ -97,10 +109,12 @@ struct DagbokView: View {
                         DiaryEntryRow(entry: entry)
                     }
                     .swipeActions(edge: .trailing) {
-                        Button(role: .destructive) {
-                            entryPendingDelete = entry
-                        } label: {
-                            Label("Ta bort", systemImage: "trash")
+                        if access.canModify(entryCreatedByUid: entry.createdByUid) {
+                            Button(role: .destructive) {
+                                entryPendingDelete = entry
+                            } label: {
+                                Label("Ta bort", systemImage: "trash")
+                            }
                         }
                     }
                 }
@@ -157,6 +171,7 @@ private struct DiaryEntryRow: View {
             }
             .font(.caption)
             .foregroundStyle(.secondary)
+            LoggedByLine(name: entry.createdByName)
         }
         .padding(.vertical, 4)
     }

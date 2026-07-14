@@ -15,6 +15,10 @@ struct HealthLogView: View {
     @State private var isPresentingExport = false
     @State private var filterType: HealthEventType?
 
+    private var access: DogAccess {
+        DogAccess(dog: dog, currentUid: AuthService.shared.currentUserID)
+    }
+
     private var sortedEvents: [HealthEvent] {
         dog.healthEvents.sorted { $0.date > $1.date }
     }
@@ -25,26 +29,11 @@ struct HealthLogView: View {
     }
 
     var body: some View {
-        List {
-            Section {
-                if filteredEvents.isEmpty {
-                    ContentUnavailableView(
-                        "Inga loggposter",
-                        systemImage: "stethoscope",
-                        description: Text("Tryck på + för att logga något om \(dog.name).")
-                    )
-                } else {
-                    ForEach(filteredEvents) { event in
-                        HealthEventRow(event: event)
-                    }
-                    .onDelete { offsets in
-                        for index in offsets {
-                            SyncCoordinator.shared.delete(filteredEvents[index], of: dog, in: modelContext)
-                        }
-                    }
-                }
-            } header: {
-                Text("Historik")
+        Group {
+            if !access.isModuleVisible(.health) {
+                ModuleNotSharedView()
+            } else {
+                eventList
             }
         }
         .navigationTitle("Hälsa")
@@ -53,11 +42,13 @@ struct HealthLogView: View {
             ToolbarItem(placement: .cancellationAction) {
                 Button("Stäng") { dismiss() }
             }
-            ToolbarItem(placement: .primaryAction) {
-                Button {
-                    isPresentingNewEvent = true
-                } label: {
-                    Label("Ny", systemImage: "plus")
+            if access.canLog(in: .health) {
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                        isPresentingNewEvent = true
+                    } label: {
+                        Label("Ny", systemImage: "plus")
+                    }
                 }
             }
             ToolbarItem(placement: .primaryAction) {
@@ -87,6 +78,34 @@ struct HealthLogView: View {
             ExportPDFView(dog: dog)
         }
     }
+
+    private var eventList: some View {
+        List {
+            Section {
+                if filteredEvents.isEmpty {
+                    ContentUnavailableView(
+                        "Inga loggposter",
+                        systemImage: "stethoscope",
+                        description: Text(access.canLog(in: .health)
+                            ? "Tryck på + för att logga något om \(dog.name)."
+                            : "Inget loggat än.")
+                    )
+                } else {
+                    ForEach(filteredEvents) { event in
+                        HealthEventRow(event: event)
+                            .deleteDisabled(!access.canModify(entryCreatedByUid: event.createdByUid))
+                    }
+                    .onDelete { offsets in
+                        for index in offsets {
+                            SyncCoordinator.shared.delete(filteredEvents[index], of: dog, in: modelContext)
+                        }
+                    }
+                }
+            } header: {
+                Text("Historik")
+            }
+        }
+    }
 }
 
 private struct HealthEventRow: View {
@@ -108,6 +127,7 @@ private struct HealthEventRow: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
+                LoggedByLine(name: event.createdByName)
             }
         }
     }

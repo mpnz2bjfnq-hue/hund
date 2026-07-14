@@ -14,6 +14,10 @@ struct FoderdagbokView: View {
     @State private var isPresentingNewEntry = false
     @State private var entryPendingDelete: MealEntry?
 
+    private var access: DogAccess {
+        DogAccess(dog: dog, currentUid: AuthService.shared.currentUserID)
+    }
+
     private var sortedEntries: [MealEntry] {
         dog.mealEntries.sorted { $0.time > $1.time }
     }
@@ -28,11 +32,15 @@ struct FoderdagbokView: View {
 
     var body: some View {
         Group {
-            if sortedEntries.isEmpty {
+            if !access.isModuleVisible(.meals) {
+                ModuleNotSharedView()
+            } else if sortedEntries.isEmpty {
                 ContentUnavailableView(
                     "Inga måltider loggade",
                     systemImage: "fork.knife",
-                    description: Text("Tryck på + för att logga en måltid eller ett snack för \(dog.name).")
+                    description: Text(access.canLog(in: .meals)
+                        ? "Tryck på + för att logga en måltid eller ett snack för \(dog.name)."
+                        : "Inget loggat än.")
                 )
             } else {
                 List {
@@ -41,10 +49,12 @@ struct FoderdagbokView: View {
                             ForEach(group.entries) { entry in
                                 MealEntryRow(entry: entry)
                                     .swipeActions(edge: .trailing) {
-                                        Button(role: .destructive) {
-                                            entryPendingDelete = entry
-                                        } label: {
-                                            Label("Ta bort", systemImage: "trash")
+                                        if access.canModify(entryCreatedByUid: entry.createdByUid) {
+                                            Button(role: .destructive) {
+                                                entryPendingDelete = entry
+                                            } label: {
+                                                Label("Ta bort", systemImage: "trash")
+                                            }
                                         }
                                     }
                             }
@@ -59,11 +69,13 @@ struct FoderdagbokView: View {
             ToolbarItem(placement: .cancellationAction) {
                 Button("Stäng") { dismiss() }
             }
-            ToolbarItem(placement: .primaryAction) {
-                Button {
-                    isPresentingNewEntry = true
-                } label: {
-                    Label("Logga", systemImage: "plus")
+            if access.canLog(in: .meals) {
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                        isPresentingNewEntry = true
+                    } label: {
+                        Label("Logga", systemImage: "plus")
+                    }
                 }
             }
         }
@@ -119,6 +131,7 @@ private struct MealEntryRow: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
+                LoggedByLine(name: entry.createdByName)
             }
         }
         .padding(.vertical, 2)

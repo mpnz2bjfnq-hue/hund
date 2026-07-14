@@ -18,6 +18,10 @@ struct KalenderView: View {
 
     private let calendar = Calendar.current
 
+    private var access: DogAccess {
+        DogAccess(dog: dog, currentUid: AuthService.shared.currentUserID)
+    }
+
     private var ongoingCycle: HeatCycle? {
         dog.heatCycles.first { $0.isOngoing }
     }
@@ -39,6 +43,18 @@ struct KalenderView: View {
     }
 
     var body: some View {
+        Group {
+            if !access.isModuleVisible(.heat) {
+                ModuleNotSharedView()
+            } else {
+                calendarContent
+            }
+        }
+        .navigationTitle("Kalender")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private var calendarContent: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 actionCard
@@ -81,7 +97,10 @@ struct KalenderView: View {
                     } else {
                         VStack(spacing: 8) {
                             ForEach(historyEntries, id: \.cycle.persistentModelID) { entry in
-                                HeatCycleRow(entry: entry) {
+                                HeatCycleRow(
+                                    entry: entry,
+                                    canDelete: access.canModify(entryCreatedByUid: entry.cycle.createdByUid)
+                                ) {
                                     cyclePendingDelete = entry.cycle
                                 }
                             }
@@ -91,8 +110,6 @@ struct KalenderView: View {
             }
             .padding()
         }
-        .navigationTitle("Kalender")
-        .navigationBarTitleDisplayMode(.inline)
         .task(id: prediction.nextExpectedStartDate) {
             guard let nextStart = prediction.nextExpectedStartDate else {
                 NotificationService.cancelHeatPredictionNotification(for: dog)
@@ -143,13 +160,15 @@ struct KalenderView: View {
                 .font(.headline)
                 .foregroundStyle(.orange)
 
-                Button("Avsluta löp") {
-                    cyclePendingEnd = ongoingCycle
+                if access.canModify(entryCreatedByUid: ongoingCycle.createdByUid) {
+                    Button("Avsluta löp") {
+                        cyclePendingEnd = ongoingCycle
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(.red)
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(.red)
             }
-        } else {
+        } else if access.canLog(in: .heat) {
             Button {
                 isPresentingStart = true
             } label: {
@@ -214,6 +233,7 @@ private struct SelectedDay: Identifiable {
 
 private struct HeatCycleRow: View {
     let entry: HeatCycleAnalyzer.HistoryEntry
+    var canDelete: Bool = true
     let onDelete: () -> Void
 
     var body: some View {
@@ -239,16 +259,18 @@ private struct HeatCycleRow: View {
 
             Spacer()
 
-            Button(role: .destructive) {
-                onDelete()
-            } label: {
-                Image(systemName: "trash")
-                    .frame(width: 44, height: 44)
-                    .contentShape(Rectangle())
+            if canDelete {
+                Button(role: .destructive) {
+                    onDelete()
+                } label: {
+                    Image(systemName: "trash")
+                        .frame(width: 44, height: 44)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(.secondary)
+                .accessibilityLabel("Ta bort löp")
             }
-            .buttonStyle(.plain)
-            .foregroundStyle(.secondary)
-            .accessibilityLabel("Ta bort löp")
         }
         .padding()
         .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12))
