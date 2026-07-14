@@ -83,7 +83,9 @@ struct HemView: View {
                 weightTile
                 motionTile
                 healthTile
-                heatTile
+                if dog.tracksHeat {
+                    heatTile
+                }
             }
         }
     }

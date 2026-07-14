@@ -57,7 +57,9 @@ struct KalenderView: View {
     private var calendarContent: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                actionCard
+                if dog.tracksHeat {
+                    actionCard
+                }
 
                 VStack(alignment: .leading, spacing: 12) {
                     MonthCalendarView(
@@ -69,43 +71,47 @@ struct KalenderView: View {
                     )
                     .cardStyle()
 
-                    HStack(spacing: 16) {
-                        HStack(spacing: 6) {
-                            Circle().fill(Theme.Colors.heat.opacity(HeatPhase.proestrus.fillOpacity)).frame(width: 10, height: 10)
-                            Text("Förlöp")
+                    if dog.tracksHeat {
+                        HStack(spacing: 16) {
+                            HStack(spacing: 6) {
+                                Circle().fill(Theme.Colors.heat.opacity(HeatPhase.proestrus.fillOpacity)).frame(width: 10, height: 10)
+                                Text("Förlöp")
+                            }
+                            HStack(spacing: 6) {
+                                Circle().fill(Theme.Colors.heat.opacity(HeatPhase.estrus.fillOpacity)).frame(width: 10, height: 10)
+                                Text("Höglöp")
+                            }
+                            HStack(spacing: 6) {
+                                Circle().strokeBorder(Theme.Colors.heat, style: StrokeStyle(lineWidth: 1.5, dash: [3, 2])).frame(width: 10, height: 10)
+                                Text("Förväntat")
+                            }
                         }
-                        HStack(spacing: 6) {
-                            Circle().fill(Theme.Colors.heat.opacity(HeatPhase.estrus.fillOpacity)).frame(width: 10, height: 10)
-                            Text("Höglöp")
-                        }
-                        HStack(spacing: 6) {
-                            Circle().strokeBorder(Theme.Colors.heat, style: StrokeStyle(lineWidth: 1.5, dash: [3, 2])).frame(width: 10, height: 10)
-                            Text("Förväntat")
-                        }
+                        .font(.caption)
+                        .foregroundStyle(Theme.Colors.textSecondary)
                     }
-                    .font(.caption)
-                    .foregroundStyle(Theme.Colors.textSecondary)
                 }
 
-                predictionCard
+                if dog.tracksHeat {
+                    predictionCard
 
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Löphistorik (\(historyEntries.count))")
-                        .font(Theme.Typography.sectionTitle)
-                        .foregroundStyle(Theme.Colors.textPrimary)
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Löphistorik (\(historyEntries.count))")
+                            .font(Theme.Typography.sectionTitle)
+                            .foregroundStyle(Theme.Colors.textPrimary)
 
-                    if historyEntries.isEmpty {
-                        Text("Inga avslutade löp loggade än.")
-                            .font(.footnote)
-                            .foregroundStyle(Theme.Colors.textSecondary)
-                    } else {
-                        VStack(spacing: 8) {
-                            ForEach(historyEntries, id: \.cycle.persistentModelID) { entry in
-                                HeatCycleRow(
-                                    entry: entry,
-                                    canDelete: access.canModify(entryCreatedByUid: entry.cycle.createdByUid)
-                                ) {
-                                    cyclePendingDelete = entry.cycle
+                        if historyEntries.isEmpty {
+                            Text("Inga avslutade löp loggade än.")
+                                .font(.footnote)
+                                .foregroundStyle(Theme.Colors.textSecondary)
+                        } else {
+                            VStack(spacing: 8) {
+                                ForEach(historyEntries, id: \.cycle.persistentModelID) { entry in
+                                    HeatCycleRow(
+                                        entry: entry,
+                                        canDelete: access.canModify(entryCreatedByUid: entry.cycle.createdByUid)
+                                    ) {
+                                        cyclePendingDelete = entry.cycle
+                                    }
                                 }
                             }
                         }

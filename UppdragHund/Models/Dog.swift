@@ -79,6 +79,9 @@ final class Dog {
 }
 
 extension Dog {
+    /// Löp gäller endast tikar — hela löp-funktionen döljs för hanar.
+    var tracksHeat: Bool { sex == .female }
+
     var sharedModules: Set<SharedModule> {
         get { Set(rawStorage: sharedModulesRaw) }
         set { sharedModulesRaw = newValue.isEmpty ? nil : newValue.rawStorage }
