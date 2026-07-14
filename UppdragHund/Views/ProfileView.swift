@@ -95,6 +95,15 @@ struct ProfileView: View {
                     }
                 }
             }
+
+            if isOwnProfile {
+                Section {
+                    Button("Logga ut", role: .destructive) {
+                        try? authService.signOut()
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+            }
         }
         .navigationTitle(isOwnProfile ? "Min profil" : (profile?.displayName ?? "Profil"))
         .navigationBarTitleDisplayMode(.inline)
@@ -108,11 +117,6 @@ struct ProfileView: View {
                         isPresentingNewPost = true
                     } label: {
                         Label("Ny uppdatering", systemImage: "square.and.pencil")
-                    }
-                }
-                ToolbarItem(placement: .secondaryAction) {
-                    Button("Logga ut", role: .destructive) {
-                        try? authService.signOut()
                     }
                 }
             }

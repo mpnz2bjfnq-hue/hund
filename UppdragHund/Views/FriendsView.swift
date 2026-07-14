@@ -94,12 +94,6 @@ struct FriendsView: View {
                                 }
                             }
                         }
-
-                        Section {
-                            Button("Logga ut", role: .destructive) {
-                                try? authService.signOut()
-                            }
-                        }
                     }
                 .refreshable {
                     await loadData()
