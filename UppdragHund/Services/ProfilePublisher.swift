@@ -32,13 +32,18 @@ enum ProfilePublisher {
         guard summaries != lastPublished[uid] else { return }
 
         do {
-            let data = try Firestore.Encoder().encode(summaries)
-            try await Firestore.firestore().collection("users").document(uid)
-                .setData(["dogSummaries": data], merge: true)
+            // setData(from:) kräver att toppnivån är en struct/dictionary — därför
+            // en wrapper snarare än att encoda arrayen direkt.
+            try Firestore.firestore().collection("users").document(uid)
+                .setData(from: SummaryUpdate(dogSummaries: summaries), merge: true)
             lastPublished[uid] = summaries
         } catch {
             // Tyst fel (offline etc.) — försöks igen nästa gång.
         }
+    }
+
+    private struct SummaryUpdate: Codable {
+        let dogSummaries: [DogSummary]
     }
 
     /// Enkel cache så vi inte skriver samma lista upprepat per app-session.
