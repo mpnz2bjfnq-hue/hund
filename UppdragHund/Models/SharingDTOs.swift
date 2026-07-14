@@ -36,6 +36,13 @@ struct SharedDogDoc: Codable, Equatable {
     var birthDate: Date
     var sex: String
     var updatedAt: Date
+    // Registrering & identitet. Valfria → gamla dokument utan dem avkodas som nil.
+    var color: String? = nil
+    var registrationNumber: String? = nil
+    var chipNumber: String? = nil
+    var breeder: String? = nil
+    // Liten JPEG-thumbnail (~256px). Firestore lagrar som Blob; ryms i dokumentet.
+    var photoData: Data? = nil
 }
 
 struct HealthEventDTO: Codable, Equatable {

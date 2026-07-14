@@ -108,6 +108,34 @@ struct ShareMappingTests {
         #expect(target.ownerDisplayName == "Alex")
     }
 
+    @Test func dogRoundTripPreservesRegistrationFields() {
+        let dog = Dog(name: "Sixten", breed: "Malinois", birthDate: .now, sex: .male)
+        dog.color = "Tan/kolgrå"
+        dog.registrationNumber = "SE12345/2026"
+        dog.chipNumber = "752098100123456"
+        dog.breeder = "Kennel Example"
+
+        let doc = ShareMapping.dogDoc(from: dog, owner: author)
+        let target = Dog(name: "", breed: "", birthDate: .now, sex: .female)
+        ShareMapping.apply(doc, to: target)
+
+        #expect(target.color == "Tan/kolgrå")
+        #expect(target.registrationNumber == "SE12345/2026")
+        #expect(target.chipNumber == "752098100123456")
+        #expect(target.breeder == "Kennel Example")
+    }
+
+    @Test func dogPhotoRoundTrips() {
+        let photo = Data([0xFF, 0xD8, 0xFF])
+        let dog = Dog(name: "Sixten", breed: "Malinois", birthDate: .now, sex: .male)
+        dog.photoData = photo
+
+        let doc = ShareMapping.dogDoc(from: dog, owner: author)
+        let target = Dog(name: "", breed: "", birthDate: .now, sex: .female)
+        ShareMapping.apply(doc, to: target)
+        #expect(target.photoData == photo)
+    }
+
     // MARK: - Foton
 
     @Test func diaryMappingNeverTouchesPhotoData() {

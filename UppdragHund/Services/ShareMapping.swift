@@ -26,7 +26,12 @@ enum ShareMapping {
             breed: dog.breed,
             birthDate: dog.birthDate,
             sex: dog.sex.rawValue,
-            updatedAt: .now
+            updatedAt: .now,
+            color: dog.color,
+            registrationNumber: dog.registrationNumber,
+            chipNumber: dog.chipNumber,
+            breeder: dog.breeder,
+            photoData: dog.photoData
         )
     }
 
@@ -37,6 +42,11 @@ enum ShareMapping {
         dog.sex = DogSex(rawValue: doc.sex) ?? dog.sex
         dog.ownerUid = doc.ownerUid
         dog.ownerDisplayName = doc.ownerDisplayName
+        dog.color = doc.color
+        dog.registrationNumber = doc.registrationNumber
+        dog.chipNumber = doc.chipNumber
+        dog.breeder = doc.breeder
+        dog.photoData = doc.photoData
     }
 
     // MARK: - HealthEvent
