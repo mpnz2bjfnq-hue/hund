@@ -69,6 +69,7 @@ enum BodyLocation: String, Codable, CaseIterable, Identifiable {
 
 @Model
 final class HealthEvent {
+    var remoteID: UUID?
     var type: HealthEventType
     var title: String
     var date: Date
@@ -88,6 +89,7 @@ final class HealthEvent {
         temperatureCelsius: Double? = nil,
         dog: Dog? = nil
     ) {
+        self.remoteID = UUID()
         self.type = type
         self.title = title
         self.date = date

@@ -8,11 +8,13 @@ import SwiftData
 
 @Model
 final class HeatCycle {
+    var remoteID: UUID?
     var startDate: Date
     var endDate: Date?
     var dog: Dog?
 
     init(startDate: Date, endDate: Date? = nil, dog: Dog? = nil) {
+        self.remoteID = UUID()
         self.startDate = startDate
         self.endDate = endDate
         self.dog = dog

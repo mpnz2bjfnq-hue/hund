@@ -22,6 +22,9 @@ enum DogSex: String, Codable, CaseIterable, Identifiable {
 
 @Model
 final class Dog {
+    // Optional with launch-time backfill: a non-optional default would give every
+    // pre-existing row the same UUID during lightweight migration.
+    var remoteID: UUID?
     var name: String
     var breed: String
     var birthDate: Date
@@ -44,6 +47,7 @@ final class Dog {
     var trainingSessions: [TrainingSession] = []
 
     init(name: String, breed: String, birthDate: Date, sex: DogSex) {
+        self.remoteID = UUID()
         self.name = name
         self.breed = breed
         self.birthDate = birthDate

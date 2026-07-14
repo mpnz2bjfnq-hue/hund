@@ -29,6 +29,7 @@ enum MealType: String, Codable, CaseIterable, Identifiable {
 
 @Model
 final class MealEntry {
+    var remoteID: UUID?
     var type: MealType
     var time: Date
     var name: String
@@ -36,6 +37,7 @@ final class MealEntry {
     var dog: Dog?
 
     init(type: MealType, time: Date, name: String, note: String? = nil, dog: Dog? = nil) {
+        self.remoteID = UUID()
         self.type = type
         self.time = time
         self.name = name

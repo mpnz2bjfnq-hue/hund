@@ -36,6 +36,7 @@ enum TrainingActivityType: String, Codable, CaseIterable, Identifiable {
 
 @Model
 final class TrainingSession {
+    var remoteID: UUID?
     var date: Date
     var activity: String
     var durationMinutes: Int?
@@ -49,6 +50,7 @@ final class TrainingSession {
         note: String? = nil,
         dog: Dog? = nil
     ) {
+        self.remoteID = UUID()
         self.date = date
         self.activity = activity
         self.durationMinutes = durationMinutes

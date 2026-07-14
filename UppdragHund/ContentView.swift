@@ -9,6 +9,7 @@ import SwiftUI
 import SwiftData
 
 struct ContentView: View {
+    @Environment(\.modelContext) private var modelContext
     @Query(sort: \Dog.name) private var dogs: [Dog]
     @State private var activeDogStore = ActiveDogStore()
 
@@ -26,6 +27,7 @@ struct ContentView: View {
         .onAppear { ensureActiveDogSelected() }
         .onChange(of: dogs.count) { ensureActiveDogSelected() }
         .task {
+            try? SyncIdentityService.backfillRemoteIDs(context: modelContext)
             await BreedDataService.shared.refreshFromRemote()
         }
     }

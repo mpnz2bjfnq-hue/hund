@@ -38,6 +38,7 @@ enum DiaryMood: String, Codable, CaseIterable, Identifiable {
 
 @Model
 final class DiaryEntry {
+    var remoteID: UUID?
     var date: Date
     var bleedingLevel: Int
     var swellingLevel: Int
@@ -60,6 +61,7 @@ final class DiaryEntry {
         photoData: Data? = nil,
         dog: Dog? = nil
     ) {
+        self.remoteID = UUID()
         self.date = date
         self.bleedingLevel = bleedingLevel
         self.swellingLevel = swellingLevel
