@@ -80,7 +80,16 @@ struct FriendsView: View {
                                     .foregroundStyle(.secondary)
                             } else {
                                 ForEach(friends) { friend in
-                                    Text(friend.displayName)
+                                    NavigationLink {
+                                        ProfileView(userID: friend.id)
+                                    } label: {
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text(friend.displayName)
+                                            Text(friend.handle)
+                                                .font(.caption)
+                                                .foregroundStyle(.secondary)
+                                        }
+                                    }
                                 }
                             }
                         }

@@ -75,7 +75,7 @@ struct DogContextHeader: View {
         }
         .sheet(isPresented: $showingProfile) {
             NavigationStack {
-                ProfilView()
+                ProfileView()
             }
         }
         .sheet(isPresented: $showingFriends) {
