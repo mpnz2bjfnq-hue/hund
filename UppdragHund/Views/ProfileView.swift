@@ -25,6 +25,7 @@ struct ProfileView: View {
     @State private var editingProfile: UserProfile?
     @State private var isPresentingFriends = false
     @State private var postPendingDelete: ProfilePost?
+    @State private var loadError: String?
 
     private var resolvedUID: String? {
         userID ?? authService.currentUserID
@@ -169,6 +170,18 @@ struct ProfileView: View {
                 .padding(.top, 2)
                 .disabled(profile == nil)
             }
+            if let loadError {
+                VStack(spacing: 6) {
+                    Text(loadError)
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                        .multilineTextAlignment(.center)
+                    Button("Försök igen") { Task { await load() } }
+                        .font(.caption.weight(.medium))
+                }
+                .padding(.top, 4)
+                .padding(.horizontal)
+            }
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 8)
@@ -227,17 +240,31 @@ struct ProfileView: View {
     private func load() async {
         guard let uid = resolvedUID else { isLoading = false; return }
         isLoading = true
+        loadError = nil
         defer { isLoading = false }
         do {
-            profile = try await FriendsRepository.shared.fetchMyProfile(uid: uid)
+            var fetched = try await FriendsRepository.shared.fetchMyProfile(uid: uid)
+            // Själv-läkning: saknas den egna profilen (t.ex. skapades aldrig),
+            // försök skapa den och hämta igen.
+            if fetched == nil, isOwnProfile {
+                let name = AuthService.shared.currentUserID.flatMap { _ in profile?.displayName } ?? "Hundägare"
+                try await FriendsRepository.shared.ensureProfile(uid: uid, displayName: name, email: nil)
+                fetched = try await FriendsRepository.shared.fetchMyProfile(uid: uid)
+            }
+            profile = fetched
             posts = try await PostsRepository.shared.posts(forUid: uid)
             // Vänners vänlista är privat per reglerna — bara läsbar för egen profil.
             friendCount = isOwnProfile ? try await FriendsRepository.shared.friends(for: uid).count : nil
             if isOwnProfile, let profile {
                 CurrentUserStore.shared.setProfile(profile)
             }
+            if isOwnProfile && profile == nil {
+                loadError = "Kunde inte ladda din profil. Kontrollera att Firestore-reglerna är publicerade."
+            }
         } catch {
-            // Behåll det som redan laddats; tyst fel (offline etc.)
+            if isOwnProfile {
+                loadError = "Kunde inte ladda din profil: \(error.localizedDescription)"
+            }
         }
     }
 

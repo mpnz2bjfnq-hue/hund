@@ -84,12 +84,22 @@ struct WeightChartCard: View {
 
     private func select(at location: CGPoint, proxy: ChartProxy, geometry: GeometryProxy) {
         guard !weighings.isEmpty else { return }
-        let origin = geometry[proxy.plotAreaFrame].origin
-        let relativeX = location.x - origin.x
-        guard let date: Date = proxy.value(atX: relativeX) else { return }
+
+        // Safely resolve the plot frame from the proxy
+        guard let plotFrame = proxy.plotFrame else { return }
+        let frame = geometry[plotFrame]
+
+        // Ensure the drag location is within the plot area; if not, clamp to bounds
+        let clampedX = min(max(location.x, frame.minX), frame.maxX)
+
+        // Convert the x position in the plot area to a domain value (Date)
+        guard let date: Date = proxy.value(atX: clampedX) else { return }
+
+        // Find the nearest weighing by date and update selection
         guard let nearest = weighings.min(by: {
             abs($0.date.timeIntervalSince(date)) < abs($1.date.timeIntervalSince(date))
         }) else { return }
+
         selected = (nearest.date, nearest.weightKg ?? 0)
     }
 }
@@ -101,3 +111,4 @@ struct WeightChartCard: View {
     )
     .padding()
 }
+
