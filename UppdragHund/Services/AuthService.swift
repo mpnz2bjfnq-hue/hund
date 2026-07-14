@@ -71,8 +71,75 @@ final class AuthService {
         }
     }
 
+    // MARK: - E-post/lösenord
+
+    /// Skapar ett nytt konto. Användaren skriver själv sina uppgifter i UI:t.
+    func signUpWithEmail(name: String, email: String, password: String) async throws {
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines)
+        do {
+            let result = try await Auth.auth().createUser(withEmail: trimmedEmail, password: password)
+            let change = result.user.createProfileChangeRequest()
+            change.displayName = trimmedName
+            try? await change.commitChanges()
+            try await FriendsRepository.shared.ensureProfile(
+                uid: result.user.uid,
+                displayName: trimmedName.isEmpty ? "Hundägare" : trimmedName,
+                email: trimmedEmail
+            )
+        } catch {
+            throw mapAuthError(error)
+        }
+    }
+
+    func signInWithEmail(email: String, password: String) async throws {
+        let trimmedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines)
+        do {
+            let result = try await Auth.auth().signIn(withEmail: trimmedEmail, password: password)
+            // Säkerställ en profil även för konton skapade före profil-flödet fanns.
+            try await FriendsRepository.shared.ensureProfile(
+                uid: result.user.uid,
+                displayName: result.user.displayName ?? "Hundägare",
+                email: result.user.email
+            )
+        } catch {
+            throw mapAuthError(error)
+        }
+    }
+
+    func sendPasswordReset(email: String) async throws {
+        let trimmedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines)
+        do {
+            try await Auth.auth().sendPasswordReset(withEmail: trimmedEmail)
+        } catch {
+            throw mapAuthError(error)
+        }
+    }
+
     func signOut() throws {
         try Auth.auth().signOut()
+    }
+
+    /// Översätter vanliga Firebase-authfel till svenska texter.
+    private func mapAuthError(_ error: Error) -> Error {
+        let code = AuthErrorCode(rawValue: (error as NSError).code)
+        let message: String
+        switch code {
+        case .emailAlreadyInUse: message = "Det finns redan ett konto med den e-postadressen."
+        case .invalidEmail: message = "E-postadressen ser inte giltig ut."
+        case .weakPassword: message = "Lösenordet är för svagt (minst 6 tecken)."
+        case .wrongPassword, .invalidCredential: message = "Fel e-post eller lösenord."
+        case .userNotFound: message = "Inget konto hittades med den e-postadressen."
+        case .userDisabled: message = "Kontot är inaktiverat."
+        case .networkError: message = "Nätverksfel. Kontrollera din anslutning."
+        case .tooManyRequests: message = "För många försök. Vänta en stund och försök igen."
+        default: message = "Något gick fel. Försök igen."
+        }
+        return NSError(
+            domain: "AuthService",
+            code: (error as NSError).code,
+            userInfo: [NSLocalizedDescriptionKey: message]
+        )
     }
 
     enum AuthServiceError: LocalizedError {
