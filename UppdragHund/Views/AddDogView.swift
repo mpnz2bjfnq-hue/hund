@@ -105,6 +105,7 @@ struct AddDogView: View {
             dogToEdit.breed = resolvedBreed
             dogToEdit.birthDate = birthDate
             dogToEdit.sex = sex
+            SyncCoordinator.shared.dogProfileTouched(dogToEdit)
         } else {
             let dog = Dog(
                 name: trimmedName,

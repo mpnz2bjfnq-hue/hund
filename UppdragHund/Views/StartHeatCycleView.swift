@@ -29,6 +29,7 @@ struct StartHeatCycleView: View {
                     Button("Spara") {
                         let cycle = HeatCycle(startDate: startDate, dog: dog)
                         modelContext.insert(cycle)
+                        SyncCoordinator.shared.entryTouched(cycle, dog: dog)
                         dismiss()
                     }
                 }

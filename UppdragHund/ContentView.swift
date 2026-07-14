@@ -32,10 +32,19 @@ struct ContentView: View {
             await BreedDataService.shared.refreshFromRemote()
         }
         .onChange(of: scenePhase) { _, newPhase in
-            guard newPhase == .active else { return }
-            Task {
-                try? SyncIdentityService.backfillRemoteIDs(context: modelContext)
-                await SharedDogPuller.shared.pull(context: modelContext)
+            switch newPhase {
+            case .active:
+                Task {
+                    try? SyncIdentityService.backfillRemoteIDs(context: modelContext)
+                    // Push före pull så egna ändringar inte hinner skrivas över.
+                    await SyncCoordinator.shared.pushDirtyDogs()
+                    await SharedDogPuller.shared.pull(context: modelContext)
+                }
+            case .background:
+                // Bästa försök — Firestore köar offline-skrivningar ändå.
+                Task { await SyncCoordinator.shared.pushDirtyDogs() }
+            default:
+                break
             }
         }
     }

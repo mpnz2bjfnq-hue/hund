@@ -31,6 +31,7 @@ struct EndHeatCycleView: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Spara") {
                         cycle.endDate = endDate
+                        SyncCoordinator.shared.entryTouched(cycle, dog: cycle.dog)
                         dismiss()
                     }
                 }

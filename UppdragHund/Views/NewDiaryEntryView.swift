@@ -109,6 +109,7 @@ struct NewDiaryEntryView: View {
             dog: dog
         )
         modelContext.insert(entry)
+        SyncCoordinator.shared.entryTouched(entry, dog: dog)
         dismiss()
     }
 }

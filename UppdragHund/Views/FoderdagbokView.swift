@@ -82,7 +82,7 @@ struct FoderdagbokView: View {
         ) {
             Button("Ta bort", role: .destructive) {
                 if let entry = entryPendingDelete {
-                    modelContext.delete(entry)
+                    SyncCoordinator.shared.delete(entry, of: dog, in: modelContext)
                 }
                 entryPendingDelete = nil
             }

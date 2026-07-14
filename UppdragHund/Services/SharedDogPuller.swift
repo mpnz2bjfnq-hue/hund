@@ -202,8 +202,10 @@ final class SharedDogPuller {
 
 protocol SyncableEntry: PersistentModel {
     var remoteID: UUID? { get }
-    var updatedAt: Date? { get }
-    var pendingUpload: Bool { get }
+    var updatedAt: Date? { get set }
+    var pendingUpload: Bool { get set }
+    var createdByUid: String? { get set }
+    var createdByName: String? { get set }
 }
 
 protocol SyncableDTO {

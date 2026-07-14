@@ -39,7 +39,7 @@ struct HealthLogView: View {
                     }
                     .onDelete { offsets in
                         for index in offsets {
-                            modelContext.delete(filteredEvents[index])
+                            SyncCoordinator.shared.delete(filteredEvents[index], of: dog, in: modelContext)
                         }
                     }
                 }

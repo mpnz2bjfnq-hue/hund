@@ -122,7 +122,7 @@ struct KalenderView: View {
         ) {
             Button("Ta bort", role: .destructive) {
                 if let cycle = cyclePendingDelete {
-                    modelContext.delete(cycle)
+                    SyncCoordinator.shared.delete(cycle, of: dog, in: modelContext)
                 }
                 cyclePendingDelete = nil
             }

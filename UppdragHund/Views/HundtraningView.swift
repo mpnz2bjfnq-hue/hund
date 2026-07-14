@@ -70,7 +70,7 @@ struct HundtraningView: View {
         ) {
             Button("Ta bort", role: .destructive) {
                 if let session = sessionPendingDelete {
-                    modelContext.delete(session)
+                    SyncCoordinator.shared.delete(session, of: dog, in: modelContext)
                 }
                 sessionPendingDelete = nil
             }

@@ -210,7 +210,7 @@ struct DogListView: View {
     private func delete(_ dog: Dog) {
         let wasActive = activeDogStore.activeDog?.persistentModelID == dog.persistentModelID
         let remaining = dogs.first(where: { $0.persistentModelID != dog.persistentModelID })
-        modelContext.delete(dog)
+        SyncCoordinator.shared.deleteDog(dog, in: modelContext)
         if wasActive {
             activeDogStore.activeDog = remaining
         }

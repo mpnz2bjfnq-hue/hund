@@ -108,6 +108,7 @@ struct NewHealthEventView: View {
             dog: dog
         )
         modelContext.insert(event)
+        SyncCoordinator.shared.entryTouched(event, dog: dog)
         dismiss()
     }
 }
