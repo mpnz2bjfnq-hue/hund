@@ -29,7 +29,12 @@ struct ContentView: View {
         }
         .environment(activeDogStore)
         .onAppear { ensureActiveDogSelected() }
-        .onChange(of: dogs.count) { ensureActiveDogSelected() }
+        .onChange(of: dogs.count) {
+            ensureActiveDogSelected()
+            if let uid = authService.currentUserID {
+                Task { await ProfilePublisher.publish(dogs: dogs, uid: uid) }
+            }
+        }
         .task {
             try? SyncIdentityService.backfillRemoteIDs(context: modelContext)
             await BreedDataService.shared.refreshFromRemote()
@@ -42,6 +47,9 @@ struct ContentView: View {
                     // Push före pull så egna ändringar inte hinner skrivas över.
                     await SyncCoordinator.shared.pushDirtyDogs()
                     await SharedDogPuller.shared.pull(context: modelContext)
+                    if let uid = authService.currentUserID {
+                        await ProfilePublisher.publish(dogs: dogs, uid: uid)
+                    }
                 }
             case .background:
                 // Bästa försök — Firestore köar offline-skrivningar ändå.
