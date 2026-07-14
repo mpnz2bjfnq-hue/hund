@@ -24,6 +24,8 @@ firebase deploy --only firestore:rules
 
 - **users/friendRequests**: som tidigare — profiler läsbara för inloggade
   (krävs för handle-uppslag), vänförfrågningar bara för inblandade parter.
+- **users/{uid}/posts**: profilinlägg. Ägaren skapar/raderar; ägaren och
+  vänner (finns i ägarens `friends`-subkollektion) kan läsa.
 - **shares/{dogRemoteID}_{recipientUid}**: ägaren skapar/ändrar/tar bort,
   mottagaren kan läsa sin egen. Dokument-ID:ts format är tvingande —
   reglerna för `sharedDogs` slår upp exakt den sökvägen med `exists()/get()`.

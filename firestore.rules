@@ -18,6 +18,17 @@ service cloud.firestore {
         allow delete: if request.auth != null
                       && (request.auth.uid == userId || request.auth.uid == friendId);
       }
+
+      // Profilinlägg: ägaren skriver, ägaren + vänner läser.
+      match /posts/{postId} {
+        allow read: if request.auth != null
+                    && (request.auth.uid == userId
+                        || exists(/databases/$(database)/documents/users/$(userId)/friends/$(request.auth.uid)));
+        allow create: if request.auth != null
+                      && request.auth.uid == userId
+                      && request.resource.data.authorUid == userId;
+        allow update, delete: if request.auth != null && request.auth.uid == userId;
+      }
     }
 
     match /friendRequests/{requestId} {
