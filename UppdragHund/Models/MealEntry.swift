@@ -30,6 +30,11 @@ enum MealType: String, Codable, CaseIterable, Identifiable {
 @Model
 final class MealEntry {
     var remoteID: UUID?
+    // Synk/delning: nil createdByUid = skapad av hundens ägare på egna enheten.
+    var createdByUid: String?
+    var createdByName: String?
+    var updatedAt: Date?
+    var pendingUpload: Bool = false
     var type: MealType
     var time: Date
     var name: String

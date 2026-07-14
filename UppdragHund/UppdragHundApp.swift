@@ -19,6 +19,6 @@ struct UppdragHundApp: App {
         WindowGroup {
             ContentView()
         }
-        .modelContainer(for: [Dog.self, HealthEvent.self, HeatCycle.self, DiaryEntry.self, MealEntry.self, TrainingSession.self])
+        .modelContainer(for: [Dog.self, HealthEvent.self, HeatCycle.self, DiaryEntry.self, MealEntry.self, TrainingSession.self, SyncTombstone.self])
     }
 }

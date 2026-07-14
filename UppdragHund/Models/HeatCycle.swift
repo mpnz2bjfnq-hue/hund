@@ -9,6 +9,11 @@ import SwiftData
 @Model
 final class HeatCycle {
     var remoteID: UUID?
+    // Synk/delning: nil createdByUid = skapad av hundens ägare på egna enheten.
+    var createdByUid: String?
+    var createdByName: String?
+    var updatedAt: Date?
+    var pendingUpload: Bool = false
     var startDate: Date
     var endDate: Date?
     var dog: Dog?

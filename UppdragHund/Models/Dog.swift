@@ -31,6 +31,18 @@ final class Dog {
     var sex: DogSex
     var createdAt: Date
 
+    // Delning. isShared == true betyder att hunden ägs av någon annan och har
+    // hämtats hit via en delning; fälten nedan cachas från share-dokumentet.
+    var isShared: Bool = false
+    var ownerUid: String?
+    var ownerDisplayName: String?
+    var sharedModulesRaw: String?
+    var sharePermissionRaw: String?
+
+    // Ägarsidans synkstatus för hundar som delas ut.
+    var needsUpload: Bool = false
+    var lastSyncedAt: Date?
+
     @Relationship(deleteRule: .cascade, inverse: \HealthEvent.dog)
     var healthEvents: [HealthEvent] = []
 
@@ -53,5 +65,28 @@ final class Dog {
         self.birthDate = birthDate
         self.sex = sex
         self.createdAt = .now
+    }
+}
+
+extension Dog {
+    var sharedModules: Set<SharedModule> {
+        get { Set(rawStorage: sharedModulesRaw) }
+        set { sharedModulesRaw = newValue.isEmpty ? nil : newValue.rawStorage }
+    }
+
+    var sharePermission: SharePermission? {
+        get { sharePermissionRaw.flatMap(SharePermission.init(rawValue:)) }
+        set { sharePermissionRaw = newValue?.rawValue }
+    }
+
+    /// Får användaren med `uid` logga nya poster på den här hunden?
+    func canLog(uid: String?) -> Bool {
+        guard isShared else { return true }
+        return sharePermission == .readWrite && uid != nil
+    }
+
+    func includes(_ module: SharedModule) -> Bool {
+        guard isShared else { return true }
+        return sharedModules.contains(module)
     }
 }
