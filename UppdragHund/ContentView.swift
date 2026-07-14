@@ -13,6 +13,7 @@ struct ContentView: View {
     @Environment(\.scenePhase) private var scenePhase
     @Query(sort: \Dog.name) private var dogs: [Dog]
     @State private var activeDogStore = ActiveDogStore()
+    @State private var authService = AuthService.shared
 
     var body: some View {
         Group {
@@ -45,6 +46,12 @@ struct ContentView: View {
                 Task { await SyncCoordinator.shared.pushDirtyDogs() }
             default:
                 break
+            }
+        }
+        .onChange(of: authService.isSignedIn) { _, isSignedIn in
+            if !isSignedIn {
+                SessionCleanupService.handleSignOut(context: modelContext, activeDogStore: activeDogStore)
+                ensureActiveDogSelected()
             }
         }
     }
