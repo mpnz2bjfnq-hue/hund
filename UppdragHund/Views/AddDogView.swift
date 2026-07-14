@@ -5,6 +5,7 @@
 
 import SwiftUI
 import SwiftData
+import PhotosUI
 
 struct AddDogView: View {
     private static let otherOption = "Annan"
@@ -20,6 +21,12 @@ struct AddDogView: View {
     @State private var customBreedText: String
     @State private var birthDate: Date
     @State private var sex: DogSex
+    @State private var photoData: Data?
+    @State private var photoItem: PhotosPickerItem?
+    @State private var color: String
+    @State private var registrationNumber: String
+    @State private var chipNumber: String
+    @State private var breeder: String
 
     init(dogToEdit: Dog? = nil) {
         self.dogToEdit = dogToEdit
@@ -44,6 +51,11 @@ struct AddDogView: View {
         _name = State(initialValue: dogToEdit?.name ?? "")
         _birthDate = State(initialValue: dogToEdit?.birthDate ?? .now)
         _sex = State(initialValue: dogToEdit?.sex ?? .female)
+        _photoData = State(initialValue: dogToEdit?.photoData)
+        _color = State(initialValue: dogToEdit?.color ?? "")
+        _registrationNumber = State(initialValue: dogToEdit?.registrationNumber ?? "")
+        _chipNumber = State(initialValue: dogToEdit?.chipNumber ?? "")
+        _breeder = State(initialValue: dogToEdit?.breeder ?? "")
     }
 
     private var isCustomBreed: Bool {
@@ -61,6 +73,27 @@ struct AddDogView: View {
     var body: some View {
         NavigationStack {
             Form {
+                Section {
+                    HStack {
+                        Spacer()
+                        VStack(spacing: 12) {
+                            DogAvatar(photoData: photoData, size: 96)
+                            PhotosPicker(selection: $photoItem, matching: .images) {
+                                Text(photoData == nil ? "Lägg till bild" : "Byt bild")
+                            }
+                            if photoData != nil {
+                                Button("Ta bort bild", role: .destructive) {
+                                    photoData = nil
+                                    photoItem = nil
+                                }
+                                .font(.caption)
+                            }
+                        }
+                        Spacer()
+                    }
+                }
+                .listRowBackground(Color.clear)
+
                 Section("Om hunden") {
                     TextField("Namn", text: $name)
 
@@ -82,6 +115,15 @@ struct AddDogView: View {
                         }
                     }
                 }
+
+                Section("Registrering (valfritt)") {
+                    TextField("Färg", text: $color)
+                    TextField("Registreringsnummer", text: $registrationNumber)
+                        .autocorrectionDisabled()
+                    TextField("Chipnummer", text: $chipNumber)
+                        .keyboardType(.numberPad)
+                    TextField("Uppfödare", text: $breeder)
+                }
             }
             .navigationTitle(dogToEdit == nil ? "Lägg till hund" : "Redigera hund")
             .navigationBarTitleDisplayMode(.inline)
@@ -94,6 +136,20 @@ struct AddDogView: View {
                         .disabled(!isValid)
                 }
             }
+            .onChange(of: photoItem) {
+                loadPickedPhoto()
+            }
+        }
+    }
+
+    private func loadPickedPhoto() {
+        guard let photoItem else { return }
+        Task {
+            if let data = try? await photoItem.loadTransferable(type: Data.self),
+               let image = UIImage(data: data),
+               let thumb = AvatarImage.makeThumbnailData(from: image) {
+                photoData = thumb
+            }
         }
     }
 
@@ -105,6 +161,11 @@ struct AddDogView: View {
             dogToEdit.breed = resolvedBreed
             dogToEdit.birthDate = birthDate
             dogToEdit.sex = sex
+            dogToEdit.photoData = photoData
+            dogToEdit.color = trimmedOrNil(color)
+            dogToEdit.registrationNumber = trimmedOrNil(registrationNumber)
+            dogToEdit.chipNumber = trimmedOrNil(chipNumber)
+            dogToEdit.breeder = trimmedOrNil(breeder)
             SyncCoordinator.shared.dogProfileTouched(dogToEdit)
         } else {
             let dog = Dog(
@@ -113,9 +174,19 @@ struct AddDogView: View {
                 birthDate: birthDate,
                 sex: sex
             )
+            dog.photoData = photoData
+            dog.color = trimmedOrNil(color)
+            dog.registrationNumber = trimmedOrNil(registrationNumber)
+            dog.chipNumber = trimmedOrNil(chipNumber)
+            dog.breeder = trimmedOrNil(breeder)
             modelContext.insert(dog)
         }
         dismiss()
+    }
+
+    private func trimmedOrNil(_ text: String) -> String? {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
     }
 }
 

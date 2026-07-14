@@ -31,6 +31,16 @@ final class Dog {
     var sex: DogSex
     var createdAt: Date
 
+    // Lokal profilbild (liten JPEG-thumbnail). Synkas INTE till delning — foton
+    // hålls medvetet lokala. nil = visa platshållare.
+    var photoData: Data? = nil
+
+    // Registrering & identitet (valfritt, lokalt — synkas inte ännu).
+    var color: String? = nil
+    var registrationNumber: String? = nil
+    var chipNumber: String? = nil
+    var breeder: String? = nil
+
     // Delning. isShared == true betyder att hunden ägs av någon annan och har
     // hämtats hit via en delning; fälten nedan cachas från share-dokumentet.
     var isShared: Bool = false
