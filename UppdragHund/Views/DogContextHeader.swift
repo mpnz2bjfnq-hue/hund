@@ -9,8 +9,6 @@ struct DogContextHeader: View {
     let dog: Dog
 
     @State private var showingShare = false
-    @State private var showingProfile = false
-    @State private var currentUser = CurrentUserStore.shared
 
     var body: some View {
         HStack(spacing: 12) {
@@ -47,15 +45,6 @@ struct DogContextHeader: View {
                 }
                 .accessibilityLabel("Dela hund")
             }
-
-            Button {
-                showingProfile = true
-            } label: {
-                ProfileAvatar(photoData: currentUser.profile?.photoData, size: 34)
-                    .frame(width: 44, height: 44)
-                    .contentShape(Rectangle())
-            }
-            .accessibilityLabel("Min profil")
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 4)
@@ -66,16 +55,6 @@ struct DogContextHeader: View {
         .dynamicTypeSize(...DynamicTypeSize.accessibility1)
         .sheet(isPresented: $showingShare) {
             ShareDogView(dog: dog)
-        }
-        .sheet(isPresented: $showingProfile) {
-            NavigationStack {
-                ProfileView()
-            }
-        }
-        .task {
-            if currentUser.profile == nil {
-                await currentUser.refresh()
-            }
         }
     }
 }

@@ -6,59 +6,53 @@
 import SwiftUI
 
 private enum MainTab: Hashable {
-    case kalender, dagbok, hundar, mer
+    case hem, kalender, dagbok, profil
 }
 
 struct MainTabView: View {
     @Environment(ActiveDogStore.self) private var activeDogStore
-    @State private var selectedTab: MainTab = .kalender
-    @State private var showingMerSheet = false
+    @State private var selectedTab: MainTab = .hem
 
     var body: some View {
         if let activeDog = activeDogStore.activeDog {
-            VStack(spacing: 0) {
-                DogContextHeader(dog: activeDog)
+            TabView(selection: $selectedTab) {
+                NavigationStack {
+                    HemView(dog: activeDog)
+                }
+                .tabItem {
+                    Label("Hem", systemImage: "house.fill")
+                }
+                .tag(MainTab.hem)
 
-                TabView(selection: $selectedTab) {
+                VStack(spacing: 0) {
+                    DogContextHeader(dog: activeDog)
                     NavigationStack {
                         KalenderView(dog: activeDog)
                     }
-                    .tabItem {
-                        Label("Kalender", systemImage: "calendar")
-                    }
-                    .tag(MainTab.kalender)
+                }
+                .tabItem {
+                    Label("Kalender", systemImage: "calendar")
+                }
+                .tag(MainTab.kalender)
 
+                VStack(spacing: 0) {
+                    DogContextHeader(dog: activeDog)
                     NavigationStack {
                         DagbokView(dog: activeDog)
                     }
-                    .tabItem {
-                        Label("Dagbok", systemImage: "list.clipboard")
-                    }
-                    .tag(MainTab.dagbok)
-
-                    NavigationStack {
-                        DogListView()
-                    }
-                    .tabItem {
-                        Label("Hundar", systemImage: "pawprint")
-                    }
-                    .tag(MainTab.hundar)
-
-                    Color.clear
-                        .tabItem {
-                            Label("Mer", systemImage: "ellipsis")
-                        }
-                        .tag(MainTab.mer)
                 }
-            }
-            .onChange(of: selectedTab) { oldValue, newValue in
-                if newValue == .mer {
-                    showingMerSheet = true
-                    selectedTab = oldValue
+                .tabItem {
+                    Label("Dagbok", systemImage: "list.clipboard")
                 }
-            }
-            .sheet(isPresented: $showingMerSheet) {
-                MerSheetView()
+                .tag(MainTab.dagbok)
+
+                NavigationStack {
+                    MinProfilView()
+                }
+                .tabItem {
+                    Label("Min profil", systemImage: "person.crop.circle")
+                }
+                .tag(MainTab.profil)
             }
         }
     }
