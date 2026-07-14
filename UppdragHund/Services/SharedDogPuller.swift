@@ -33,15 +33,135 @@ final class SharedDogPuller {
         }
     }
 
-    /// Hämtar allt som delas med den inloggade användaren och speglar lokalt.
+    /// Hämtar allt som delas med den inloggade användaren och speglar lokalt,
+    /// samt hämtar vänners bidrag till mina egna delade hundar.
     /// Fel sväljs tyst (offline etc.) — den lokala kopian blir kvar som den är.
     func pull(context: ModelContext) async {
         guard let uid = AuthService.shared.currentUserID else { return }
         do {
             let snapshots = try await fetchSnapshots(recipientUid: uid)
             try apply(snapshots: snapshots, context: context)
+            try await pullFriendContributions(ownerUid: uid, context: context)
         } catch {
             // Offline eller regelfel — behåll den lokala kopian tyst.
+        }
+    }
+
+    /// Ägarsidan: hämtar poster som vänner skapat på mina egna delade hundar
+    /// och mergar in dem (endast vänförfattade poster rörs — mina egna är källan).
+    private func pullFriendContributions(ownerUid: String, context: ModelContext) async throws {
+        let repository = SharingRepository.shared
+        let sharesIOwn = try await repository.sharesIOwn(ownerUid: ownerUid)
+        let sharedDogIDs = Set(sharesIOwn.map(\.dogRemoteID))
+        guard !sharedDogIDs.isEmpty else { return }
+
+        let ownDogs = try context.fetch(
+            FetchDescriptor<Dog>(predicate: #Predicate { !$0.isShared })
+        )
+
+        for dogRemoteIDString in sharedDogIDs {
+            guard let dogRemoteID = UUID(uuidString: dogRemoteIDString),
+                  let dog = ownDogs.first(where: { $0.remoteID == dogRemoteID }) else { continue }
+
+            let sharedModules = Set(
+                sharesIOwn.filter { $0.dogRemoteID == dogRemoteIDString }
+                    .flatMap(\.modules)
+                    .compactMap(SharedModule.init(rawValue:))
+            )
+
+            for module in sharedModules {
+                let documents = try await repository.fetchEntryDocuments(dogRemoteID: dogRemoteIDString, module: module)
+                mergeFriendEntries(
+                    module: module,
+                    documents: documents,
+                    ownerUid: ownerUid,
+                    dog: dog,
+                    context: context
+                )
+            }
+        }
+        try context.save()
+    }
+
+    private func mergeFriendEntries(
+        module: SharedModule,
+        documents: [(id: String, snapshot: DocumentSnapshot)],
+        ownerUid: String,
+        dog: Dog,
+        context: ModelContext
+    ) {
+        switch module {
+        case .health:
+            let remote = decodeFriendDTOs(documents, ownerUid: ownerUid) { (dto: HealthEventDTO) in dto }
+            mergeFriendAuthored(remote: remote, local: dog.healthEvents, ownerUid: ownerUid, context: context,
+                update: { ShareMapping.apply($0, to: $1) },
+                insert: { context.insert(ShareMapping.makeHealthEvent(from: $0, remoteID: $1, dog: dog)) })
+        case .heat:
+            let remote = decodeFriendDTOs(documents, ownerUid: ownerUid) { (dto: HeatCycleDTO) in dto }
+            mergeFriendAuthored(remote: remote, local: dog.heatCycles, ownerUid: ownerUid, context: context,
+                update: { ShareMapping.apply($0, to: $1) },
+                insert: { context.insert(ShareMapping.makeHeatCycle(from: $0, remoteID: $1, dog: dog)) })
+        case .diary:
+            let remote = decodeFriendDTOs(documents, ownerUid: ownerUid) { (dto: DiaryEntryDTO) in dto }
+            mergeFriendAuthored(remote: remote, local: dog.diaryEntries, ownerUid: ownerUid, context: context,
+                update: { ShareMapping.apply($0, to: $1) },
+                insert: { context.insert(ShareMapping.makeDiaryEntry(from: $0, remoteID: $1, dog: dog)) })
+        case .meals:
+            let remote = decodeFriendDTOs(documents, ownerUid: ownerUid) { (dto: MealEntryDTO) in dto }
+            mergeFriendAuthored(remote: remote, local: dog.mealEntries, ownerUid: ownerUid, context: context,
+                update: { ShareMapping.apply($0, to: $1) },
+                insert: { context.insert(ShareMapping.makeMealEntry(from: $0, remoteID: $1, dog: dog)) })
+        case .training:
+            let remote = decodeFriendDTOs(documents, ownerUid: ownerUid) { (dto: TrainingSessionDTO) in dto }
+            mergeFriendAuthored(remote: remote, local: dog.trainingSessions, ownerUid: ownerUid, context: context,
+                update: { ShareMapping.apply($0, to: $1) },
+                insert: { context.insert(ShareMapping.makeTrainingSession(from: $0, remoteID: $1, dog: dog)) })
+        }
+    }
+
+    private func decodeFriendDTOs<DTO: Decodable & FriendAuthored>(
+        _ documents: [(id: String, snapshot: DocumentSnapshot)],
+        ownerUid: String,
+        as _: (DTO) -> DTO
+    ) -> [UUID: DTO] {
+        var result: [UUID: DTO] = [:]
+        for (id, snapshot) in documents {
+            guard let uuid = UUID(uuidString: id),
+                  let dto = try? snapshot.data(as: DTO.self),
+                  dto.createdByUid != ownerUid else { continue }
+            result[uuid] = dto
+        }
+        return result
+    }
+
+    /// Som `merge`, men begränsad till vänförfattade lokala poster: mina egna
+    /// poster (createdByUid == nil eller == ownerUid) rörs aldrig.
+    private func mergeFriendAuthored<Entry: SyncableEntry, DTO: SyncableDTO>(
+        remote: [UUID: DTO],
+        local: [Entry],
+        ownerUid: String,
+        context: ModelContext,
+        update: (DTO, Entry) -> Void,
+        insert: (DTO, UUID) -> Void
+    ) {
+        let friendLocal = local.filter { entry in
+            guard let uid = entry.createdByUid else { return false }
+            return uid != ownerUid
+        }
+        let localByID = Dictionary(
+            friendLocal.compactMap { entry in entry.remoteID.map { ($0, entry) } },
+            uniquingKeysWith: { first, _ in first }
+        )
+        let plan = SyncPlanner.mergePlan(
+            remoteIDs: remote.mapValues(\.updatedAt),
+            localIDs: localByID.mapValues(\.updatedAt)
+        )
+        for id in plan.insert { insert(remote[id]!, id) }
+        for id in plan.update {
+            if let entry = localByID[id] { update(remote[id]!, entry) }
+        }
+        for id in plan.deleteLocal {
+            if let entry = localByID[id] { context.delete(entry) }
         }
     }
 
@@ -212,14 +332,18 @@ protocol SyncableDTO {
     var updatedAt: Date { get }
 }
 
+protocol FriendAuthored: SyncableDTO {
+    var createdByUid: String { get }
+}
+
 extension HealthEvent: SyncableEntry {}
 extension HeatCycle: SyncableEntry {}
 extension DiaryEntry: SyncableEntry {}
 extension MealEntry: SyncableEntry {}
 extension TrainingSession: SyncableEntry {}
 
-extension HealthEventDTO: SyncableDTO {}
-extension HeatCycleDTO: SyncableDTO {}
-extension DiaryEntryDTO: SyncableDTO {}
-extension MealEntryDTO: SyncableDTO {}
-extension TrainingSessionDTO: SyncableDTO {}
+extension HealthEventDTO: FriendAuthored {}
+extension HeatCycleDTO: FriendAuthored {}
+extension DiaryEntryDTO: FriendAuthored {}
+extension MealEntryDTO: FriendAuthored {}
+extension TrainingSessionDTO: FriendAuthored {}

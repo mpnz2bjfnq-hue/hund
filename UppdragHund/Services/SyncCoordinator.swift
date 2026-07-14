@@ -65,25 +65,54 @@ final class SyncCoordinator {
 
     // MARK: - Anrop från mutationsställen
 
-    /// Ny eller ändrad post. Stämplar updatedAt och markerar hunden för push.
+    /// Ny eller ändrad post. Stämplar updatedAt och markerar för push —
+    /// via hundens dirty-flagga (egen hund) eller postens pendingUpload (delad hund).
     func entryTouched(_ entry: some SyncableEntry, dog: Dog?) {
         entry.updatedAt = .now
-        guard let dog, !dog.isShared else { return } // vänsidans push kommer i steg 9
-        markDirty(dog)
+        guard let dog else { return }
+
+        if dog.isShared {
+            guard dog.sharePermission == .readWrite,
+                  let uid = AuthService.shared.currentUserID else { return }
+            if entry.createdByUid == nil {
+                entry.createdByUid = uid
+                entry.createdByName = cachedOwnerAuthor?.name
+            }
+            guard entry.createdByUid == uid else { return } // ägarens poster är fredade
+            entry.pendingUpload = true
+            schedulePush()
+        } else {
+            markDirty(dog)
+        }
     }
 
     /// Radering av post — skriver tombstone FÖRE delete så remoteID hinner fångas.
+    /// På en delad hund tombstonas bara egna poster (UI:t hindrar resten).
     func delete<Entry: SyncableEntry & ModuleTagged>(_ entry: Entry, of dog: Dog?, in context: ModelContext) {
-        if let dog, !dog.isShared, let dogRemoteID = dog.remoteID, let entryRemoteID = entry.remoteID {
-            context.insert(SyncTombstone(
-                dogRemoteID: dogRemoteID,
-                module: Entry.module.rawValue,
-                entryRemoteID: entryRemoteID
-            ))
+        if let dog, let dogRemoteID = dog.remoteID, let entryRemoteID = entry.remoteID {
+            let shouldTombstone: Bool
+            if dog.isShared {
+                shouldTombstone = dog.sharePermission == .readWrite
+                    && entry.createdByUid != nil
+                    && entry.createdByUid == AuthService.shared.currentUserID
+            } else {
+                shouldTombstone = true
+            }
+            if shouldTombstone {
+                context.insert(SyncTombstone(
+                    dogRemoteID: dogRemoteID,
+                    module: Entry.module.rawValue,
+                    entryRemoteID: entryRemoteID
+                ))
+            }
         }
         context.delete(entry)
-        if let dog, !dog.isShared {
-            markDirty(dog)
+        if let dog {
+            if dog.isShared {
+                schedulePush()
+            } else {
+                markDirty(dog)
+            }
         }
     }
 
