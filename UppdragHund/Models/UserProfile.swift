@@ -21,6 +21,16 @@ struct UserProfile: Codable, Identifiable {
     var photoData: Data?
 }
 
+extension UserProfile {
+    /// Prefix på autogenererade handles (innan användaren valt ett riktigt @namn).
+    static let autoHandlePrefix = "DOG-"
+
+    /// Behöver profilen slutföras? (Inget valt användarnamn än.)
+    var needsProfileSetup: Bool {
+        handle.isEmpty || handle.hasPrefix(Self.autoHandlePrefix)
+    }
+}
+
 struct DogSummary: Codable, Equatable, Identifiable {
     var remoteID: String
     var name: String

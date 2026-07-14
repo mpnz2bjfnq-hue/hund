@@ -24,12 +24,20 @@ final class CurrentUserStore {
         profile?.photoData.flatMap(UIImage.init(data:))
     }
 
+    /// Hämtar profilen och själv-läker ett saknat/ofullständigt dokument
+    /// (t.ex. bara dogSummaries → avkodningsfel) så gaten inte fastnar.
     func refresh() async {
         guard let uid = AuthService.shared.currentUserID else {
             profile = nil
             return
         }
-        profile = try? await FriendsRepository.shared.fetchMyProfile(uid: uid)
+        var fetched = try? await FriendsRepository.shared.fetchMyProfile(uid: uid)
+        if fetched == nil {
+            let name = AuthService.shared.currentDisplayName ?? "Hundägare"
+            try? await FriendsRepository.shared.ensureProfile(uid: uid, displayName: name, email: nil)
+            fetched = try? await FriendsRepository.shared.fetchMyProfile(uid: uid)
+        }
+        profile = fetched
     }
 
     /// Sätt profilen direkt (t.ex. när en vy redan hämtat den).
