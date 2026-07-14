@@ -14,11 +14,19 @@ struct ContentView: View {
     @Query(sort: \Dog.name) private var dogs: [Dog]
     @State private var activeDogStore = ActiveDogStore()
     @State private var authService = AuthService.shared
+    @State private var currentUser = CurrentUserStore.shared
+    @State private var isLoadingProfile = false
 
     var body: some View {
         Group {
             if !authService.isSignedIn {
                 AuthGateView()
+            } else if currentUser.profile == nil {
+                loadingSplash
+            } else if let profile = currentUser.profile, profile.needsProfileSetup {
+                CompleteProfileView(profile: profile) {
+                    Task { await currentUser.refresh() }
+                }
             } else if dogs.isEmpty {
                 NavigationStack {
                     DogListView()
@@ -29,6 +37,11 @@ struct ContentView: View {
         }
         .environment(activeDogStore)
         .onAppear { ensureActiveDogSelected() }
+        .task(id: authService.isSignedIn) {
+            if authService.isSignedIn {
+                await loadProfile()
+            }
+        }
         .onChange(of: dogs.count) {
             ensureActiveDogSelected()
             if let uid = authService.currentUserID {
@@ -64,6 +77,33 @@ struct ContentView: View {
                 ensureActiveDogSelected()
             }
         }
+    }
+
+    private var loadingSplash: some View {
+        VStack(spacing: 16) {
+            Image("Canine360Logo")
+                .resizable()
+                .scaledToFit()
+                .frame(maxWidth: 160)
+            if isLoadingProfile {
+                ProgressView()
+            } else {
+                Text("Kunde inte ladda din profil. Kontrollera din anslutning.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 40)
+                Button("Försök igen") { Task { await loadProfile() } }
+                    .buttonStyle(.bordered)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private func loadProfile() async {
+        isLoadingProfile = true
+        await currentUser.refresh()
+        isLoadingProfile = false
     }
 
     private func ensureActiveDogSelected() {
