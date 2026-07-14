@@ -19,10 +19,7 @@ struct FriendsView: View {
     var body: some View {
         NavigationStack {
             Group {
-                if !authService.isSignedIn {
-                    SignInView()
-                } else {
-                    List {
+                List {
                         if let myProfile {
                             Section("Din kod") {
                                 LabeledContent("Kod", value: myProfile.handle)
@@ -94,9 +91,8 @@ struct FriendsView: View {
                             }
                         }
                     }
-                    .refreshable {
-                        await loadData()
-                    }
+                .refreshable {
+                    await loadData()
                 }
             }
             .navigationTitle("Vänner")

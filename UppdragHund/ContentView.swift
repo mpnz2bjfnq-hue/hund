@@ -17,7 +17,9 @@ struct ContentView: View {
 
     var body: some View {
         Group {
-            if dogs.isEmpty {
+            if !authService.isSignedIn {
+                AuthGateView()
+            } else if dogs.isEmpty {
                 NavigationStack {
                     DogListView()
                 }
