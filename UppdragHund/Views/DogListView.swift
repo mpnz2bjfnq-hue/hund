@@ -9,7 +9,8 @@ import SwiftData
 struct DogListView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(ActiveDogStore.self) private var activeDogStore
-    @Query(sort: \Dog.name) private var dogs: [Dog]
+    @Query(filter: #Predicate<Dog> { !$0.isShared }, sort: \Dog.name) private var dogs: [Dog]
+    @Query(filter: #Predicate<Dog> { $0.isShared }, sort: \Dog.name) private var sharedDogs: [Dog]
 
     @State private var isPresentingAddDog = false
     @State private var dogPendingEdit: Dog?
@@ -18,7 +19,7 @@ struct DogListView: View {
 
     var body: some View {
         Group {
-            if dogs.isEmpty {
+            if dogs.isEmpty && sharedDogs.isEmpty {
                 ContentUnavailableView(
                     "Inga hundar än",
                     systemImage: "pawprint",
@@ -33,18 +34,36 @@ struct DogListView: View {
                     }
 
                     Section("Mina hundar") {
-                        ForEach(dogs) { dog in
-                            dogRow(for: dog)
+                        if dogs.isEmpty {
+                            Text("Inga egna hundar än.")
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                        } else {
+                            ForEach(dogs) { dog in
+                                dogRow(for: dog)
+                            }
                         }
                     }
 
                     Section("Delade med mig") {
-                        Text("Kommer snart – dela och ta emot delade hundar.")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
+                        if sharedDogs.isEmpty {
+                            Text("Hundar som vänner delar med dig dyker upp här.")
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                        } else {
+                            ForEach(sharedDogs) { dog in
+                                sharedDogRow(for: dog)
+                            }
+                        }
                     }
                 }
+                .refreshable {
+                    await SharedDogPuller.shared.pull(context: modelContext)
+                }
             }
+        }
+        .task {
+            await SharedDogPuller.shared.pull(context: modelContext)
         }
         .navigationTitle("Hundar")
         .toolbar {
@@ -145,6 +164,47 @@ struct DogListView: View {
                 .tint(.indigo)
             }
         }
+    }
+
+    @ViewBuilder
+    private func sharedDogRow(for dog: Dog) -> some View {
+        let isActive = dog.persistentModelID == activeDogStore.activeDog?.persistentModelID
+
+        Button {
+            activeDogStore.activeDog = dog
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "pawprint.circle")
+                    .font(.title)
+                    .foregroundStyle(.tint)
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 6) {
+                        Text(dog.name)
+                            .font(.headline)
+                        if isActive {
+                            Image(systemName: "checkmark")
+                                .font(.subheadline.bold())
+                                .foregroundStyle(.tint)
+                        }
+                    }
+                    Text("Delas av \(dog.ownerDisplayName ?? "vän")")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                    if let permission = dog.sharePermission {
+                        Text(permission.displayName)
+                            .font(.caption2.weight(.medium))
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(.tint.opacity(0.15), in: Capsule())
+                    }
+                }
+                Spacer()
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(isActive ? [.isSelected] : [])
     }
 
     private func delete(_ dog: Dog) {

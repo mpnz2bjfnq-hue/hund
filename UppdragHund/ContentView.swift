@@ -10,6 +10,7 @@ import SwiftData
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.scenePhase) private var scenePhase
     @Query(sort: \Dog.name) private var dogs: [Dog]
     @State private var activeDogStore = ActiveDogStore()
 
@@ -29,6 +30,13 @@ struct ContentView: View {
         .task {
             try? SyncIdentityService.backfillRemoteIDs(context: modelContext)
             await BreedDataService.shared.refreshFromRemote()
+        }
+        .onChange(of: scenePhase) { _, newPhase in
+            guard newPhase == .active else { return }
+            Task {
+                try? SyncIdentityService.backfillRemoteIDs(context: modelContext)
+                await SharedDogPuller.shared.pull(context: modelContext)
+            }
         }
     }
 
