@@ -30,6 +30,33 @@ final class FriendsRepository {
         return try snapshot.data(as: UserProfile.self)
     }
 
+    /// Är användarnamnet ledigt? Ett namn som redan tillhör `excludingUid`
+    /// (dvs. mitt eget nuvarande) räknas som ledigt.
+    func isUsernameAvailable(_ handle: String, excludingUid: String) async throws -> Bool {
+        let snapshot = try await db.collection("users")
+            .whereField("handle", isEqualTo: handle)
+            .getDocuments()
+        return snapshot.documents.allSatisfy { $0.documentID == excludingUid }
+    }
+
+    /// Uppdaterar redigerbara profilfält. Skickar bara med fält som ändras.
+    func updateProfile(
+        uid: String,
+        displayName: String? = nil,
+        handle: String? = nil,
+        photoData: Data?? = nil
+    ) async throws {
+        var data: [String: Any] = [:]
+        if let displayName { data["displayName"] = displayName }
+        if let handle { data["handle"] = handle }
+        if let photoData {
+            // photoData == .some(nil) betyder "ta bort bilden".
+            data["photoData"] = photoData ?? FieldValue.delete()
+        }
+        guard !data.isEmpty else { return }
+        try await db.collection("users").document(uid).setData(data, merge: true)
+    }
+
     func sendFriendRequest(from myUid: String, myDisplayName: String, myHandle: String, toHandle: String) async throws {
         let query = db.collection("users").whereField("handle", isEqualTo: toHandle)
         let snapshot = try await query.getDocuments()

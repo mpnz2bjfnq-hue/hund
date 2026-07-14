@@ -9,12 +9,16 @@ import FirebaseFirestore
 struct UserProfile: Codable, Identifiable {
     @DocumentID var id: String?
     var displayName: String
+    /// Användarnamnet (@handle). Vänner lägger till dig via detta.
     var handle: String
     var email: String?
     var createdAt: Date
     /// Publik summering av användarens hundar, för visning på profilen
     /// (även för vänner). Underhålls av ProfilePublisher.
     var dogSummaries: [DogSummary]?
+    /// Komprimerad profilbild (~256px JPEG) lagrad direkt i profilen.
+    /// Ingen Firebase Storage behövs i v1.
+    var photoData: Data?
 }
 
 struct DogSummary: Codable, Equatable, Identifiable {
