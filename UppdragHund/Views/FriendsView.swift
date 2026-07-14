@@ -21,9 +21,9 @@ struct FriendsView: View {
             Group {
                 List {
                         if let myProfile {
-                            Section("Din kod") {
-                                LabeledContent("Kod", value: myProfile.handle)
-                                Text("Dela den här koden med en vän så de kan lägga till dig.")
+                            Section("Ditt användarnamn") {
+                                LabeledContent("Användarnamn", value: "@\(myProfile.handle)")
+                                Text("Dela ditt användarnamn med en vän så kan de lägga till dig.")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
@@ -31,8 +31,9 @@ struct FriendsView: View {
 
                         Section("Lägg till vän") {
                             HStack {
-                                TextField("Väns kod, t.ex. DOG-1234", text: $handleInput)
-                                    .textInputAutocapitalization(.characters)
+                                Text("@").foregroundStyle(.secondary)
+                                TextField("väns användarnamn", text: $handleInput)
+                                    .textInputAutocapitalization(.never)
                                     .autocorrectionDisabled()
                                 Button("Skicka") {
                                     sendRequest()
@@ -53,7 +54,7 @@ struct FriendsView: View {
                                         VStack(alignment: .leading) {
                                             Text(request.fromDisplayName)
                                                 .font(.headline)
-                                            Text(request.fromHandle)
+                                            Text("@\(request.fromHandle)")
                                                 .font(.caption)
                                                 .foregroundStyle(.secondary)
                                         }
@@ -85,7 +86,7 @@ struct FriendsView: View {
                                     } label: {
                                         VStack(alignment: .leading, spacing: 2) {
                                             Text(friend.displayName)
-                                            Text(friend.handle)
+                                            Text("@\(friend.handle)")
                                                 .font(.caption)
                                                 .foregroundStyle(.secondary)
                                         }
@@ -143,7 +144,7 @@ struct FriendsView: View {
                     from: uid,
                     myDisplayName: myProfile.displayName,
                     myHandle: myProfile.handle,
-                    toHandle: handleInput.trimmingCharacters(in: .whitespaces).uppercased()
+                    toHandle: UsernameValidator.normalize(handleInput)
                 )
                 handleInput = ""
                 errorMessage = nil
