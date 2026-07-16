@@ -205,7 +205,7 @@ $("btn-join").onclick = async () => {
 document.querySelectorAll(".tab").forEach((tab) => {
   tab.onclick = () => {
     document.querySelectorAll(".tab").forEach((t) => t.classList.toggle("active", t === tab));
-    ["posts", "tasks", "meetups"].forEach((name) => {
+    ["posts", "tasks", "meetups", "members"].forEach((name) => {
       $(`tab-${name}`).classList.toggle("hidden", tab.dataset.tab !== name);
     });
   };
@@ -218,16 +218,42 @@ $("btn-back").onclick = () => {
 };
 
 async function openTeam(team) {
-  currentTeam = team;
-  $("team-title").textContent = team.name;
+  // Hämta färskt team-dokument så medlemslistan är aktuell.
+  const fresh = await getDoc(doc(db, "teams", team.id)).catch(() => null);
+  currentTeam = fresh?.exists() ? { id: team.id, ...fresh.data() } : team;
+  $("team-title").textContent = currentTeam.name;
 
   // Vanliga grupper har inga uppgifter — dölj fliken (matchar iOS).
-  const hasTasks = team.teamType !== "social";
+  const hasTasks = currentTeam.teamType !== "social";
   document.querySelector('[data-tab="tasks"]').classList.toggle("hidden", !hasTasks);
   document.querySelector('[data-tab="posts"]').click();
 
   show("view-team");
+  renderMembers();
   await Promise.all([loadPosts(), hasTasks ? loadTasks() : Promise.resolve(), loadMeetups()]);
+}
+
+function renderMembers() {
+  const container = $("tab-members");
+  container.innerHTML = "";
+  const uids = currentTeam.memberUids ?? [];
+  const consultants = currentTeam.consultantUids ?? [];
+
+  for (const uid of uids) {
+    const roles = [
+      uid === currentTeam.ownerUid ? `<span class="badge">Ägare</span>` : "",
+      consultants.includes(uid) ? `<span class="badge">Konsulent</span>` : "",
+      uid === currentUser.uid ? `<span class="badge warn">Du</span>` : "",
+    ].join("");
+    const item = document.createElement("div");
+    item.className = "item";
+    item.innerHTML = `<div class="title">${esc(currentTeam.memberNames?.[uid] ?? "Medlem")} ${roles}</div>`;
+    container.appendChild(item);
+  }
+  const meta = document.createElement("p");
+  meta.className = "empty";
+  meta.textContent = `${uids.length} medlemmar`;
+  container.appendChild(meta);
 }
 
 async function loadPosts() {
