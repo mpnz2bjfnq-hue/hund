@@ -568,15 +568,17 @@ struct TeamPageView: View {
 
     private var meetupsSection: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.m) {
-            Button {
-                isPresentingNewMeetup = true
-            } label: {
-                Label("Skapa träff med teamet", systemImage: "calendar.badge.plus")
-                    .font(Theme.Typography.body.weight(.medium))
-                    .frame(maxWidth: .infinity, minHeight: 44)
+            if team.canCreateMeetups(authService.currentUserID) {
+                Button {
+                    isPresentingNewMeetup = true
+                } label: {
+                    Label("Skapa träff med teamet", systemImage: "calendar.badge.plus")
+                        .font(Theme.Typography.body.weight(.medium))
+                        .frame(maxWidth: .infinity, minHeight: 44)
+                }
+                .buttonStyle(.bordered)
+                .tint(Theme.Colors.brand)
             }
-            .buttonStyle(.bordered)
-            .tint(Theme.Colors.brand)
 
             if meetups.isEmpty {
                 Text(isLoading ? "Laddar…" : "Inga träffar planerade för teamet.")

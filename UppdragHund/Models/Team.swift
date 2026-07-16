@@ -82,6 +82,14 @@ struct Team: Codable, Identifiable, Equatable {
     func canManageTasks(_ uid: String?) -> Bool {
         uid == ownerUid || isConsultant(uid)
     }
+
+    /// Vem får skapa träffar? I kurser/konsulentteam bara ägare/konsulenter
+    /// (deltagare ska inte lägga in egna kurstillfällen); i vanliga grupper
+    /// alla medlemmar. Speglas i säkerhetsreglerna.
+    func canCreateMeetups(_ uid: String?) -> Bool {
+        guard let uid, memberUids.contains(uid) else { return false }
+        return kind == .social || canManageTasks(uid)
+    }
 }
 
 /// Uppgift som en konsulent (eller ägaren) lägger ut till teamet.

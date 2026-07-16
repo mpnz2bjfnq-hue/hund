@@ -242,11 +242,22 @@ service cloud.firestore {
     }
 
     match /meetups/{meetupId} {
+      function meetupTeam() {
+        return get(/databases/$(database)/documents/teams/$(request.resource.data.teamId)).data;
+      }
       allow read: if (request.auth != null
                       && (request.auth.uid == resource.data.ownerUid
                           || request.auth.uid in resource.data.invitedUids))
                   || isAdmin();
-      allow create: if request.auth != null && request.auth.uid == request.resource.data.ownerUid;
+      // Team-träffar: i kurser/konsulentteam får bara ägare/konsulenter skapa;
+      // i vanliga grupper alla medlemmar. Träffar utan team är fria.
+      allow create: if request.auth != null
+                    && request.auth.uid == request.resource.data.ownerUid
+                    && (request.resource.data.get('teamId', '') == ''
+                        || (request.auth.uid in meetupTeam().memberUids
+                            && (meetupTeam().get('teamType', '') == 'social'
+                                || request.auth.uid == meetupTeam().ownerUid
+                                || request.auth.uid in meetupTeam().get('consultantUids', []))));
       // Ägaren ändrar allt; inbjudna svarar bara (going/declined).
       allow update: if request.auth != null
                     && (request.auth.uid == resource.data.ownerUid

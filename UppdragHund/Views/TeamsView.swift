@@ -352,8 +352,14 @@ struct NewMeetupView: View {
     @State private var pinLatitude: Double?
     @State private var pinLongitude: Double?
 
+    /// Bara team där jag får skapa träffar (kurs/konsulent: ägare/konsulent;
+    /// vanlig grupp: alla medlemmar).
+    private var selectableTeams: [Team] {
+        teams.filter { $0.canCreateMeetups(authService.currentUserID) }
+    }
+
     private var selectedTeam: Team? {
-        teams.first { $0.id == selectedTeamID }
+        selectableTeams.first { $0.id == selectedTeamID }
     }
 
     private var canSave: Bool {
@@ -401,7 +407,7 @@ struct NewMeetupView: View {
                 Section {
                     Picker("Team", selection: $selectedTeamID) {
                         Text("Inget team").tag(String?.none)
-                        ForEach(teams) { team in
+                        ForEach(selectableTeams) { team in
                             Text(team.name).tag(team.id)
                         }
                     }
@@ -410,7 +416,7 @@ struct NewMeetupView: View {
                 } footer: {
                     Text(selectedTeam != nil
                          ? "Alla i teamet bjuds in."
-                         : "Välj ett team eller bocka i vänner nedan.")
+                         : "Välj ett team eller bocka i vänner nedan. I kurser och konsulentteam är det ägaren/konsulenter som skapar träffar.")
                 }
 
                 if selectedTeam == nil {
