@@ -235,20 +235,9 @@ struct NewMeetupView: View {
     @State private var selectedFriendUids: Set<String> = []
     @State private var isSaving = false
 
-    // Kartnål: sätts via platssökning eller tryck på kartan.
+    // Kartnål: sätts via platssökning eller tryck på kartan (MeetupMapPickerSection).
     @State private var pinLatitude: Double?
     @State private var pinLongitude: Double?
-    @State private var searchResults: [MKMapItem] = []
-    @State private var suppressSearch = false
-    @State private var camera: MapCameraPosition = .region(MKCoordinateRegion(
-        center: CLLocationCoordinate2D(latitude: 62.0, longitude: 15.0),
-        span: MKCoordinateSpan(latitudeDelta: 12, longitudeDelta: 12)
-    ))
-
-    private var pinCoordinate: CLLocationCoordinate2D? {
-        guard let pinLatitude, let pinLongitude else { return nil }
-        return CLLocationCoordinate2D(latitude: pinLatitude, longitude: pinLongitude)
-    }
 
     private var selectedTeam: Team? {
         teams.first { $0.id == selectedTeamID }
@@ -269,56 +258,11 @@ struct NewMeetupView: View {
                     DatePicker("När", selection: $date, in: Date.now...)
                 }
 
-                Section {
-                    ForEach(Array(searchResults.enumerated()), id: \.offset) { _, item in
-                        Button {
-                            selectSearchResult(item)
-                        } label: {
-                            VStack(alignment: .leading, spacing: 1) {
-                                Text(item.name ?? "Plats")
-                                    .foregroundStyle(Theme.Colors.textPrimary)
-                                if let subtitle = item.placemark.title {
-                                    Text(subtitle)
-                                        .font(.caption)
-                                        .foregroundStyle(Theme.Colors.textSecondary)
-                                        .lineLimit(1)
-                                }
-                            }
-                        }
-                    }
-
-                    MapReader { proxy in
-                        Map(position: $camera) {
-                            if let pinCoordinate {
-                                Marker(
-                                    locationName.isEmpty ? "Träffen" : locationName,
-                                    systemImage: "pawprint.fill",
-                                    coordinate: pinCoordinate
-                                )
-                                .tint(Theme.Colors.brand)
-                            }
-                        }
-                        .frame(height: 200)
-                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                        .onTapGesture { position in
-                            if let coordinate = proxy.convert(position, from: .local) {
-                                pinLatitude = coordinate.latitude
-                                pinLongitude = coordinate.longitude
-                            }
-                        }
-                    }
-                    .listRowInsets(EdgeInsets())
-                    .listRowBackground(Color.clear)
-                } header: {
-                    Text("Kartnål (valfritt)")
-                } footer: {
-                    Text(pinCoordinate == nil
-                         ? "Skriv i Plats-fältet för att söka, eller tryck på kartan för att placera nålen."
-                         : "Nålen är satt — tryck på kartan för att flytta den.")
-                }
-                .task(id: locationName) {
-                    await searchLocations()
-                }
+                MeetupMapPickerSection(
+                    locationName: $locationName,
+                    latitude: $pinLatitude,
+                    longitude: $pinLongitude
+                )
 
                 Section {
                     Picker("Team", selection: $selectedTeamID) {
@@ -375,42 +319,6 @@ struct NewMeetupView: View {
                 guard let uid = authService.currentUserID else { return }
                 friends = (try? await FriendsRepository.shared.friends(for: uid)) ?? []
             }
-        }
-    }
-
-    /// Debouncad platssökning medan användaren skriver i Plats-fältet.
-    private func searchLocations() async {
-        if suppressSearch {
-            suppressSearch = false
-            return
-        }
-        let query = locationName.trimmingCharacters(in: .whitespaces)
-        guard query.count >= 3 else {
-            searchResults = []
-            return
-        }
-        try? await Task.sleep(for: .milliseconds(400))
-        guard !Task.isCancelled else { return }
-
-        let request = MKLocalSearch.Request()
-        request.naturalLanguageQuery = query
-        let response = try? await MKLocalSearch(request: request).start()
-        guard !Task.isCancelled else { return }
-        searchResults = Array((response?.mapItems ?? []).prefix(4))
-    }
-
-    private func selectSearchResult(_ item: MKMapItem) {
-        let coordinate = item.placemark.coordinate
-        suppressSearch = true
-        if let name = item.name { locationName = name }
-        pinLatitude = coordinate.latitude
-        pinLongitude = coordinate.longitude
-        searchResults = []
-        withAnimation {
-            camera = .region(MKCoordinateRegion(
-                center: coordinate,
-                span: MKCoordinateSpan(latitudeDelta: 0.02, longitudeDelta: 0.02)
-            ))
         }
     }
 

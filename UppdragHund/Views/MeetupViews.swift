@@ -98,6 +98,232 @@ struct MeetupCard: View {
     }
 }
 
+// MARK: - Kartväljare (delas av Ny träff och Ändra träff)
+
+/// Form-sektion med platssökning + karta där nålen placeras/flyttas.
+/// Söker medan användaren skriver i det bundna Plats-fältet.
+struct MeetupMapPickerSection: View {
+    @Binding var locationName: String
+    @Binding var latitude: Double?
+    @Binding var longitude: Double?
+
+    @State private var searchResults: [MKMapItem] = []
+    @State private var suppressSearch: Bool
+    @State private var camera: MapCameraPosition
+
+    init(locationName: Binding<String>, latitude: Binding<Double?>, longitude: Binding<Double?>) {
+        _locationName = locationName
+        _latitude = latitude
+        _longitude = longitude
+        // Vid redigering finns redan namn/nål — sök inte direkt, och centrera på nålen.
+        _suppressSearch = State(initialValue: !locationName.wrappedValue.isEmpty)
+        if let lat = latitude.wrappedValue, let lng = longitude.wrappedValue {
+            _camera = State(initialValue: .region(MKCoordinateRegion(
+                center: CLLocationCoordinate2D(latitude: lat, longitude: lng),
+                span: MKCoordinateSpan(latitudeDelta: 0.02, longitudeDelta: 0.02)
+            )))
+        } else {
+            _camera = State(initialValue: .region(MKCoordinateRegion(
+                center: CLLocationCoordinate2D(latitude: 62.0, longitude: 15.0),
+                span: MKCoordinateSpan(latitudeDelta: 12, longitudeDelta: 12)
+            )))
+        }
+    }
+
+    private var pinCoordinate: CLLocationCoordinate2D? {
+        guard let latitude, let longitude else { return nil }
+        return CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
+    }
+
+    var body: some View {
+        Section {
+            ForEach(Array(searchResults.enumerated()), id: \.offset) { _, item in
+                Button {
+                    select(item)
+                } label: {
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(item.name ?? "Plats")
+                            .foregroundStyle(Theme.Colors.textPrimary)
+                        if let subtitle = item.placemark.title {
+                            Text(subtitle)
+                                .font(.caption)
+                                .foregroundStyle(Theme.Colors.textSecondary)
+                                .lineLimit(1)
+                        }
+                    }
+                }
+            }
+
+            MapReader { proxy in
+                Map(position: $camera) {
+                    if let pinCoordinate {
+                        Marker(
+                            locationName.isEmpty ? "Träffen" : locationName,
+                            systemImage: "pawprint.fill",
+                            coordinate: pinCoordinate
+                        )
+                        .tint(Theme.Colors.brand)
+                    }
+                }
+                .frame(height: 200)
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .onTapGesture { position in
+                    if let coordinate = proxy.convert(position, from: .local) {
+                        latitude = coordinate.latitude
+                        longitude = coordinate.longitude
+                    }
+                }
+            }
+            .listRowInsets(EdgeInsets())
+            .listRowBackground(Color.clear)
+        } header: {
+            Text("Kartnål (valfritt)")
+        } footer: {
+            Text(pinCoordinate == nil
+                 ? "Skriv i Plats-fältet för att söka, eller tryck på kartan för att placera nålen."
+                 : "Nålen är satt — tryck på kartan för att flytta den.")
+        }
+        .task(id: locationName) {
+            await search()
+        }
+    }
+
+    private func search() async {
+        if suppressSearch {
+            suppressSearch = false
+            return
+        }
+        let query = locationName.trimmingCharacters(in: .whitespaces)
+        guard query.count >= 3 else {
+            searchResults = []
+            return
+        }
+        try? await Task.sleep(for: .milliseconds(400))
+        guard !Task.isCancelled else { return }
+
+        let request = MKLocalSearch.Request()
+        request.naturalLanguageQuery = query
+        let response = try? await MKLocalSearch(request: request).start()
+        guard !Task.isCancelled else { return }
+        searchResults = Array((response?.mapItems ?? []).prefix(4))
+    }
+
+    private func select(_ item: MKMapItem) {
+        let coordinate = item.placemark.coordinate
+        suppressSearch = true
+        if let name = item.name { locationName = name }
+        latitude = coordinate.latitude
+        longitude = coordinate.longitude
+        searchResults = []
+        withAnimation {
+            camera = .region(MKCoordinateRegion(
+                center: coordinate,
+                span: MKCoordinateSpan(latitudeDelta: 0.02, longitudeDelta: 0.02)
+            ))
+        }
+    }
+}
+
+// MARK: - Ändra träff (endast ägaren)
+
+struct EditMeetupView: View {
+    let meetup: Meetup
+    /// Får den uppdaterade träffen efter lyckad sparning.
+    var onSaved: (Meetup) -> Void = { _ in }
+
+    init(meetup: Meetup, onSaved: @escaping (Meetup) -> Void = { _ in }) {
+        self.meetup = meetup
+        self.onSaved = onSaved
+        _title = State(initialValue: meetup.title)
+        _locationName = State(initialValue: meetup.locationName)
+        _date = State(initialValue: meetup.date)
+        _latitude = State(initialValue: meetup.latitude)
+        _longitude = State(initialValue: meetup.longitude)
+    }
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var title: String
+    @State private var locationName: String
+    @State private var date: Date
+    @State private var latitude: Double?
+    @State private var longitude: Double?
+    @State private var isSaving = false
+    @State private var errorMessage: String?
+
+    private var canSave: Bool {
+        !title.trimmingCharacters(in: .whitespaces).isEmpty
+            && !locationName.trimmingCharacters(in: .whitespaces).isEmpty
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Träff") {
+                    TextField("Titel", text: $title)
+                    TextField("Plats", text: $locationName)
+                    DatePicker("När", selection: $date, in: Date.now...)
+                }
+
+                MeetupMapPickerSection(
+                    locationName: $locationName,
+                    latitude: $latitude,
+                    longitude: $longitude
+                )
+            }
+            .navigationTitle("Ändra träff")
+            .navigationBarTitleDisplayMode(.inline)
+            .tint(Theme.Colors.brand)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Avbryt") { dismiss() } }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Spara") { save() }.disabled(!canSave || isSaving)
+                }
+            }
+            .alert(
+                "Kunde inte spara",
+                isPresented: Binding(
+                    get: { errorMessage != nil },
+                    set: { if !$0 { errorMessage = nil } }
+                )
+            ) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(errorMessage ?? "")
+            }
+        }
+    }
+
+    private func save() {
+        guard let id = meetup.id else { return }
+        isSaving = true
+        Task {
+            do {
+                let trimmedTitle = title.trimmingCharacters(in: .whitespaces)
+                let trimmedLocation = locationName.trimmingCharacters(in: .whitespaces)
+                try await TeamsRepository.shared.updateMeetup(
+                    meetupID: id,
+                    title: trimmedTitle,
+                    locationName: trimmedLocation,
+                    date: date,
+                    latitude: latitude,
+                    longitude: longitude
+                )
+                var updated = meetup
+                updated.title = trimmedTitle
+                updated.locationName = trimmedLocation
+                updated.date = date
+                updated.latitude = latitude
+                updated.longitude = longitude
+                onSaved(updated)
+                dismiss()
+            } catch {
+                isSaving = false
+                errorMessage = error.localizedDescription
+            }
+        }
+    }
+}
+
 // MARK: - Detaljvy
 
 struct MeetupDetailView: View {
@@ -113,6 +339,7 @@ struct MeetupDetailView: View {
     @State private var authService = AuthService.shared
     @State private var isWorking = false
     @State private var confirmDelete = false
+    @State private var isPresentingEdit = false
 
     private var myUid: String? { authService.currentUserID }
     private var isOwner: Bool { myUid == meetup.ownerUid }
@@ -169,8 +396,19 @@ struct MeetupDetailView: View {
             .navigationBarTitleDisplayMode(.inline)
             .tint(Theme.Colors.brand)
             .toolbar {
+                if isOwner {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button("Ändra") { isPresentingEdit = true }
+                    }
+                }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Klar") { dismiss() }
+                }
+            }
+            .sheet(isPresented: $isPresentingEdit) {
+                EditMeetupView(meetup: meetup) { updated in
+                    meetup = updated
+                    onChanged()
                 }
             }
             .confirmationDialog(
@@ -221,6 +459,7 @@ struct MeetupDetailView: View {
         .frame(height: 200)
         .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
         .allowsHitTesting(false)
+        .id("\(coordinate.latitude),\(coordinate.longitude)")
         .overlay(alignment: .bottomTrailing) {
             Button {
                 openInMaps(coordinate)

@@ -199,6 +199,25 @@ final class TeamsRepository {
         _ = try db.collection("meetups").addDocument(from: meetup)
     }
 
+    /// Ägaren ändrar titel, plats, tid eller kartnål i efterhand.
+    func updateMeetup(
+        meetupID: String,
+        title: String,
+        locationName: String,
+        date: Date,
+        latitude: Double?,
+        longitude: Double?
+    ) async throws {
+        var data: [String: Any] = [
+            "title": title,
+            "locationName": locationName,
+            "date": Timestamp(date: date)
+        ]
+        data["latitude"] = latitude.map { $0 as Any } ?? FieldValue.delete()
+        data["longitude"] = longitude.map { $0 as Any } ?? FieldValue.delete()
+        try await db.collection("meetups").document(meetupID).updateData(data)
+    }
+
     /// Träffar jag är inbjuden till eller ordnar, framåt i tiden.
     func upcomingMeetups(uid: String) async -> [Meetup] {
         async let invitedSnap = try? db.collection("meetups")
