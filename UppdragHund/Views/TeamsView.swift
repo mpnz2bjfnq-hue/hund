@@ -2,23 +2,72 @@
 //  TeamsView.swift
 //  UppdragHund
 //
-//  Team & hundträffar: skapa team av vänner, planera träffar och svara
-//  Kommer / Kan inte.
+//  Träffar-sidan (alla kommande träffar) och Team-sidan för den som inte
+//  är med i något team än (inbjudningar + skapa nytt).
 //
 
 import SwiftUI
 import MapKit
 
-struct TeamsView: View {
+/// Träffar: alla kommande träffar jag ordnar eller är inbjuden till.
+struct MeetupsListView: View {
     @State private var authService = AuthService.shared
-    @State private var currentUser = CurrentUserStore.shared
 
     @State private var teams: [Team] = []
     @State private var meetups: [Meetup] = []
+    @State private var isLoading = true
+    @State private var isPresentingNewMeetup = false
+
+    var body: some View {
+        List {
+            Section {
+                if meetups.isEmpty {
+                    Text(isLoading ? "Laddar…" : "Inga träffar planerade. Skapa en och bjud in dina vänner!")
+                        .foregroundStyle(Theme.Colors.textSecondary)
+                } else {
+                    ForEach(meetups) { meetup in
+                        MeetupCard(meetup: meetup, onChanged: { Task { await load() } })
+                    }
+                }
+                Button {
+                    isPresentingNewMeetup = true
+                } label: {
+                    Label("Skapa träff", systemImage: "calendar.badge.plus")
+                }
+            } header: {
+                Text("Kommande träffar")
+            }
+        }
+        .navigationTitle("Träffar")
+        .navigationBarTitleDisplayMode(.inline)
+        .tint(Theme.Colors.brand)
+        .refreshable { await load() }
+        .task { await load() }
+        .sheet(isPresented: $isPresentingNewMeetup, onDismiss: { Task { await load() } }) {
+            NewMeetupView(teams: teams)
+        }
+    }
+
+    private func load() async {
+        guard let uid = authService.currentUserID else { return }
+        async let loadedTeams = TeamsRepository.shared.myTeams(uid: uid)
+        async let loadedMeetups = TeamsRepository.shared.upcomingMeetups(uid: uid)
+        teams = await loadedTeams
+        meetups = await loadedMeetups
+        isLoading = false
+        await NotificationService.syncMeetupReminders(for: uid)
+    }
+}
+
+/// Team-sidan när man saknar team (eller har väntande inbjudningar):
+/// acceptera en inbjudan eller skapa ett eget team.
+struct JoinOrCreateTeamView: View {
+    @State private var authService = AuthService.shared
+
+    @State private var teams: [Team] = []
     @State private var invites: [TeamInvite] = []
     @State private var isLoading = true
     @State private var isPresentingNewTeam = false
-    @State private var isPresentingNewMeetup = false
 
     var body: some View {
         List {
@@ -29,10 +78,42 @@ struct TeamsView: View {
                     }
                 }
             }
-            meetupsSection
-            teamsSection
+
+            if !teams.isEmpty {
+                Section("Dina team") {
+                    ForEach(teams) { team in
+                        NavigationLink {
+                            TeamPageView(team: team, onChanged: { Task { await load() } })
+                        } label: {
+                            HStack(spacing: Theme.Spacing.m) {
+                                Image(systemName: "person.3.fill")
+                                    .foregroundStyle(Theme.Colors.brand)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(team.name)
+                                        .foregroundStyle(Theme.Colors.textPrimary)
+                                    Text("\(team.memberCount) medlemmar")
+                                        .font(.caption)
+                                        .foregroundStyle(Theme.Colors.textSecondary)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            Section {
+                Button {
+                    isPresentingNewTeam = true
+                } label: {
+                    Label("Skapa team", systemImage: "plus")
+                }
+            } footer: {
+                Text(teams.isEmpty && invites.isEmpty
+                     ? "Du går med i ett team genom att bli inbjuden av en vän — eller skapa ett eget och bjud in dina vänner."
+                     : "")
+            }
         }
-        .navigationTitle("Team & träffar")
+        .navigationTitle("Team")
         .navigationBarTitleDisplayMode(.inline)
         .tint(Theme.Colors.brand)
         .refreshable { await load() }
@@ -40,75 +121,15 @@ struct TeamsView: View {
         .sheet(isPresented: $isPresentingNewTeam, onDismiss: { Task { await load() } }) {
             NewTeamView()
         }
-        .sheet(isPresented: $isPresentingNewMeetup, onDismiss: { Task { await load() } }) {
-            NewMeetupView(teams: teams)
-        }
-    }
-
-    private var meetupsSection: some View {
-        Section {
-            if meetups.isEmpty {
-                Text(isLoading ? "Laddar…" : "Inga träffar planerade. Skapa en och bjud in dina vänner!")
-                    .foregroundStyle(Theme.Colors.textSecondary)
-            } else {
-                ForEach(meetups) { meetup in
-                    MeetupCard(meetup: meetup, onChanged: { Task { await load() } })
-                }
-            }
-            Button {
-                isPresentingNewMeetup = true
-            } label: {
-                Label("Skapa träff", systemImage: "calendar.badge.plus")
-            }
-        } header: {
-            Text("Kommande träffar")
-        }
-    }
-
-    private var teamsSection: some View {
-        Section {
-            if teams.isEmpty {
-                Text(isLoading ? "Laddar…" : "Inga team än. Skapa ett och samla dina träningskompisar!")
-                    .foregroundStyle(Theme.Colors.textSecondary)
-            } else {
-                ForEach(teams) { team in
-                    NavigationLink {
-                        TeamPageView(team: team, onChanged: { Task { await load() } })
-                    } label: {
-                        HStack(spacing: Theme.Spacing.m) {
-                            Image(systemName: "person.3.fill")
-                                .foregroundStyle(Theme.Colors.brand)
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(team.name)
-                                    .foregroundStyle(Theme.Colors.textPrimary)
-                                Text("\(team.memberCount) medlemmar")
-                                    .font(.caption)
-                                    .foregroundStyle(Theme.Colors.textSecondary)
-                            }
-                        }
-                    }
-                }
-            }
-            Button {
-                isPresentingNewTeam = true
-            } label: {
-                Label("Skapa team", systemImage: "plus")
-            }
-        } header: {
-            Text("Mina team")
-        }
     }
 
     private func load() async {
         guard let uid = authService.currentUserID else { return }
         async let loadedTeams = TeamsRepository.shared.myTeams(uid: uid)
-        async let loadedMeetups = TeamsRepository.shared.upcomingMeetups(uid: uid)
         async let loadedInvites = TeamsRepository.shared.pendingInvites(for: uid)
         teams = await loadedTeams
-        meetups = await loadedMeetups
         invites = await loadedInvites
         isLoading = false
-        await NotificationService.syncMeetupReminders(for: uid)
     }
 }
 

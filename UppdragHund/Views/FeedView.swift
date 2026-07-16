@@ -20,6 +20,7 @@ struct FeedView: View {
     @State private var feedFilter: FeedFilter = .all
     @State private var moderationMessage: String?
     @State private var myTeams: [Team] = []
+    @State private var pendingTeamInvites = 0
 
     private enum FeedFilter: String, CaseIterable, Identifiable {
         case all, mine, team
@@ -63,21 +64,39 @@ struct FeedView: View {
                             smallPill(icon: "line.3.horizontal.decrease.circle", text: feedFilter.title)
                         }
 
-                        // Egna team som genvägar rakt in på teamsidan.
-                        ForEach(myTeams) { team in
+                        // Team-knappen: rakt in på teamsidan om man är med i team,
+                        // annars till sidan för att skapa/gå med.
+                        if myTeams.isEmpty {
                             NavigationLink {
-                                TeamPageView(team: team, onChanged: { Task { await loadFeed() } })
+                                JoinOrCreateTeamView()
                             } label: {
-                                smallPill(icon: "person.3.fill", text: team.name)
+                                smallPill(icon: "person.3.fill", text: "Team")
                             }
                             .buttonStyle(.plain)
+                        } else {
+                            ForEach(myTeams) { team in
+                                NavigationLink {
+                                    TeamPageView(team: team, onChanged: { Task { await loadFeed() } })
+                                } label: {
+                                    smallPill(icon: "person.3.fill", text: team.name)
+                                }
+                                .buttonStyle(.plain)
+                            }
+                            if pendingTeamInvites > 0 {
+                                NavigationLink {
+                                    JoinOrCreateTeamView()
+                                } label: {
+                                    smallPill(icon: "envelope.badge", text: "Inbjudan (\(pendingTeamInvites))")
+                                }
+                                .buttonStyle(.plain)
+                            }
                         }
 
+                        // Träffar-knappen: alltid, och bara träffar.
                         NavigationLink {
-                            TeamsView()
+                            MeetupsListView()
                         } label: {
-                            smallPill(icon: myTeams.isEmpty ? "person.3.fill" : "calendar",
-                                      text: myTeams.isEmpty ? "Team & träffar" : "Träffar")
+                            smallPill(icon: "calendar", text: "Träffar")
                         }
                         .buttonStyle(.plain)
                     }
@@ -228,6 +247,7 @@ struct FeedView: View {
         authorPhotos = photos
         let teams = await TeamsRepository.shared.myTeams(uid: uid)
         myTeams = teams
+        pendingTeamInvites = await TeamsRepository.shared.pendingInvites(for: uid).count
         let blocked = await ModerationService.shared.refreshBlocked(for: uid)
         feedPosts = await PostsRepository.shared.feed(forUids: uids, teams: teams)
             .filter { !blocked.contains($0.authorUid) }
