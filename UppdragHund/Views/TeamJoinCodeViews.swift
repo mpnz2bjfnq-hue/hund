@@ -30,8 +30,9 @@ struct TeamInviteCodeSheet: View {
     private var shareText: String {
         """
         Gå med i mitt team "\(team.name)" i Canine360! 🐾
-        1. Ladda ner Canine360-appen
-        2. Gå till Socialt → Team → Gå med med kod
+        1. Ladda ner Canine360-appen (iPhone)
+           — eller öppna https://canine360-f1221.web.app (Android/dator)
+        2. Gå till Team → Gå med med kod
         3. Ange koden: \(displayCode)
         """
     }
