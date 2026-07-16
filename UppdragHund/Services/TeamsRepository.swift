@@ -195,10 +195,13 @@ final class TeamsRepository {
             .updateData(["status": accept ? "accepted" : "declined"])
     }
 
+    /// Tar bort en medlem (används både när man lämnar själv och när ägaren
+    /// tar bort någon). Kommande träffar städas av onTeamMembersChanged.
     func removeMember(teamID: String, uid: String) async throws {
         try await db.collection("teams").document(teamID).updateData([
             "memberUids": FieldValue.arrayRemove([uid]),
-            "memberNames.\(uid)": FieldValue.delete()
+            "memberNames.\(uid)": FieldValue.delete(),
+            "consultantUids": FieldValue.arrayRemove([uid])
         ])
     }
 

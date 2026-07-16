@@ -56,6 +56,8 @@ struct TeamPageView: View {
     @State private var isPresentingNewPost = false
     @State private var isPresentingNewTask = false
     @State private var isPresentingJoinCode = false
+    /// Medlem som ägaren är på väg att ta bort (bekräftas först).
+    @State private var memberPendingRemoval: String?
     /// Träff öppnad från en uppgifts träff-koppling.
     @State private var taskMeetup: Meetup?
     @State private var isPresentingNewMeetup = false
@@ -612,26 +614,48 @@ struct TeamPageView: View {
                             roleBadge("Konsulent", color: Theme.Colors.verified)
                         }
                         Spacer(minLength: 0)
-                        if isOwner, uid != team.ownerUid, team.kind.hasTasks {
+                        if isOwner, uid != team.ownerUid {
                             Menu {
-                                if team.isConsultant(uid) {
-                                    Button {
-                                        setConsultant(uid: uid, isConsultant: false)
-                                    } label: {
-                                        Label("Ta bort som konsulent", systemImage: "person.badge.minus")
+                                if team.kind.hasTasks {
+                                    if team.isConsultant(uid) {
+                                        Button {
+                                            setConsultant(uid: uid, isConsultant: false)
+                                        } label: {
+                                            Label("Ta bort som konsulent", systemImage: "person.badge.minus")
+                                        }
+                                    } else {
+                                        Button {
+                                            setConsultant(uid: uid, isConsultant: true)
+                                        } label: {
+                                            Label("Gör till konsulent", systemImage: "person.badge.shield.checkmark")
+                                        }
                                     }
-                                } else {
-                                    Button {
-                                        setConsultant(uid: uid, isConsultant: true)
-                                    } label: {
-                                        Label("Gör till konsulent", systemImage: "person.badge.shield.checkmark")
-                                    }
+                                }
+                                Button(role: .destructive) {
+                                    memberPendingRemoval = uid
+                                } label: {
+                                    Label("Ta bort ur teamet", systemImage: "person.fill.xmark")
                                 }
                             } label: {
                                 Image(systemName: "ellipsis.circle")
                                     .foregroundStyle(Theme.Colors.textSecondary)
                                     .frame(width: 44, height: 44)
                                     .contentShape(Rectangle())
+                            }
+                            // På raden så bekräftelsen dyker upp intill den.
+                            .confirmationDialog(
+                                "Ta bort \(team.memberNames[uid] ?? "medlemmen") ur teamet?",
+                                isPresented: Binding(
+                                    get: { memberPendingRemoval == uid },
+                                    set: { if !$0 { memberPendingRemoval = nil } }
+                                ),
+                                titleVisibility: .visible
+                            ) {
+                                Button("Ta bort", role: .destructive) {
+                                    removeMember(uid: uid)
+                                    memberPendingRemoval = nil
+                                }
+                                Button("Avbryt", role: .cancel) { memberPendingRemoval = nil }
                             }
                         }
                     }
@@ -791,6 +815,21 @@ struct TeamPageView: View {
                 reporterUid: uid
             )
             moderationMessage = "Inlägget är rapporterat och granskas."
+        }
+    }
+
+    private func removeMember(uid: String) {
+        guard let teamID = team.id else { return }
+        Task {
+            do {
+                try await TeamsRepository.shared.removeMember(teamID: teamID, uid: uid)
+                team.memberUids.removeAll { $0 == uid }
+                team.memberNames[uid] = nil
+                team.consultantUids?.removeAll { $0 == uid }
+                onChanged()
+            } catch {
+                errorMessage = "Kunde inte ta bort medlemmen: \(error.localizedDescription)"
+            }
         }
     }
 
