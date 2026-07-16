@@ -340,6 +340,8 @@ struct MeetupDetailView: View {
     @State private var isWorking = false
     @State private var confirmDelete = false
     @State private var isPresentingEdit = false
+    /// Teamuppgifter som är kopplade till den här träffen.
+    @State private var linkedTasks: [TeamTask] = []
 
     private var myUid: String? { authService.currentUserID }
     private var isOwner: Bool { myUid == meetup.ownerUid }
@@ -371,6 +373,10 @@ struct MeetupDetailView: View {
                     }
 
                     infoCard
+
+                    if !linkedTasks.isEmpty {
+                        linkedTasksCard
+                    }
 
                     if !isOwner, let myUid, meetup.invitedUids.contains(myUid) {
                         rsvpButtons
@@ -411,6 +417,7 @@ struct MeetupDetailView: View {
                     onChanged()
                 }
             }
+            .task { await loadLinkedTasks() }
             .confirmationDialog(
                 "Ställ in träffen?",
                 isPresented: $confirmDelete,
@@ -503,6 +510,43 @@ struct MeetupDetailView: View {
         .font(Theme.Typography.body)
         .frame(maxWidth: .infinity, alignment: .leading)
         .cardStyle()
+    }
+
+    /// Uppgifter i teamet som är kopplade till träffen — det ni ska ha
+    /// övat på tills ni ses.
+    private var linkedTasksCard: some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.s) {
+            Text("Uppgifter inför träffen")
+                .font(Theme.Typography.sectionTitle)
+                .foregroundStyle(Theme.Colors.textPrimary)
+            ForEach(linkedTasks) { task in
+                HStack(alignment: .top, spacing: Theme.Spacing.m) {
+                    Image(systemName: task.isCompleted(by: myUid) ? "checkmark.circle.fill" : "checklist")
+                        .foregroundStyle(task.isCompleted(by: myUid) ? .green : Theme.Colors.brand)
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(task.title)
+                            .font(Theme.Typography.body.weight(.medium))
+                            .foregroundStyle(Theme.Colors.textPrimary)
+                        Text("Utlagd av \(task.createdByName) · \(task.completedUids.count) klara")
+                            .font(.caption2)
+                            .foregroundStyle(Theme.Colors.textSecondary)
+                    }
+                    Spacer(minLength: 0)
+                }
+            }
+            Text("Bocka av dig under Uppgifter på teamsidan.")
+                .font(.caption2)
+                .foregroundStyle(Theme.Colors.textSecondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .cardStyle()
+    }
+
+    /// Hämtar teamets uppgifter och plockar ut de som pekar på träffen.
+    private func loadLinkedTasks() async {
+        guard let teamId = meetup.teamId, let meetupId = meetup.id else { return }
+        let all = await TeamsRepository.shared.tasks(teamID: teamId)
+        linkedTasks = all.filter { $0.meetupId == meetupId }
     }
 
     private var rsvpButtons: some View {
