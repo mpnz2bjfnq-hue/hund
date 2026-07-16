@@ -292,6 +292,59 @@ export const onDeviceTokenClaimed = onDocumentWritten(
   }
 );
 
+/** 12) Teamets medlemslista ändrad → synka KOMMANDE träffar: nya medlemmar
+ *  bjuds in, de som lämnat plockas bort. Utan detta ser en sen-ansluten
+ *  kursdeltagare inga träffar alls (invitedUids sattes vid skapandet). */
+export const onTeamMembersChanged = onDocumentWritten(
+  { document: "teams/{teamId}", region: REGION },
+  async (event) => {
+    const before = event.data?.before?.data();
+    const after = event.data?.after?.data();
+    if (!before || !after) return;
+
+    const beforeUids: string[] = before.memberUids ?? [];
+    const afterUids: string[] = after.memberUids ?? [];
+    const added = afterUids.filter((u) => !beforeUids.includes(u));
+    const removed = beforeUids.filter((u) => !afterUids.includes(u));
+    if (added.length === 0 && removed.length === 0) return;
+
+    const meetupsSnap = await db
+      .collection("meetups")
+      .where("teamId", "==", event.params.teamId)
+      .get();
+    const now = new Date();
+
+    for (const meetupDoc of meetupsSnap.docs) {
+      const meetup = meetupDoc.data();
+      const date = meetup.date?.toDate?.();
+      if (!date || date < now) continue; // rör inte redan hållna träffar
+
+      const toAdd = added.filter((u) => u !== meetup.ownerUid);
+      if (toAdd.length > 0) {
+        const update: Record<string, unknown> = {
+          invitedUids: FieldValue.arrayUnion(...toAdd),
+        };
+        for (const uid of toAdd) {
+          update[`invitedNames.${uid}`] = after.memberNames?.[uid] ?? "Medlem";
+        }
+        await meetupDoc.ref.update(update).catch(() => undefined);
+      }
+      if (removed.length > 0) {
+        await meetupDoc.ref
+          .update({
+            invitedUids: FieldValue.arrayRemove(...removed),
+            goingUids: FieldValue.arrayRemove(...removed),
+            declinedUids: FieldValue.arrayRemove(...removed),
+          })
+          .catch(() => undefined);
+      }
+    }
+    logger.info(
+      `Team ${event.params.teamId}: synkade träffar (+${added.length}/-${removed.length} medlemmar)`
+    );
+  }
+);
+
 /** 11) Gå med i team via inbjudningskod — utan vänskaps-krav. Körs som
  *  admin så deltagaren inte behöver läsrättigheter på teamet i förväg. */
 export const joinTeamWithCode = onCall({ region: REGION }, async (request) => {
