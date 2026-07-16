@@ -24,7 +24,9 @@ enum ProfilePublisher {
                     name: dog.name,
                     breed: dog.breed,
                     birthDate: dog.birthDate,
-                    sex: dog.sex.rawValue
+                    sex: dog.sex.rawValue,
+                    isDeceased: dog.isDeceased,
+                    deceasedDate: dog.passedAwayDate
                 )
             }
             .sorted { $0.name < $1.name }

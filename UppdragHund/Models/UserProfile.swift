@@ -40,6 +40,12 @@ struct DogSummary: Codable, Equatable, Identifiable {
     var breed: String
     var birthDate: Date
     var sex: String
+    /// Ängel 🌈 — hunden har gått bort. Optional för profiler publicerade
+    /// innan fältet fanns (räknas då som aktiv hund).
+    var isDeceased: Bool?
+    /// Dödsdatum, för minnesraden på vänners profiler.
+    var deceasedDate: Date?
 
     var id: String { remoteID }
+    var isAngel: Bool { isDeceased == true }
 }

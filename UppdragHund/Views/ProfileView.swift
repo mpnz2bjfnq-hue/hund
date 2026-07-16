@@ -26,6 +26,7 @@ struct ProfileView: View {
     @State private var isPresentingFriends = false
     @State private var postPendingDelete: ProfilePost?
     @State private var loadError: String?
+    @State private var selectedDog: DogDisplay?
 
     private var resolvedUID: String? {
         userID ?? authService.currentUserID
@@ -38,14 +39,35 @@ struct ProfileView: View {
     /// Hundar att visa: egna lokala för egen profil, annars vännens summering.
     private var dogRows: [DogDisplay] {
         if isOwnProfile {
-            return ownDogs.map { DogDisplay(id: $0.remoteID?.uuidString ?? UUID().uuidString, name: $0.name, breed: $0.breed) }
+            return ownDogs.map { dog in
+                DogDisplay(
+                    id: dog.remoteID?.uuidString ?? UUID().uuidString,
+                    name: dog.name,
+                    breed: dog.breed,
+                    birthDate: dog.birthDate,
+                    sexName: dog.sex.displayName,
+                    isAngel: dog.isDeceased,
+                    deceasedDate: dog.passedAwayDate
+                )
+            }
         }
-        return (profile?.dogSummaries ?? []).map { DogDisplay(id: $0.remoteID, name: $0.name, breed: $0.breed) }
+        return (profile?.dogSummaries ?? []).map { summary in
+            DogDisplay(
+                id: summary.remoteID,
+                name: summary.name,
+                breed: summary.breed,
+                birthDate: summary.birthDate,
+                sexName: DogSex(rawValue: summary.sex)?.displayName,
+                isAngel: summary.isAngel,
+                deceasedDate: summary.deceasedDate
+            )
+        }
     }
 
-    private var dogCount: Int {
-        isOwnProfile ? ownDogs.count : (profile?.dogSummaries?.count ?? 0)
-    }
+    private var activeDogRows: [DogDisplay] { dogRows.filter { !$0.isAngel } }
+    private var angelRows: [DogDisplay] { dogRows.filter(\.isAngel) }
+
+    private var dogCount: Int { activeDogRows.count }
 
     var body: some View {
         List {
@@ -57,17 +79,15 @@ struct ProfileView: View {
                 .listRowSeparator(.hidden)
                 .listRowBackground(Color.clear)
 
-            if !dogRows.isEmpty {
+            if !activeDogRows.isEmpty {
                 Section("Hundar") {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 12) {
-                            ForEach(dogRows) { dog in
-                                dogCard(dog)
-                            }
-                        }
-                        .padding(.vertical, 4)
-                    }
-                    .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+                    dogCarousel(activeDogRows)
+                }
+            }
+
+            if !angelRows.isEmpty {
+                Section("Änglar 🌈") {
+                    dogCarousel(angelRows)
                 }
             }
 
@@ -130,6 +150,9 @@ struct ProfileView: View {
         }
         .sheet(isPresented: $isPresentingFriends) {
             FriendsView()
+        }
+        .sheet(item: $selectedDog) { dog in
+            DogSummarySheet(dog: dog)
         }
         .confirmationDialog(
             "Ta bort uppdateringen?",
@@ -194,6 +217,10 @@ struct ProfileView: View {
     private var statsRow: some View {
         HStack {
             statTile(value: "\(dogCount)", label: "Hundar")
+            if !angelRows.isEmpty {
+                Divider()
+                statTile(value: "\(angelRows.count)", label: "Änglar 🌈")
+            }
             Divider()
             if isOwnProfile {
                 Button {
@@ -221,22 +248,41 @@ struct ProfileView: View {
         .contentShape(Rectangle())
     }
 
-    private func dogCard(_ dog: DogDisplay) -> some View {
-        VStack(spacing: 6) {
-            Image(systemName: "pawprint.circle.fill")
-                .font(.system(size: 44))
-                .foregroundStyle(.tint)
-            Text(dog.name)
-                .font(.subheadline.weight(.medium))
-                .lineLimit(1)
-            Text(dog.breed)
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
+    private func dogCarousel(_ dogs: [DogDisplay]) -> some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 12) {
+                ForEach(dogs) { dog in
+                    dogCard(dog)
+                }
+            }
+            .padding(.vertical, 4)
         }
-        .frame(width: 96)
-        .padding(8)
-        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+    }
+
+    private func dogCard(_ dog: DogDisplay) -> some View {
+        Button {
+            selectedDog = dog
+        } label: {
+            VStack(spacing: 6) {
+                Image(systemName: dog.isAngel ? "rainbow" : "pawprint.circle.fill")
+                    .font(.system(size: 44))
+                    .foregroundStyle(.tint)
+                    .symbolRenderingMode(dog.isAngel ? .multicolor : .monochrome)
+                Text(dog.name)
+                    .font(.subheadline.weight(.medium))
+                    .lineLimit(1)
+                Text(dog.breed)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+            .frame(width: 96)
+            .padding(8)
+            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12))
+            .contentShape(RoundedRectangle(cornerRadius: 12))
+        }
+        .buttonStyle(.plain)
     }
 
     // MARK: - Data
@@ -288,10 +334,87 @@ struct ProfileView: View {
         }
     }
 
-    private struct DogDisplay: Identifiable {
+    struct DogDisplay: Identifiable {
         let id: String
         let name: String
         let breed: String
+        var birthDate: Date?
+        var sexName: String?
+        var isAngel: Bool = false
+        var deceasedDate: Date?
+    }
+}
+
+/// Infoblad för en hund på en profil — visar den publika summeringen.
+struct DogSummarySheet: View {
+    let dog: ProfileView.DogDisplay
+
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Section {
+                    VStack(spacing: 8) {
+                        Image(systemName: dog.isAngel ? "rainbow" : "pawprint.circle.fill")
+                            .font(.system(size: 64))
+                            .foregroundStyle(.tint)
+                            .symbolRenderingMode(dog.isAngel ? .multicolor : .monochrome)
+                        Text(dog.name)
+                            .font(.title2.bold())
+                        if dog.isAngel {
+                            Text("Ängel 🌈\(memorialLine.map { " · \($0)" } ?? "")")
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(Color.clear)
+                }
+
+                Section {
+                    LabeledContent("Ras", value: dog.breed)
+                    if let sexName = dog.sexName {
+                        LabeledContent("Kön", value: sexName)
+                    }
+                    if let birthDate = dog.birthDate {
+                        LabeledContent("Född", value: birthDate.formatted(date: .long, time: .omitted))
+                        if !dog.isAngel {
+                            LabeledContent("Ålder", value: ageText(from: birthDate))
+                        }
+                    }
+                    if let deceasedDate = dog.deceasedDate {
+                        LabeledContent("Gick bort", value: deceasedDate.formatted(date: .long, time: .omitted))
+                    }
+                }
+            }
+            .navigationTitle(dog.name)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Klar") { dismiss() }
+                }
+            }
+        }
+        .presentationDetents([.medium, .large])
+    }
+
+    /// "2015–2024" när båda årtalen finns.
+    private var memorialLine: String? {
+        guard let birthDate = dog.birthDate, let deceasedDate = dog.deceasedDate else { return nil }
+        let born = Calendar.current.component(.year, from: birthDate)
+        let passed = Calendar.current.component(.year, from: deceasedDate)
+        return "\(born)–\(passed)"
+    }
+
+    private func ageText(from birthDate: Date) -> String {
+        let parts = Calendar.current.dateComponents([.year, .month], from: birthDate, to: .now)
+        let years = parts.year ?? 0
+        let months = parts.month ?? 0
+        if years == 0 { return "\(months) mån" }
+        return months == 0 ? "\(years) år" : "\(years) år, \(months) mån"
     }
 }
 
