@@ -9,44 +9,14 @@ struct FriendsView: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var authService = AuthService.shared
-    @State private var myProfile: UserProfile?
     @State private var friends: [UserProfile] = []
     @State private var pendingRequests: [FriendRequest] = []
-    @State private var handleInput = ""
     @State private var errorMessage: String?
-    @State private var isSending = false
 
     var body: some View {
         NavigationStack {
             Group {
                 List {
-                        if let myProfile {
-                            Section("Ditt användarnamn") {
-                                LabeledContent("Användarnamn", value: "@\(myProfile.handle)")
-                                Text("Dela ditt användarnamn med en vän så kan de lägga till dig.")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-
-                        Section("Lägg till vän") {
-                            HStack {
-                                Text("@").foregroundStyle(.secondary)
-                                TextField("väns användarnamn", text: $handleInput)
-                                    .textInputAutocapitalization(.never)
-                                    .autocorrectionDisabled()
-                                Button("Skicka") {
-                                    sendRequest()
-                                }
-                                .disabled(handleInput.trimmingCharacters(in: .whitespaces).isEmpty || isSending)
-                            }
-                            if let errorMessage {
-                                Text(errorMessage)
-                                    .font(.caption)
-                                    .foregroundStyle(.red)
-                            }
-                        }
-
                         if !pendingRequests.isEmpty {
                             Section("Förfrågningar") {
                                 ForEach(pendingRequests) { request in
@@ -76,7 +46,7 @@ struct FriendsView: View {
 
                         Section("Mina vänner (\(friends.count))") {
                             if friends.isEmpty {
-                                Text("Inga vänner än.")
+                                Text("Inga vänner än. Lägg till vänner via Lägg till vän på din profil.")
                                     .font(.footnote)
                                     .foregroundStyle(.secondary)
                             } else {
@@ -84,14 +54,25 @@ struct FriendsView: View {
                                     NavigationLink {
                                         ProfileView(userID: friend.id)
                                     } label: {
-                                        VStack(alignment: .leading, spacing: 2) {
-                                            Text(friend.displayName)
-                                            Text("@\(friend.handle)")
-                                                .font(.caption)
-                                                .foregroundStyle(.secondary)
+                                        HStack(spacing: Theme.Spacing.m) {
+                                            ProfileAvatar(photoData: friend.photoData, size: 36)
+                                            VStack(alignment: .leading, spacing: 2) {
+                                                Text(friend.displayName)
+                                                Text("@\(friend.handle)")
+                                                    .font(.caption)
+                                                    .foregroundStyle(.secondary)
+                                            }
                                         }
                                     }
                                 }
+                            }
+                        }
+
+                        if let errorMessage {
+                            Section {
+                                Text(errorMessage)
+                                    .font(.caption)
+                                    .foregroundStyle(.red)
                             }
                         }
                     }
@@ -114,37 +95,15 @@ struct FriendsView: View {
 
     private func loadData() async {
         guard let uid = authService.currentUserID else {
-            myProfile = nil
             friends = []
             pendingRequests = []
             return
         }
         do {
-            myProfile = try await FriendsRepository.shared.fetchMyProfile(uid: uid)
             friends = try await FriendsRepository.shared.friends(for: uid)
             pendingRequests = try await FriendsRepository.shared.pendingRequests(for: uid)
         } catch {
             errorMessage = error.localizedDescription
-        }
-    }
-
-    private func sendRequest() {
-        guard let uid = authService.currentUserID, let myProfile else { return }
-        isSending = true
-        Task {
-            defer { isSending = false }
-            do {
-                try await FriendsRepository.shared.sendFriendRequest(
-                    from: uid,
-                    myDisplayName: myProfile.displayName,
-                    myHandle: myProfile.handle,
-                    toHandle: UsernameValidator.normalize(handleInput)
-                )
-                handleInput = ""
-                errorMessage = nil
-            } catch {
-                errorMessage = error.localizedDescription
-            }
         }
     }
 
