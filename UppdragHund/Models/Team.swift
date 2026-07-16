@@ -21,6 +21,8 @@ struct Team: Codable, Identifiable, Equatable {
     /// Medlemmar med titeln Konsulent (utsedda av ägaren). Optional så att
     /// team skapade före fältet fanns fortfarande kan avkodas.
     var consultantUids: [String]?
+    /// Teamets profilbild (liten JPEG, Firestore Blob). Sätts av ägaren.
+    var photoData: Data?
 
     var memberCount: Int { memberUids.count }
 

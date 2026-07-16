@@ -17,6 +17,7 @@ struct MinProfilView: View {
     @State private var settingsExpanded = false
     @State private var isAdmin = false
     @State private var ticketKind: TicketKind?
+    @State private var isPresentingAddFriend = false
     @AppStorage("hasDiscoveredSettings") private var hasDiscoveredSettings = false
     @Query(filter: #Predicate<Dog> { !$0.isShared }, sort: \Dog.name) private var allOwnDogs: [Dog]
     @Query(filter: #Predicate<Dog> { $0.isShared }, sort: \Dog.name) private var sharedDogs: [Dog]
@@ -32,12 +33,14 @@ struct MinProfilView: View {
     @State private var isEditingProfile = false
 
     // Socialt (laddas från Firestore).
-    @State private var postCount: Int?
     @State private var friendCount: Int?
     @State private var myTeams: [Team] = []
     @State private var isPresentingFriends = false
 
-    private var allDogs: [Dog] { ownDogs + sharedDogs }
+    private var allDogs: [Dog] { ownDogs.filter { !$0.isDeceased } + sharedDogs }
+
+    /// Änglar: avlidna hundar som hedras med en egen räknare.
+    private var angelCount: Int { ownDogs.filter(\.isDeceased).count }
 
     var body: some View {
         ScrollView {
@@ -63,6 +66,9 @@ struct MinProfilView: View {
         }
         .sheet(item: $ticketKind) { kind in
             NewTicketView(kind: kind)
+        }
+        .sheet(isPresented: $isPresentingAddFriend, onDismiss: { Task { await loadSocial() } }) {
+            AddFriendView()
         }
         .refreshable {
             await SharedDogPuller.shared.pull(context: modelContext)
@@ -104,7 +110,11 @@ struct MinProfilView: View {
 
     private var statsRow: some View {
         HStack(spacing: 0) {
-            statTile(value: "\(ownDogs.count)", label: "Hundar")
+            statTile(value: "\(ownDogs.count - angelCount)", label: "Hundar")
+            if angelCount > 0 {
+                statDivider
+                statTile(value: "\(angelCount)", label: "Änglar 🌈")
+            }
             statDivider
             Button {
                 isPresentingFriends = true
@@ -112,8 +122,6 @@ struct MinProfilView: View {
                 statTile(value: friendCount.map(String.init) ?? "–", label: "Vänner")
             }
             .buttonStyle(.plain)
-            statDivider
-            statTile(value: postCount.map(String.init) ?? "–", label: "Inlägg")
         }
         .cardStyle()
     }
@@ -149,7 +157,6 @@ struct MinProfilView: View {
 
     private func loadSocial() async {
         guard let uid = authService.currentUserID else { return }
-        postCount = try? await PostsRepository.shared.postCount(forUid: uid)
         if let friends = try? await FriendsRepository.shared.friends(for: uid) {
             friendCount = friends.count
         }
@@ -230,6 +237,17 @@ struct MinProfilView: View {
                         .background(Circle().fill(Theme.Colors.brand))
                         .overlay(Circle().stroke(Theme.Colors.screenBackground, lineWidth: 2))
                 }
+                .overlay(alignment: .topTrailing) {
+                    if isAdmin {
+                        Image(systemName: "shield.lefthalf.filled")
+                            .font(.caption2)
+                            .foregroundStyle(.white)
+                            .padding(5)
+                            .background(Circle().fill(Theme.Colors.brand))
+                            .overlay(Circle().stroke(Theme.Colors.screenBackground, lineWidth: 2))
+                            .accessibilityLabel("Admin")
+                    }
+                }
             }
             .buttonStyle(.plain)
             .disabled(currentUser.profile == nil)
@@ -242,15 +260,6 @@ struct MinProfilView: View {
                     Text("@\(handle)")
                         .font(Theme.Typography.caption)
                         .foregroundStyle(Theme.Colors.textSecondary)
-                }
-                if isAdmin {
-                    Label("Admin", systemImage: "shield.lefthalf.filled")
-                        .font(.caption2.weight(.semibold))
-                        .foregroundStyle(Theme.Colors.brand)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 3)
-                        .background(Theme.Colors.brand.opacity(0.15), in: Capsule())
-                        .padding(.top, 2)
                 }
                 if !myTeams.isEmpty {
                     HStack(spacing: 6) {
@@ -271,6 +280,16 @@ struct MinProfilView: View {
                     }
                     .padding(.top, 2)
                 }
+                Button {
+                    isPresentingAddFriend = true
+                } label: {
+                    Label("Lägg till vän", systemImage: "person.badge.plus")
+                        .font(.footnote.weight(.medium))
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .tint(Theme.Colors.brand)
+                .padding(.top, 4)
             }
         }
         .frame(maxWidth: .infinity)

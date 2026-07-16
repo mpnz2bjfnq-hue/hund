@@ -70,7 +70,7 @@ struct FeedView: View {
                             NavigationLink {
                                 JoinOrCreateTeamView()
                             } label: {
-                                smallPill(icon: "person.3.fill", text: "Team")
+                                largePill(icon: "person.3.fill", text: "Team")
                             }
                             .buttonStyle(.plain)
                         } else {
@@ -78,7 +78,7 @@ struct FeedView: View {
                                 NavigationLink {
                                     TeamPageView(team: team, onChanged: { Task { await loadFeed() } })
                                 } label: {
-                                    smallPill(icon: "person.3.fill", text: team.name)
+                                    largePill(icon: "person.3.fill", text: team.name)
                                 }
                                 .buttonStyle(.plain)
                             }
@@ -86,7 +86,7 @@ struct FeedView: View {
                                 NavigationLink {
                                     JoinOrCreateTeamView()
                                 } label: {
-                                    smallPill(icon: "envelope.badge", text: "Inbjudan (\(pendingTeamInvites))")
+                                    largePill(icon: "envelope.badge", text: "Inbjudan (\(pendingTeamInvites))")
                                 }
                                 .buttonStyle(.plain)
                             }
@@ -96,7 +96,7 @@ struct FeedView: View {
                         NavigationLink {
                             MeetupsListView()
                         } label: {
-                            smallPill(icon: "calendar", text: "Träffar")
+                            largePill(icon: "calendar", text: "Träffar")
                         }
                         .buttonStyle(.plain)
                     }
@@ -215,6 +215,20 @@ struct FeedView: View {
         .foregroundStyle(Theme.Colors.brand)
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
+        .background(Theme.Colors.brand.opacity(0.12), in: Capsule())
+    }
+
+    /// Större variant för team- och träffknapparna så de sticker ut
+    /// mer än filterknappen.
+    private func largePill(icon: String, text: String) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: icon)
+            Text(text)
+        }
+        .font(.subheadline.weight(.semibold))
+        .foregroundStyle(Theme.Colors.brand)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 9)
         .background(Theme.Colors.brand.opacity(0.12), in: Capsule())
     }
 

@@ -41,6 +41,10 @@ final class Dog {
     var chipNumber: String? = nil
     var breeder: String? = nil
 
+    // Minnesläge: satt när hunden gått bort. All data behålls för att
+    // kunna hedras — hunden visas som "ängel" istället för aktiv hund.
+    var passedAwayDate: Date? = nil
+
     // Delning. isShared == true betyder att hunden ägs av någon annan och har
     // hämtats hit via en delning; fälten nedan cachas från share-dokumentet.
     var isShared: Bool = false
@@ -84,6 +88,16 @@ final class Dog {
 extension Dog {
     /// Löp gäller endast tikar — hela löp-funktionen döljs för hanar.
     var tracksHeat: Bool { sex == .female }
+
+    /// Har hunden gått bort? (Ängel — visas i minnesläge.)
+    var isDeceased: Bool { passedAwayDate != nil }
+
+    /// "2015–2024"-formaterad levnadsperiod för minnesvyer.
+    var memorialYears: String {
+        let born = Calendar.current.component(.year, from: birthDate)
+        guard let passed = passedAwayDate else { return "\(born)–" }
+        return "\(born)–\(Calendar.current.component(.year, from: passed))"
+    }
 
     var sharedModules: Set<SharedModule> {
         get { Set(rawStorage: sharedModulesRaw) }

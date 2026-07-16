@@ -76,6 +76,35 @@ final class FriendsRepository {
         try await db.collection("users").document(uid).setData(data, merge: true)
     }
 
+    /// Prefix-sökning på @handle och visningsnamn — för live-förslag när man
+    /// lägger till vänner. Firestore saknar substrings, så det är "börjar med".
+    func searchUsers(matching query: String, excludingUid: String, limit: Int = 8) async -> [UserProfile] {
+        let trimmed = query
+            .trimmingCharacters(in: .whitespaces)
+            .replacingOccurrences(of: "@", with: "")
+        guard trimmed.count >= 2 else { return [] }
+        let end = trimmed + "\u{f8ff}"
+
+        async let byHandle = try? db.collection("users")
+            .whereField("handle", isGreaterThanOrEqualTo: trimmed)
+            .whereField("handle", isLessThan: end)
+            .limit(to: limit)
+            .getDocuments()
+        async let byName = try? db.collection("users")
+            .whereField("displayName", isGreaterThanOrEqualTo: trimmed)
+            .whereField("displayName", isLessThan: end)
+            .limit(to: limit)
+            .getDocuments()
+
+        let docs = (await byHandle?.documents ?? []) + (await byName?.documents ?? [])
+        var seen = Set<String>()
+        return docs.compactMap { doc -> UserProfile? in
+            guard doc.documentID != excludingUid, !seen.contains(doc.documentID) else { return nil }
+            seen.insert(doc.documentID)
+            return try? doc.data(as: UserProfile.self)
+        }
+    }
+
     func sendFriendRequest(from myUid: String, myDisplayName: String, myHandle: String, toHandle: String) async throws {
         let query = db.collection("users").whereField("handle", isEqualTo: toHandle)
         let snapshot = try await query.getDocuments()

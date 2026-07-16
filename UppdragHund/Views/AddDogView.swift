@@ -56,7 +56,12 @@ struct AddDogView: View {
         _registrationNumber = State(initialValue: dogToEdit?.registrationNumber ?? "")
         _chipNumber = State(initialValue: dogToEdit?.chipNumber ?? "")
         _breeder = State(initialValue: dogToEdit?.breeder ?? "")
+        _isDeceased = State(initialValue: dogToEdit?.passedAwayDate != nil)
+        _passedAwayDate = State(initialValue: dogToEdit?.passedAwayDate ?? .now)
     }
+
+    @State private var isDeceased: Bool = false
+    @State private var passedAwayDate: Date = .now
 
     private var isCustomBreed: Bool {
         selectedBreed == Self.otherOption
@@ -124,6 +129,22 @@ struct AddDogView: View {
                         .keyboardType(.numberPad)
                     TextField("Uppfödare", text: $breeder)
                 }
+
+                Section {
+                    Toggle("Hunden har gått bort", isOn: $isDeceased.animation())
+                        if isDeceased {
+                            DatePicker(
+                                "Datum",
+                                selection: $passedAwayDate,
+                                in: birthDate...Date.now,
+                                displayedComponents: .date
+                            )
+                        }
+                } header: {
+                    Text("Till minne 🌈")
+                } footer: {
+                    Text("All information behålls. Hunden visas som ängel istället för aktiv hund, så du kan fortsätta hedra minnet.")
+                }
             }
             .navigationTitle(dogToEdit == nil ? "Lägg till hund" : "Redigera hund")
             .navigationBarTitleDisplayMode(.inline)
@@ -166,6 +187,7 @@ struct AddDogView: View {
             dogToEdit.registrationNumber = trimmedOrNil(registrationNumber)
             dogToEdit.chipNumber = trimmedOrNil(chipNumber)
             dogToEdit.breeder = trimmedOrNil(breeder)
+            dogToEdit.passedAwayDate = isDeceased ? passedAwayDate : nil
             SyncCoordinator.shared.dogProfileTouched(dogToEdit)
         } else {
             let dog = Dog(
@@ -177,6 +199,7 @@ struct AddDogView: View {
             // Knyt hunden till det inloggade kontot (kontobyten på samma
             // enhet ska inte visa varandras hundar).
             dog.ownerUid = AuthService.shared.currentUserID
+            dog.passedAwayDate = isDeceased ? passedAwayDate : nil
             dog.photoData = photoData
             dog.color = trimmedOrNil(color)
             dog.registrationNumber = trimmedOrNil(registrationNumber)

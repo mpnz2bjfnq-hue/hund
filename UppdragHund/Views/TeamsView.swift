@@ -86,8 +86,18 @@ struct JoinOrCreateTeamView: View {
                             TeamPageView(team: team, onChanged: { Task { await load() } })
                         } label: {
                             HStack(spacing: Theme.Spacing.m) {
-                                Image(systemName: "person.3.fill")
-                                    .foregroundStyle(Theme.Colors.brand)
+                                if let photoData = team.photoData, let uiImage = UIImage(data: photoData) {
+                                    Image(uiImage: uiImage)
+                                        .resizable()
+                                        .scaledToFill()
+                                        .frame(width: 34, height: 34)
+                                        .clipShape(Circle())
+                                } else {
+                                    Image(systemName: "person.3.fill")
+                                        .foregroundStyle(Theme.Colors.brand)
+                                        .frame(width: 34, height: 34)
+                                        .background(Theme.Colors.brand.opacity(0.12), in: Circle())
+                                }
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(team.name)
                                         .foregroundStyle(Theme.Colors.textPrimary)

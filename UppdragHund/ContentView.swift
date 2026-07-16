@@ -23,6 +23,11 @@ struct ContentView: View {
         AccountScope.dogs(for: authService.currentUserID, in: dogs)
     }
 
+    /// Aktiverbara hundar: änglar (avlidna) kan minnas men inte väljas som aktiv.
+    private var activatableDogs: [Dog] {
+        accountDogs.filter { !$0.isDeceased }
+    }
+
     var body: some View {
         Group {
             if !authService.isSignedIn {
@@ -33,11 +38,9 @@ struct ContentView: View {
                 CompleteProfileView(profile: profile) {
                     Task { await currentUser.refresh() }
                 }
-            } else if accountDogs.isEmpty {
-                NavigationStack {
-                    DogListView()
-                }
             } else {
+                // Ingen hund krävs efter kontoskapandet — utan hund landar man
+                // på Min profil och kan gå med i team, lägga till hund senare.
                 MainTabView()
             }
         }
@@ -134,7 +137,7 @@ struct ContentView: View {
     }
 
     private func ensureActiveDogSelected() {
-        let available = accountDogs
+        let available = activatableDogs
         guard !available.isEmpty else {
             activeDogStore.activeDog = nil
             return

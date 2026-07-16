@@ -7,6 +7,7 @@
 //
 
 import SwiftUI
+import PhotosUI
 import SwiftData
 
 struct TeamPageView: View {
@@ -59,6 +60,7 @@ struct TeamPageView: View {
     @State private var confirmLeaveOrDelete = false
     @State private var errorMessage: String?
     @State private var invitedUids: Set<String> = []
+    @State private var teamPhotoItem: PhotosPickerItem?
 
     private var isOwner: Bool { authService.currentUserID == team.ownerUid }
 
@@ -170,11 +172,21 @@ struct TeamPageView: View {
     private var header: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.m) {
             HStack(spacing: Theme.Spacing.m) {
-                Image(systemName: "person.3.fill")
-                    .font(.title2)
-                    .foregroundStyle(Theme.Colors.brand)
-                    .frame(width: 52, height: 52)
-                    .background(Theme.Colors.brand.opacity(0.12), in: Circle())
+                if isOwner {
+                    PhotosPicker(selection: $teamPhotoItem, matching: .images) {
+                        teamAvatar
+                            .overlay(alignment: .bottomTrailing) {
+                                Image(systemName: "camera.fill")
+                                    .font(.system(size: 9))
+                                    .foregroundStyle(.white)
+                                    .padding(4)
+                                    .background(Circle().fill(Theme.Colors.brand))
+                            }
+                    }
+                    .buttonStyle(.plain)
+                } else {
+                    teamAvatar
+                }
                 VStack(alignment: .leading, spacing: 2) {
                     Text(team.name)
                         .font(Theme.Typography.sectionTitle)
@@ -198,6 +210,38 @@ struct TeamPageView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .cardStyle()
+        .onChange(of: teamPhotoItem) {
+            Task {
+                guard let item = teamPhotoItem,
+                      let data = try? await item.loadTransferable(type: Data.self),
+                      let image = UIImage(data: data),
+                      let thumb = AvatarImage.makeThumbnailData(from: image),
+                      let teamID = team.id else { return }
+                try? await TeamsRepository.shared.setTeamPhoto(teamID: teamID, photoData: thumb)
+                if let updated = await TeamsRepository.shared.team(id: teamID) {
+                    team = updated
+                }
+                onChanged()
+            }
+        }
+    }
+
+    /// Teamets avatar: foto om det finns, annars gruppikonen.
+    private var teamAvatar: some View {
+        Group {
+            if let photoData = team.photoData, let uiImage = UIImage(data: photoData) {
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .scaledToFill()
+            } else {
+                Image(systemName: "person.3.fill")
+                    .font(.title2)
+                    .foregroundStyle(Theme.Colors.brand)
+            }
+        }
+        .frame(width: 52, height: 52)
+        .background(Theme.Colors.brand.opacity(0.12))
+        .clipShape(Circle())
     }
 
     // MARK: - Inlägg

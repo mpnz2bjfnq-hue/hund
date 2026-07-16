@@ -163,6 +163,13 @@ final class TeamsRepository {
         ])
     }
 
+    /// Sätter (eller tar bort) teamets profilbild. Endast ägaren via reglerna.
+    func setTeamPhoto(teamID: String, photoData: Data?) async throws {
+        try await db.collection("teams").document(teamID).updateData([
+            "photoData": photoData ?? FieldValue.delete()
+        ])
+    }
+
     func deleteTeam(teamID: String) async throws {
         try await db.collection("teams").document(teamID).delete()
     }

@@ -12,9 +12,14 @@ struct DogListView: View {
     @Query(filter: #Predicate<Dog> { !$0.isShared }, sort: \Dog.name) private var allOwnDogs: [Dog]
     @Query(filter: #Predicate<Dog> { $0.isShared }, sort: \Dog.name) private var sharedDogs: [Dog]
 
-    /// Bara det inloggade kontots egna hundar.
+    /// Bara det inloggade kontots egna hundar (levande).
     private var dogs: [Dog] {
-        allOwnDogs.filter { $0.ownerUid == AuthService.shared.currentUserID }
+        allOwnDogs.filter { $0.ownerUid == AuthService.shared.currentUserID && !$0.isDeceased }
+    }
+
+    /// Änglar: avlidna hundar, bevarade för att hedras.
+    private var angelDogs: [Dog] {
+        allOwnDogs.filter { $0.ownerUid == AuthService.shared.currentUserID && $0.isDeceased }
     }
 
     @State private var isPresentingAddDog = false
@@ -26,7 +31,7 @@ struct DogListView: View {
 
     var body: some View {
         Group {
-            if dogs.isEmpty && sharedDogs.isEmpty {
+            if dogs.isEmpty && sharedDogs.isEmpty && angelDogs.isEmpty {
                 VStack(spacing: 20) {
                     Image("Canine360Logo")
                         .resizable()
@@ -78,6 +83,18 @@ struct DogListView: View {
                         if let message = SharedDogPuller.shared.lastSyncMessage {
                             Text(message)
                                 .foregroundStyle(SharedDogPuller.shared.lastSyncFailed ? .orange : .secondary)
+                        }
+                    }
+
+                    if !angelDogs.isEmpty {
+                        Section {
+                            ForEach(angelDogs) { dog in
+                                angelRow(for: dog)
+                            }
+                        } header: {
+                            Text("Änglar 🌈 (\(angelDogs.count))")
+                        } footer: {
+                            Text("Alltid i våra hjärtan. All information finns kvar – tryck för att minnas.")
                         }
                     }
                 }
@@ -158,6 +175,42 @@ struct DogListView: View {
             Button("OK", role: .cancel) {}
         } message: {
             Text(removalErrorMessage ?? "")
+        }
+    }
+
+    @ViewBuilder
+    private func angelRow(for dog: Dog) -> some View {
+        NavigationLink {
+            DogProfileDetailView(dog: dog)
+        } label: {
+            HStack(spacing: 12) {
+                DogAvatar(photoData: dog.photoData, size: 44, isActive: false)
+                    .overlay(alignment: .topTrailing) {
+                        Text("🌈").font(.caption2)
+                    }
+                    .opacity(0.85)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(dog.name)
+                        .font(.headline)
+                    Text("\(dog.breed) · \(dog.memorialYears)")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+            }
+        }
+        .swipeActions(edge: .trailing) {
+            Button {
+                dogPendingEdit = dog
+            } label: {
+                Label("Redigera", systemImage: "pencil")
+            }
+            .tint(.blue)
+            Button(role: .destructive) {
+                dogPendingDelete = dog
+            } label: {
+                Label("Ta bort", systemImage: "trash")
+            }
         }
     }
 

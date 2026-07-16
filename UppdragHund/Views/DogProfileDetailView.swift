@@ -27,6 +27,9 @@ struct DogProfileDetailView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: Theme.Spacing.xl) {
+                if dog.isDeceased {
+                    memorialBanner
+                }
                 heroCard
                 informationCard
             }
@@ -46,6 +49,22 @@ struct DogProfileDetailView: View {
         .sheet(isPresented: $isEditing) {
             AddDogView(dogToEdit: dog)
         }
+    }
+
+    /// Minnesbanner för änglar 🌈 — visar levnadsperioden.
+    private var memorialBanner: some View {
+        VStack(spacing: 4) {
+            Text("🌈")
+                .font(.title)
+            Text("Till minne av \(dog.name)")
+                .font(Theme.Typography.body.weight(.semibold))
+                .foregroundStyle(Theme.Colors.textPrimary)
+            Text("\(dog.memorialYears) · alltid i våra hjärtan")
+                .font(Theme.Typography.caption)
+                .foregroundStyle(Theme.Colors.textSecondary)
+        }
+        .frame(maxWidth: .infinity)
+        .cardStyle()
     }
 
     // MARK: - Hero
