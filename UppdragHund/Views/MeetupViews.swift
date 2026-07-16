@@ -406,6 +406,15 @@ struct MeetupDetailView: View {
                         }
                         .buttonStyle(.bordered)
                         .tint(.red)
+                        // På knappen (inte vyn) så bekräftelsen dyker upp intill den.
+                        .confirmationDialog(
+                            "Ställ in träffen?",
+                            isPresented: $confirmDelete,
+                            titleVisibility: .visible
+                        ) {
+                            Button("Ställ in", role: .destructive) { deleteMeetup() }
+                            Button("Avbryt", role: .cancel) {}
+                        }
                     }
                 }
                 .padding(Theme.Spacing.l)
@@ -431,14 +440,6 @@ struct MeetupDetailView: View {
                 }
             }
             .task { await loadLinkedTasks() }
-            .confirmationDialog(
-                "Ställ in träffen?",
-                isPresented: $confirmDelete,
-                titleVisibility: .visible
-            ) {
-                Button("Ställ in", role: .destructive) { deleteMeetup() }
-                Button("Avbryt", role: .cancel) {}
-            }
         }
     }
 

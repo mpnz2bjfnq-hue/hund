@@ -37,6 +37,21 @@ struct ForumView: View {
                             }
                             .buttonStyle(.plain)
                             .contextMenu { threadMenu(thread) }
+                            // På raden så bekräftelsen dyker upp intill den.
+                            .confirmationDialog(
+                                "Ta bort diskussionen?",
+                                isPresented: Binding(
+                                    get: { threadPendingDelete?.id == thread.id },
+                                    set: { if !$0 { threadPendingDelete = nil } }
+                                ),
+                                titleVisibility: .visible
+                            ) {
+                                Button("Ta bort", role: .destructive) {
+                                    delete(thread)
+                                    threadPendingDelete = nil
+                                }
+                                Button("Avbryt", role: .cancel) { threadPendingDelete = nil }
+                            }
                             if index < threads.count - 1 {
                                 Divider().overlay(Theme.Colors.textSecondary.opacity(0.2))
                             }
@@ -69,20 +84,6 @@ struct ForumView: View {
             Button("OK", role: .cancel) {}
         } message: {
             Text(moderationMessage ?? "")
-        }
-        .confirmationDialog(
-            "Ta bort diskussionen?",
-            isPresented: Binding(
-                get: { threadPendingDelete != nil },
-                set: { if !$0 { threadPendingDelete = nil } }
-            ),
-            titleVisibility: .visible
-        ) {
-            Button("Ta bort", role: .destructive) {
-                if let thread = threadPendingDelete { delete(thread) }
-                threadPendingDelete = nil
-            }
-            Button("Avbryt", role: .cancel) { threadPendingDelete = nil }
         }
     }
 

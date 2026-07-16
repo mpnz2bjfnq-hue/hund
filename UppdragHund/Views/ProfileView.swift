@@ -112,6 +112,21 @@ struct ProfileView: View {
                                     }
                                 }
                             }
+                            // På raden så bekräftelsen dyker upp intill den.
+                            .confirmationDialog(
+                                "Ta bort uppdateringen?",
+                                isPresented: Binding(
+                                    get: { postPendingDelete?.id == post.id },
+                                    set: { if !$0 { postPendingDelete = nil } }
+                                ),
+                                titleVisibility: .visible
+                            ) {
+                                Button("Ta bort", role: .destructive) {
+                                    delete(post)
+                                    postPendingDelete = nil
+                                }
+                                Button("Avbryt", role: .cancel) { postPendingDelete = nil }
+                            }
                     }
                 }
             }
@@ -153,20 +168,6 @@ struct ProfileView: View {
         }
         .sheet(item: $selectedDog) { dog in
             DogSummarySheet(dog: dog)
-        }
-        .confirmationDialog(
-            "Ta bort uppdateringen?",
-            isPresented: Binding(
-                get: { postPendingDelete != nil },
-                set: { if !$0 { postPendingDelete = nil } }
-            ),
-            titleVisibility: .visible
-        ) {
-            Button("Ta bort", role: .destructive) {
-                if let post = postPendingDelete { delete(post) }
-                postPendingDelete = nil
-            }
-            Button("Avbryt", role: .cancel) { postPendingDelete = nil }
         }
         .task(id: resolvedUID) {
             await load()

@@ -171,14 +171,6 @@ struct TeamPageView: View {
             }
             Button("Avbryt", role: .cancel) { postPendingDelete = nil }
         }
-        .confirmationDialog(
-            isOwner ? "Ta bort teamet?" : "Lämna teamet?",
-            isPresented: $confirmLeaveOrDelete,
-            titleVisibility: .visible
-        ) {
-            Button(isOwner ? "Ta bort" : "Lämna", role: .destructive) { leaveOrDelete() }
-            Button("Avbryt", role: .cancel) {}
-        }
     }
 
     // MARK: - Header
@@ -683,6 +675,15 @@ struct TeamPageView: View {
             }
             .buttonStyle(.bordered)
             .tint(.red)
+            // På knappen (inte vyn) så bekräftelsen dyker upp intill den.
+            .confirmationDialog(
+                isOwner ? "Ta bort teamet?" : "Lämna teamet?",
+                isPresented: $confirmLeaveOrDelete,
+                titleVisibility: .visible
+            ) {
+                Button(isOwner ? "Ta bort" : "Lämna", role: .destructive) { leaveOrDelete() }
+                Button("Avbryt", role: .cancel) {}
+            }
         }
     }
 

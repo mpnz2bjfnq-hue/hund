@@ -70,26 +70,6 @@ struct HundtraningView: View {
         .sheet(isPresented: $isPresentingWalk) {
             WalkTrackerView(dog: dog)
         }
-        .confirmationDialog(
-            "Ta bort träningspasset?",
-            isPresented: Binding(
-                get: { sessionPendingDelete != nil },
-                set: { isPresented in
-                    if !isPresented { sessionPendingDelete = nil }
-                }
-            ),
-            titleVisibility: .visible
-        ) {
-            Button("Ta bort", role: .destructive) {
-                if let session = sessionPendingDelete {
-                    SyncCoordinator.shared.delete(session, of: dog, in: modelContext)
-                }
-                sessionPendingDelete = nil
-            }
-            Button("Avbryt", role: .cancel) {
-                sessionPendingDelete = nil
-            }
-        }
     }
 
     @ViewBuilder private var logContent: some View {
@@ -120,6 +100,21 @@ struct HundtraningView: View {
                                 Label("Ta bort", systemImage: "trash")
                             }
                         }
+                    }
+                    // På raden så bekräftelsen dyker upp intill den.
+                    .confirmationDialog(
+                        "Ta bort träningspasset?",
+                        isPresented: Binding(
+                            get: { sessionPendingDelete?.persistentModelID == session.persistentModelID },
+                            set: { if !$0 { sessionPendingDelete = nil } }
+                        ),
+                        titleVisibility: .visible
+                    ) {
+                        Button("Ta bort", role: .destructive) {
+                            SyncCoordinator.shared.delete(session, of: dog, in: modelContext)
+                            sessionPendingDelete = nil
+                        }
+                        Button("Avbryt", role: .cancel) { sessionPendingDelete = nil }
                     }
                 }
             }
