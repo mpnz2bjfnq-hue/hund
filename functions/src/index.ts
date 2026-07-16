@@ -478,7 +478,9 @@ export const onTicketResolved = onDocumentWritten(
     const after = event.data?.after?.data();
     if (!before || !after) return;
     if (before.status !== "open" || after.status !== "resolved") return;
-    if (after.kind === "feedback") return;
+    // "Löst"-pushen gäller bara riktiga supportärenden. Feedback besvaras
+    // inte, och instruktörsansökningar får sitt besked via grattis-pushen.
+    if ((after.kind ?? "support") !== "support") return;
 
     const uid: string = after.uid;
     const subject: string = after.subject ?? "ditt ärende";
