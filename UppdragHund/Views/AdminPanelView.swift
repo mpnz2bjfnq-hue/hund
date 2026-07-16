@@ -50,6 +50,11 @@ struct AdminPanelView: View {
                         .badge(stats.feedback)
                 }
                 NavigationLink {
+                    AdminInstructorApplicationsView()
+                } label: {
+                    Label("Instruktörsansökningar", systemImage: "graduationcap")
+                }
+                NavigationLink {
                     AdminUsersView()
                 } label: {
                     Label("Användare", systemImage: "person.2")
@@ -233,6 +238,113 @@ struct AdminFeedbackView: View {
 
 // MARK: - Användarlista
 
+// MARK: - Instruktörsansökningar (admin)
+
+/// Godkänn eller avslå ansökningar om instruktörskonto. Godkännande sätter
+/// den servervalidderade instructor-flaggan och skickar en gratulations-push.
+struct AdminInstructorApplicationsView: View {
+    @State private var tickets: [SupportTicket] = []
+    @State private var isLoading = true
+    @State private var isWorking = false
+    @State private var errorMessage: String?
+
+    var body: some View {
+        List {
+            if tickets.isEmpty {
+                Text(isLoading ? "Laddar…" : "Inga ansökningar. 🎉")
+                    .foregroundStyle(Theme.Colors.textSecondary)
+            } else {
+                ForEach(tickets) { ticket in
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack {
+                            Text(ticket.subject)
+                                .font(.headline)
+                                .foregroundStyle(Theme.Colors.textPrimary)
+                            Spacer()
+                            Text(ticket.isOpen ? "Väntar" : "Hanterad")
+                                .font(.caption2.weight(.semibold))
+                                .foregroundStyle(ticket.isOpen ? .orange : Theme.Colors.brand)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 2)
+                                .background(
+                                    (ticket.isOpen ? Color.orange : Theme.Colors.brand).opacity(0.15),
+                                    in: Capsule()
+                                )
+                        }
+                        Text(ticket.message)
+                            .font(Theme.Typography.body)
+                            .foregroundStyle(Theme.Colors.textSecondary)
+                        Text("\(ticket.name) · \(ticket.createdAt.formatted(date: .abbreviated, time: .shortened))")
+                            .font(.caption2)
+                            .foregroundStyle(Theme.Colors.textSecondary)
+                        if ticket.isOpen {
+                            HStack(spacing: Theme.Spacing.s) {
+                                Button {
+                                    approve(ticket)
+                                } label: {
+                                    Label("Godkänn som instruktör", systemImage: "checkmark.seal.fill")
+                                }
+                                .buttonStyle(.borderedProminent)
+                                .controlSize(.small)
+                                .tint(Theme.Colors.brand)
+
+                                Button {
+                                    decline(ticket)
+                                } label: {
+                                    Text("Avslå")
+                                }
+                                .buttonStyle(.bordered)
+                                .controlSize(.small)
+                                .tint(.red)
+                            }
+                            .padding(.top, 2)
+                            .disabled(isWorking)
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
+            }
+
+            if let errorMessage {
+                Text(errorMessage).font(.caption).foregroundStyle(.red)
+            }
+        }
+        .navigationTitle("Instruktörsansökningar")
+        .navigationBarTitleDisplayMode(.inline)
+        .refreshable { await load() }
+        .task { await load() }
+    }
+
+    private func load() async {
+        tickets = await SupportService.shared.allTickets(kind: .instructor)
+        isLoading = false
+    }
+
+    private func approve(_ ticket: SupportTicket) {
+        guard let id = ticket.id else { return }
+        isWorking = true
+        Task {
+            do {
+                try await AdminService.shared.setInstructor(targetUid: ticket.uid, instructor: true)
+                try? await SupportService.shared.resolveTicket(id: id)
+                await load()
+                errorMessage = nil
+            } catch {
+                errorMessage = "Kunde inte godkänna: \(error.localizedDescription)"
+            }
+            isWorking = false
+        }
+    }
+
+    private func decline(_ ticket: SupportTicket) {
+        guard let id = ticket.id else { return }
+        Task {
+            try? await SupportService.shared.resolveTicket(id: id)
+            await load()
+        }
+    }
+}
+
 struct AdminUsersView: View {
     @State private var users: [UserProfile] = []
     @State private var searchText = ""
@@ -290,6 +402,13 @@ struct AdminUserDetailView: View {
     @State private var confirmDelete = false
     @State private var isDeleting = false
     @State private var message: String?
+    @State private var isInstructor: Bool
+    @State private var isTogglingInstructor = false
+
+    init(user: UserProfile) {
+        self.user = user
+        _isInstructor = State(initialValue: user.instructor == true)
+    }
 
     var body: some View {
         List {
@@ -297,7 +416,14 @@ struct AdminUserDetailView: View {
                 HStack(spacing: Theme.Spacing.m) {
                     ProfileAvatar(photoData: user.photoData, size: 48)
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(user.displayName).font(.headline)
+                        HStack(spacing: 6) {
+                            Text(user.displayName).font(.headline)
+                            if isInstructor {
+                                Image(systemName: "graduationcap.fill")
+                                    .font(.caption)
+                                    .foregroundStyle(Theme.Colors.brand)
+                            }
+                        }
                         Text("@\(user.handle)")
                             .font(.caption)
                             .foregroundStyle(Theme.Colors.textSecondary)
@@ -306,6 +432,24 @@ struct AdminUserDetailView: View {
                             .foregroundStyle(Theme.Colors.textSecondary)
                     }
                 }
+            }
+
+            Section {
+                Button {
+                    toggleInstructor()
+                } label: {
+                    if isTogglingInstructor {
+                        HStack { ProgressView(); Text("Uppdaterar…") }
+                    } else {
+                        Label(isInstructor ? "Ta bort instruktörskonto" : "Gör till instruktör",
+                              systemImage: isInstructor ? "graduationcap" : "graduationcap.fill")
+                    }
+                }
+                .disabled(isTogglingInstructor)
+            } footer: {
+                Text(isInstructor
+                     ? "Instruktör: kan skapa hundkurser och konsulentteam. Befintliga team påverkas inte om du återkallar."
+                     : "Instruktörer kan skapa hundkurser och konsulentteam. Personen får en push när du beviljar.")
             }
 
             Section("Inlägg (\(posts.count))") {
@@ -371,6 +515,20 @@ struct AdminUserDetailView: View {
             Button("OK", role: .cancel) {}
         } message: {
             Text(message ?? "")
+        }
+    }
+
+    private func toggleInstructor() {
+        guard let uid = user.id else { return }
+        isTogglingInstructor = true
+        Task {
+            do {
+                try await AdminService.shared.setInstructor(targetUid: uid, instructor: !isInstructor)
+                isInstructor.toggle()
+            } catch {
+                message = "Kunde inte uppdatera: \(error.localizedDescription)"
+            }
+            isTogglingInstructor = false
         }
     }
 

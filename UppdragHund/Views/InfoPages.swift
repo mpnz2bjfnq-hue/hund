@@ -144,19 +144,47 @@ struct NewTicketView: View {
             && !message.trimmingCharacters(in: .whitespaces).isEmpty
     }
 
+    private var navigationTitle: String {
+        switch kind {
+        case .feedback: "Skicka feedback"
+        case .instructor: "Ansök om instruktörskonto"
+        case .support: "Nytt ärende"
+        }
+    }
+
+    private var subjectPrompt: String {
+        switch kind {
+        case .feedback: "t.ex. Idé: mörkare kalender"
+        case .instructor: "Din verksamhet, t.ex. Hundskolan Tass, Malmö"
+        case .support: "t.ex. Delad hund syns inte"
+        }
+    }
+
+    private var messageLabel: String {
+        switch kind {
+        case .feedback: "Berätta vad du tycker"
+        case .instructor: "Berätta om din verksamhet"
+        case .support: "Beskriv problemet"
+        }
+    }
+
+    private var footerText: String {
+        switch kind {
+        case .feedback: "Idéer, beröm eller gnäll – allt är välkommet och går direkt till oss."
+        case .instructor: "Beskriv vad du gör (kurser, konsultationer), hur länge du hållit på och gärna en länk till hemsida/Instagram. Vi återkommer med en notis när ansökan är granskad."
+        case .support: "Beskriv gärna vilken skärm du var på och vad som hände."
+        }
+    }
+
     var body: some View {
         NavigationStack {
             Form {
                 Section {
-                    TextField("Ämne", text: $subject,
-                              prompt: Text(kind == .feedback ? "t.ex. Idé: mörkare kalender" : "t.ex. Delad hund syns inte"))
-                    TextField(kind == .feedback ? "Berätta vad du tycker" : "Beskriv problemet",
-                              text: $message, axis: .vertical)
+                    TextField("Ämne", text: $subject, prompt: Text(subjectPrompt))
+                    TextField(messageLabel, text: $message, axis: .vertical)
                         .lineLimit(4...10)
                 } footer: {
-                    Text(kind == .feedback
-                         ? "Idéer, beröm eller gnäll – allt är välkommet och går direkt till oss."
-                         : "Beskriv gärna vilken skärm du var på och vad som hände.")
+                    Text(footerText)
                 }
                 if let errorMessage {
                     Section {
@@ -164,7 +192,7 @@ struct NewTicketView: View {
                     }
                 }
             }
-            .navigationTitle(kind == .feedback ? "Skicka feedback" : "Nytt ärende")
+            .navigationTitle(navigationTitle)
             .navigationBarTitleDisplayMode(.inline)
             .tint(Theme.Colors.brand)
             .toolbar {

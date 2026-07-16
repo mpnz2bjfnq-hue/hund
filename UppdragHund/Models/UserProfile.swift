@@ -22,6 +22,9 @@ struct UserProfile: Codable, Identifiable {
     /// Denormaliserat antal vänner — vänlistan är privat per säkerhetsreglerna,
     /// så antalet speglas hit (Cloud Function + self-heal vid egen laddning).
     var friendCount: Int?
+    /// Instruktörskonto — krävs för att skapa kurs-/konsulentteam.
+    /// Sätts ENDAST av servern (adminSetInstructor); reglerna nekar klienter.
+    var instructor: Bool?
 }
 
 extension UserProfile {

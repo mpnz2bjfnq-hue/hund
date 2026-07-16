@@ -155,6 +155,34 @@ export const adminDeleteUser = onCall({ region: REGION }, async (request) => {
   return { ok: true };
 });
 
+/** Admin: bevilja eller återkalla instruktörskonto. Flaggan kan bara
+ *  sättas här (server-side) — säkerhetsreglerna nekar klient-skrivningar
+ *  och kräver den för att skapa kurs-/konsulentteam. */
+export const adminSetInstructor = onCall({ region: REGION }, async (request) => {
+  const callerUid = request.auth?.uid;
+  if (!(await isAdminUid(callerUid))) {
+    throw new HttpsError("permission-denied", "Endast admin.");
+  }
+  const targetUid: string = request.data?.targetUid;
+  const instructor: boolean = request.data?.instructor === true;
+  if (!targetUid || typeof targetUid !== "string") {
+    throw new HttpsError("invalid-argument", "targetUid saknas.");
+  }
+
+  await db.collection("users").doc(targetUid).set({ instructor }, { merge: true });
+
+  if (instructor) {
+    await sendToUser(
+      targetUid,
+      "Grattis — du är nu instruktör! 🎓",
+      "Du kan nu skapa hundkurser och konsulentteam i Canine360.",
+      { type: "instructorGranted" }
+    ).catch(() => undefined);
+  }
+  logger.info(`ADMIN ${callerUid} satte instructor=${instructor} för ${targetUid}`);
+  return { ok: true };
+});
+
 /** Admin: skicka en push-notis till ALLA användare. */
 export const adminBroadcast = onCall({ region: REGION }, async (request) => {
   const callerUid = request.auth?.uid;
@@ -424,14 +452,18 @@ export const onNewTicket = onDocumentCreated(
     const adminUids: string[] = adminsDoc.data()?.uids ?? [];
     const name: string = ticket.name ?? "En användare";
     const subject: string = ticket.subject ?? "Supportärende";
-    const isFeedback = ticket.kind === "feedback";
+    const titles: Record<string, string> = {
+      feedback: "Ny feedback 💬",
+      instructor: "Ny instruktörsansökan 🎓",
+    };
+    const kind: string = ticket.kind ?? "support";
     await Promise.all(
       adminUids.map((uid) =>
         sendToUser(
           uid,
-          isFeedback ? "Ny feedback 💬" : "Nytt supportärende 🎫",
+          titles[kind] ?? "Nytt supportärende 🎫",
           `${name}: ${subject}`,
-          { type: isFeedback ? "feedback" : "supportTicket", ticketId: event.params.ticketId }
+          { type: kind === "support" ? "supportTicket" : kind, ticketId: event.params.ticketId }
         )
       )
     );

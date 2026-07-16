@@ -82,6 +82,8 @@ final class ModerationService {
 
 enum TicketKind: String, Codable, Identifiable {
     case support, feedback
+    /// Ansökan om instruktörskonto — godkänns av admin i adminpanelen.
+    case instructor
     var id: String { rawValue }
 }
 
@@ -268,6 +270,14 @@ final class AdminService {
     /// Raderar en annan användares konto + all data (server-verifierad admin).
     func deleteUser(targetUid: String) async throws {
         _ = try await functions.httpsCallable("adminDeleteUser").call(["targetUid": targetUid])
+    }
+
+    /// Beviljar eller återkallar instruktörskonto (server-side flagga).
+    func setInstructor(targetUid: String, instructor: Bool) async throws {
+        _ = try await functions.httpsCallable("adminSetInstructor").call([
+            "targetUid": targetUid,
+            "instructor": instructor,
+        ] as [String: Any])
     }
 
     /// Skickar push till alla användare. Returnerar (tokens, levererade).

@@ -219,6 +219,14 @@ struct NewTeamView: View {
     @State private var name = ""
     @State private var kind: TeamKind = .social
     @State private var isSaving = false
+    @State private var isPresentingApplication = false
+
+    /// Kurs- och konsulentteam kräver instruktörskonto (server-verifierat).
+    private var isInstructor: Bool { currentUser.profile?.instructor == true }
+
+    private func isLocked(_ option: TeamKind) -> Bool {
+        option != .social && !isInstructor
+    }
 
     var body: some View {
         NavigationStack {
@@ -230,33 +238,48 @@ struct NewTeamView: View {
                 Section {
                     ForEach(TeamKind.allCases) { option in
                         Button {
-                            kind = option
+                            if !isLocked(option) { kind = option }
                         } label: {
                             HStack(spacing: Theme.Spacing.m) {
                                 Image(systemName: option.icon)
                                     .font(.title3)
-                                    .foregroundStyle(Theme.Colors.brand)
+                                    .foregroundStyle(isLocked(option) ? Theme.Colors.textSecondary : Theme.Colors.brand)
                                     .frame(width: 32)
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(option.displayName)
                                         .font(Theme.Typography.body.weight(.medium))
-                                        .foregroundStyle(Theme.Colors.textPrimary)
-                                    Text(option.description)
+                                        .foregroundStyle(isLocked(option) ? Theme.Colors.textSecondary : Theme.Colors.textPrimary)
+                                    Text(isLocked(option) ? "Kräver instruktörskonto" : option.description)
                                         .font(.caption)
                                         .foregroundStyle(Theme.Colors.textSecondary)
                                 }
                                 Spacer(minLength: 8)
-                                Image(systemName: kind == option ? "checkmark.circle.fill" : "circle")
-                                    .foregroundStyle(kind == option ? Theme.Colors.brand : Theme.Colors.textSecondary.opacity(0.4))
+                                Image(systemName: isLocked(option)
+                                      ? "lock.fill"
+                                      : kind == option ? "checkmark.circle.fill" : "circle")
+                                    .foregroundStyle(isLocked(option)
+                                                     ? Theme.Colors.textSecondary.opacity(0.6)
+                                                     : kind == option ? Theme.Colors.brand : Theme.Colors.textSecondary.opacity(0.4))
                             }
                             .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
                     }
+
+                    if !isInstructor {
+                        Button {
+                            isPresentingApplication = true
+                        } label: {
+                            Label("Ansök om instruktörskonto", systemImage: "graduationcap")
+                                .foregroundStyle(Theme.Colors.brand)
+                        }
+                    }
                 } header: {
                     Text("Vad är teamet för?")
                 } footer: {
-                    Text("Typen styr vilka funktioner teamet har — en promenadgrupp slipper uppgifter och roller.")
+                    Text(isInstructor
+                         ? "Typen styr vilka funktioner teamet har — en promenadgrupp slipper uppgifter och roller."
+                         : "Hundkurs och konsulentverksamhet är för instruktörer — ansök så granskar vi och återkommer med en notis.")
                 }
             }
             .navigationTitle("Nytt team")
@@ -270,6 +293,13 @@ struct NewTeamView: View {
                 isBusy: isSaving
             ) {
                 save()
+            }
+            .sheet(isPresented: $isPresentingApplication) {
+                NewTicketView(kind: .instructor)
+            }
+            .task {
+                // Färsk profil så en nybliven instruktör ser upplåsta val direkt.
+                await currentUser.refresh()
             }
         }
     }
