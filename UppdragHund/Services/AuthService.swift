@@ -125,6 +125,26 @@ final class AuthService {
         try Auth.auth().signOut()
     }
 
+    /// Verifierar mot servern att kontot fortfarande existerar, via tvingad
+    /// token-refresh. Den cachade ID-token är giltig upp till en timme efter
+    /// att kontot raderats (t.ex. av admin), så utan denna koll kan en enhet
+    /// fortsätta agera — och återskapa data — åt ett raderat konto.
+    /// Nätverksfel räknas som "finns" så flakigt nät inte loggar ut någon.
+    func accountStillExists() async -> Bool {
+        guard let user = Auth.auth().currentUser else { return false }
+        do {
+            _ = try await user.getIDTokenResult(forcingRefresh: true)
+            return true
+        } catch {
+            switch AuthErrorCode(rawValue: (error as NSError).code) {
+            case .userNotFound, .userDisabled, .invalidUserToken, .userTokenExpired:
+                return false
+            default:
+                return true
+            }
+        }
+    }
+
     /// Översätter vanliga Firebase-authfel till svenska texter.
     private func mapAuthError(_ error: Error) -> Error {
         let code = AuthErrorCode(rawValue: (error as NSError).code)

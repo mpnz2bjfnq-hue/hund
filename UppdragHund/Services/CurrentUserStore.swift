@@ -26,6 +26,8 @@ final class CurrentUserStore {
 
     /// Hämtar profilen och själv-läker ett saknat/ofullständigt dokument
     /// (t.ex. bara dogSummaries → avkodningsfel) så gaten inte fastnar.
+    /// Innan läkningen verifieras att kontot fortfarande finns — annars skulle
+    /// en enhet med kvarvarande session återskapa ett raderat kontos profil.
     func refresh() async {
         guard let uid = AuthService.shared.currentUserID else {
             profile = nil
@@ -33,6 +35,11 @@ final class CurrentUserStore {
         }
         var fetched = try? await FriendsRepository.shared.fetchMyProfile(uid: uid)
         if fetched == nil {
+            guard await AuthService.shared.accountStillExists() else {
+                profile = nil
+                try? AuthService.shared.signOut()
+                return
+            }
             let name = AuthService.shared.currentDisplayName ?? "Hundägare"
             try? await FriendsRepository.shared.ensureProfile(uid: uid, displayName: name, email: nil)
             fetched = try? await FriendsRepository.shared.fetchMyProfile(uid: uid)
