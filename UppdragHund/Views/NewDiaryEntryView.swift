@@ -62,9 +62,9 @@ struct NewDiaryEntryView: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Avbryt") { dismiss() }
                 }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Spara") { save() }
-                }
+            }
+            .bottomActionButton("Spara") {
+                save()
             }
             .onChange(of: photoPickerItem) { _, newValue in
                 Task {

@@ -152,10 +152,9 @@ struct AddDogView: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Avbryt") { dismiss() }
                 }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Spara") { save() }
-                        .disabled(!isValid)
-                }
+            }
+            .bottomActionButton("Spara", disabled: !isValid) {
+                save()
             }
             .onChange(of: photoItem) {
                 loadPickedPhoto()

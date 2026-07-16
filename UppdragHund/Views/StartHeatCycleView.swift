@@ -25,14 +25,12 @@ struct StartHeatCycleView: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Avbryt") { dismiss() }
                 }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Spara") {
-                        let cycle = HeatCycle(startDate: startDate, dog: dog)
-                        modelContext.insert(cycle)
-                        SyncCoordinator.shared.entryTouched(cycle, dog: dog)
-                        dismiss()
-                    }
-                }
+            }
+            .bottomActionButton("Spara") {
+                let cycle = HeatCycle(startDate: startDate, dog: dog)
+                modelContext.insert(cycle)
+                SyncCoordinator.shared.entryTouched(cycle, dog: dog)
+                dismiss()
             }
         }
     }

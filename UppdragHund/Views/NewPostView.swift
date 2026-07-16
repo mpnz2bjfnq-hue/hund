@@ -128,10 +128,9 @@ struct NewPostView: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Avbryt") { dismiss() }
                 }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Publicera") { publish() }
-                        .disabled(trimmedText.isEmpty || isPosting)
-                }
+            }
+            .bottomActionButton("Publicera", disabled: trimmedText.isEmpty, isBusy: isPosting) {
+                publish()
             }
             .task {
                 if let uid = authService.currentUserID {

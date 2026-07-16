@@ -870,10 +870,13 @@ struct NewTeamTaskView: View {
             .tint(Theme.Colors.brand)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Avbryt") { dismiss() } }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Lägg ut") { save() }
-                        .disabled(title.trimmingCharacters(in: .whitespaces).isEmpty || isSaving)
-                }
+            }
+            .bottomActionButton(
+                "Lägg ut",
+                disabled: title.trimmingCharacters(in: .whitespaces).isEmpty,
+                isBusy: isSaving
+            ) {
+                save()
             }
         }
     }

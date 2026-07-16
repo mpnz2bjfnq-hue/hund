@@ -28,13 +28,11 @@ struct EndHeatCycleView: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Avbryt") { dismiss() }
                 }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Spara") {
-                        cycle.endDate = endDate
-                        SyncCoordinator.shared.entryTouched(cycle, dog: cycle.dog)
-                        dismiss()
-                    }
-                }
+            }
+            .bottomActionButton("Spara") {
+                cycle.endDate = endDate
+                SyncCoordinator.shared.entryTouched(cycle, dog: cycle.dog)
+                dismiss()
             }
         }
     }

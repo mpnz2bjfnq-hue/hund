@@ -275,9 +275,9 @@ struct EditMeetupView: View {
             .tint(Theme.Colors.brand)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Avbryt") { dismiss() } }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Spara") { save() }.disabled(!canSave || isSaving)
-                }
+            }
+            .bottomActionButton("Spara", disabled: !canSave, isBusy: isSaving) {
+                save()
             }
             .alert(
                 "Kunde inte spara",

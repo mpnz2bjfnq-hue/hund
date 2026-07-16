@@ -171,9 +171,9 @@ struct NewTicketView: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Avbryt") { dismiss() }
                 }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Skicka") { send() }.disabled(!canSend || isSending)
-                }
+            }
+            .bottomActionButton("Skicka", disabled: !canSend, isBusy: isSending) {
+                send()
             }
         }
     }

@@ -223,10 +223,13 @@ struct NewTeamView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Avbryt") { dismiss() } }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Skapa") { save() }
-                        .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty || isSaving)
-                }
+            }
+            .bottomActionButton(
+                "Skapa team",
+                disabled: name.trimmingCharacters(in: .whitespaces).isEmpty,
+                isBusy: isSaving
+            ) {
+                save()
             }
         }
     }
@@ -343,9 +346,9 @@ struct NewMeetupView: View {
             .tint(Theme.Colors.brand)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Avbryt") { dismiss() } }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Skapa") { save() }.disabled(!canSave || isSaving)
-                }
+            }
+            .bottomActionButton("Skapa träff", disabled: !canSave, isBusy: isSaving) {
+                save()
             }
             .task {
                 guard let uid = authService.currentUserID else { return }

@@ -77,9 +77,9 @@ struct NewTrainingPlanView: View {
             .tint(Theme.Colors.brand)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Avbryt") { dismiss() } }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Spara") { save() }.disabled(!canSave)
-                }
+            }
+            .bottomActionButton("Spara", disabled: !canSave) {
+                save()
             }
         }
     }
