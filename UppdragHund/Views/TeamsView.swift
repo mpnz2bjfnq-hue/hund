@@ -311,6 +311,13 @@ struct NewMeetupView: View {
     @State private var selectedFriendUids: Set<String> = []
     @State private var isSaving = false
 
+    // Kurs: flera tillfällen med samma gäng + valfri platsgräns.
+    @State private var isRecurring = false
+    @State private var occurrences = 8
+    @State private var intervalWeeks = 1
+    @State private var hasMaxSpots = false
+    @State private var maxSpots = 8
+
     // Kartnål: sätts via platssökning eller tryck på kartan (MeetupMapPickerSection).
     @State private var pinLatitude: Double?
     @State private var pinLongitude: Double?
@@ -339,6 +346,27 @@ struct NewMeetupView: View {
                     latitude: $pinLatitude,
                     longitude: $pinLongitude
                 )
+
+                Section {
+                    Toggle("Flera tillfällen", isOn: $isRecurring.animation())
+                    if isRecurring {
+                        Stepper("Antal tillfällen: \(occurrences)", value: $occurrences, in: 2...12)
+                        Picker("Intervall", selection: $intervalWeeks) {
+                            Text("Varje vecka").tag(1)
+                            Text("Varannan vecka").tag(2)
+                        }
+                    }
+                    Toggle("Max antal platser", isOn: $hasMaxSpots.animation())
+                    if hasMaxSpots {
+                        Stepper("Platser: \(maxSpots)", value: $maxSpots, in: 2...50)
+                    }
+                } header: {
+                    Text("Kurs (valfritt)")
+                } footer: {
+                    Text(isRecurring
+                         ? "Skapar \(occurrences) träffar, \(intervalWeeks == 1 ? "en per vecka" : "varannan vecka"), med samma inbjudna. De inbjudna får en notis om hela serien."
+                         : "En kurs är flera tillfällen med samma gäng — slå på Flera tillfällen.")
+                }
 
                 Section {
                     Picker("Team", selection: $selectedTeamID) {
@@ -429,7 +457,10 @@ struct NewMeetupView: View {
                 team: selectedTeam,
                 invited: invited,
                 latitude: pinLatitude,
-                longitude: pinLongitude
+                longitude: pinLongitude,
+                occurrences: isRecurring ? occurrences : 1,
+                intervalWeeks: intervalWeeks,
+                maxSpots: hasMaxSpots ? maxSpots : nil
             )
             dismiss()
         }

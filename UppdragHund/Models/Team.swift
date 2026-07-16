@@ -128,11 +128,34 @@ struct Meetup: Codable, Identifiable, Equatable {
     /// Kartnål (valfri, sätts via platssökning eller tryck på kartan).
     var latitude: Double?
     var longitude: Double?
+    /// Kursserie: flera tillfällen skapade tillsammans delar seriesId.
+    var seriesId: String?
+    var seriesIndex: Int?
+    var seriesCount: Int?
+    /// Max antal platser (nil = obegränsat).
+    var maxSpots: Int?
+    /// Närvaro — bockas av av ägaren per tillfälle.
+    var attendedUids: [String]?
 
     func rsvp(for uid: String) -> MeetupRSVP {
         if goingUids.contains(uid) { return .going }
         if declinedUids.contains(uid) { return .declined }
         return .pending
+    }
+
+    /// "Tillfälle 3 av 8" för kursserier.
+    var seriesLabel: String? {
+        guard let seriesIndex, let seriesCount, seriesCount > 1 else { return nil }
+        return "Tillfälle \(seriesIndex) av \(seriesCount)"
+    }
+
+    var isFull: Bool {
+        guard let maxSpots, maxSpots > 0 else { return false }
+        return goingUids.count >= maxSpots
+    }
+
+    func didAttend(_ uid: String) -> Bool {
+        (attendedUids ?? []).contains(uid)
     }
 }
 

@@ -224,27 +224,53 @@ final class TeamsRepository {
         team: Team?,
         invited: [(uid: String, name: String)],
         latitude: Double? = nil,
-        longitude: Double? = nil
+        longitude: Double? = nil,
+        occurrences: Int = 1,
+        intervalWeeks: Int = 1,
+        maxSpots: Int? = nil
     ) async throws {
         var names = Dictionary(uniqueKeysWithValues: invited.map { ($0.uid, $0.name) })
         names[ownerUid] = ownerName
-        let meetup = Meetup(
-            title: title,
-            locationName: locationName,
-            date: date,
-            ownerUid: ownerUid,
-            ownerName: ownerName,
-            teamId: team?.id,
-            teamName: team?.name,
-            invitedUids: invited.map(\.uid),
-            invitedNames: names,
-            goingUids: [ownerUid],
-            declinedUids: [],
-            createdAt: .now,
-            latitude: latitude,
-            longitude: longitude
-        )
-        _ = try db.collection("meetups").addDocument(from: meetup)
+
+        // En kurs = flera tillfällen med samma gäng; ett vanligt tillfälle = 1.
+        let count = max(1, occurrences)
+        let seriesId = count > 1 ? UUID().uuidString : nil
+
+        for index in 0..<count {
+            let occurrenceDate = Calendar.current.date(
+                byAdding: .day,
+                value: index * intervalWeeks * 7,
+                to: date
+            ) ?? date
+            let meetup = Meetup(
+                title: title,
+                locationName: locationName,
+                date: occurrenceDate,
+                ownerUid: ownerUid,
+                ownerName: ownerName,
+                teamId: team?.id,
+                teamName: team?.name,
+                invitedUids: invited.map(\.uid),
+                invitedNames: names,
+                goingUids: [ownerUid],
+                declinedUids: [],
+                createdAt: .now,
+                latitude: latitude,
+                longitude: longitude,
+                seriesId: seriesId,
+                seriesIndex: count > 1 ? index + 1 : nil,
+                seriesCount: count > 1 ? count : nil,
+                maxSpots: maxSpots
+            )
+            _ = try db.collection("meetups").addDocument(from: meetup)
+        }
+    }
+
+    /// Ägaren bockar av närvaro för en deltagare på ett tillfälle.
+    func setAttendance(meetupID: String, uid: String, attended: Bool) async throws {
+        try await db.collection("meetups").document(meetupID).updateData([
+            "attendedUids": attended ? FieldValue.arrayUnion([uid]) : FieldValue.arrayRemove([uid])
+        ])
     }
 
     /// Ägaren ändrar titel, plats, tid eller kartnål i efterhand.

@@ -54,10 +54,19 @@ struct MeetupCard: View {
                     }
                     .font(.caption)
                     .foregroundStyle(Theme.Colors.textSecondary)
+                    if let seriesLabel = meetup.seriesLabel {
+                        Text(seriesLabel)
+                            .font(.caption2.weight(.medium))
+                            .foregroundStyle(Theme.Colors.textSecondary)
+                    }
                     HStack(spacing: Theme.Spacing.s) {
-                        Text("\(meetup.goingUids.count) kommer")
+                        Text(meetup.maxSpots.map { "\(meetup.goingUids.count) av \($0) platser" }
+                             ?? "\(meetup.goingUids.count) kommer")
                             .font(.caption2)
                             .foregroundStyle(Theme.Colors.brand)
+                        if meetup.isFull {
+                            chip("Fullt", color: Theme.Colors.warning)
+                        }
                         statusChip
                     }
                 }
@@ -384,6 +393,10 @@ struct MeetupDetailView: View {
 
                     attendeesCard
 
+                    if isOwner, !meetup.goingUids.isEmpty {
+                        attendanceCard
+                    }
+
                     if isOwner {
                         Button(role: .destructive) {
                             confirmDelete = true
@@ -506,6 +519,24 @@ struct MeetupDetailView: View {
                         .foregroundStyle(Theme.Colors.brand)
                 }
             }
+            if let seriesLabel = meetup.seriesLabel {
+                Label {
+                    Text(seriesLabel)
+                        .foregroundStyle(Theme.Colors.textPrimary)
+                } icon: {
+                    Image(systemName: "repeat")
+                        .foregroundStyle(Theme.Colors.brand)
+                }
+            }
+            if let maxSpots = meetup.maxSpots {
+                Label {
+                    Text("\(meetup.goingUids.count) av \(maxSpots) platser tagna\(meetup.isFull ? " · Fullt" : "")")
+                        .foregroundStyle(meetup.isFull ? Theme.Colors.warning : Theme.Colors.textPrimary)
+                } icon: {
+                    Image(systemName: "person.2.fill")
+                        .foregroundStyle(Theme.Colors.brand)
+                }
+            }
         }
         .font(Theme.Typography.body)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -554,11 +585,13 @@ struct MeetupDetailView: View {
             Button {
                 rsvp(going: true)
             } label: {
-                Label("Kommer", systemImage: myRSVP == .going ? "checkmark.circle.fill" : "circle")
+                Label(meetup.isFull && myRSVP != .going ? "Fullt" : "Kommer",
+                      systemImage: myRSVP == .going ? "checkmark.circle.fill" : "circle")
                     .frame(maxWidth: .infinity, minHeight: 44)
             }
             .buttonStyle(.borderedProminent)
             .tint(myRSVP == .going ? .green : Theme.Colors.brand.opacity(0.4))
+            .disabled(meetup.isFull && myRSVP != .going)
 
             Button {
                 rsvp(going: false)
@@ -593,6 +626,52 @@ struct MeetupDetailView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .cardStyle()
+    }
+
+    /// Närvaro: ägaren bockar av vilka som faktiskt var där — per tillfälle.
+    private var attendanceCard: some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.s) {
+            Text("Närvaro")
+                .font(Theme.Typography.caption.weight(.semibold))
+                .foregroundStyle(Theme.Colors.brand)
+            ForEach(meetup.goingUids, id: \.self) { uid in
+                Button {
+                    toggleAttendance(uid: uid)
+                } label: {
+                    HStack(spacing: Theme.Spacing.m) {
+                        Image(systemName: meetup.didAttend(uid) ? "checkmark.circle.fill" : "circle")
+                            .foregroundStyle(meetup.didAttend(uid) ? .green : Theme.Colors.textSecondary)
+                        Text(meetup.invitedNames[uid] ?? "Deltagare")
+                            .foregroundStyle(Theme.Colors.textPrimary)
+                        Spacer(minLength: 0)
+                    }
+                    .padding(.vertical, 6)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
+            Text("\((meetup.attendedUids ?? []).count) av \(meetup.goingUids.count) närvarade")
+                .font(.caption2)
+                .foregroundStyle(Theme.Colors.textSecondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .cardStyle()
+        .disabled(isWorking)
+    }
+
+    private func toggleAttendance(uid: String) {
+        guard let id = meetup.id else { return }
+        let attended = !meetup.didAttend(uid)
+        isWorking = true
+        Task {
+            try? await TeamsRepository.shared.setAttendance(meetupID: id, uid: uid, attended: attended)
+            var list = meetup.attendedUids ?? []
+            list.removeAll { $0 == uid }
+            if attended { list.append(uid) }
+            meetup.attendedUids = list
+            onChanged()
+            isWorking = false
+        }
     }
 
     private func rsvp(going: Bool) {

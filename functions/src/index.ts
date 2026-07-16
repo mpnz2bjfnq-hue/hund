@@ -490,8 +490,14 @@ export const onNewMeetup = onDocumentCreated(
     const meetup = event.data?.data();
     if (!meetup) return;
 
+    // Kursserier skapar många tillfällen på en gång — pusha bara det första.
+    if (meetup.seriesIndex && meetup.seriesIndex > 1) return;
+
     const ownerName: string = meetup.ownerName ?? "En vän";
-    const title: string = meetup.title ?? "hundträff";
+    let title: string = meetup.title ?? "hundträff";
+    if (meetup.seriesCount && meetup.seriesCount > 1) {
+      title = `${title} (${meetup.seriesCount} tillfällen)`;
+    }
     const location: string = meetup.locationName ?? "";
     const when = meetup.date?.toDate?.()
       ? new Intl.DateTimeFormat("sv-SE", { dateStyle: "medium", timeStyle: "short" }).format(meetup.date.toDate())
