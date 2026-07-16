@@ -198,6 +198,20 @@ service cloud.firestore {
       }
     }
 
+    // Inbjudningskoder till team: en per team (dok-id = teamId). Ägare och
+    // konsulenter skapar/byter koden; medlemmar kan läsa den för att dela.
+    // Själva anslutningen sker via Cloud Function (admin), aldrig direkt.
+    match /teamJoinCodes/{teamId} {
+      function teamData() {
+        return get(/databases/$(database)/documents/teams/$(teamId)).data;
+      }
+      allow read: if request.auth != null
+                  && request.auth.uid in teamData().memberUids;
+      allow create, update, delete: if request.auth != null
+                  && (request.auth.uid == teamData().ownerUid
+                      || request.auth.uid in teamData().get('consultantUids', []));
+    }
+
     match /teamInvites/{inviteId} {
       allow read: if request.auth != null
                   && (request.auth.uid == resource.data.toUid

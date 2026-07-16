@@ -55,6 +55,7 @@ struct TeamPageView: View {
     @State private var moderationMessage: String?
     @State private var isPresentingNewPost = false
     @State private var isPresentingNewTask = false
+    @State private var isPresentingJoinCode = false
     /// Träff öppnad från en uppgifts träff-koppling.
     @State private var taskMeetup: Meetup?
     @State private var isPresentingNewMeetup = false
@@ -109,6 +110,9 @@ struct TeamPageView: View {
         }
         .sheet(item: $taskMeetup) { meetup in
             MeetupDetailView(meetup: meetup, onChanged: { Task { await load() } })
+        }
+        .sheet(isPresented: $isPresentingJoinCode) {
+            TeamInviteCodeSheet(team: team)
         }
         .sheet(isPresented: $isPresentingNewMeetup, onDismiss: { Task { await load() } }) {
             NewMeetupView(teams: [team], initialTeamID: team.id)
@@ -641,6 +645,18 @@ struct TeamPageView: View {
                 }
             }
             .cardStyle()
+
+            if team.canManageTasks(authService.currentUserID) {
+                Button {
+                    isPresentingJoinCode = true
+                } label: {
+                    Label("Bjud in med kod", systemImage: "qrcode")
+                        .font(Theme.Typography.body.weight(.medium))
+                        .frame(maxWidth: .infinity, minHeight: 44)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(Theme.Colors.brand)
+            }
 
             if isOwner {
                 Button {

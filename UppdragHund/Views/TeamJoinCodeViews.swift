@@ -1,0 +1,233 @@
+//
+//  TeamJoinCodeViews.swift
+//  UppdragHund
+//
+//  Inbjudningskod till team: ägare/konsulent visar och delar en kod (+ QR),
+//  deltagare går med genom att ange koden — inget vänskaps-krav. Gjord för
+//  hundinstruktörer som ska få in en hel kursgrupp på minuter.
+//
+
+import SwiftUI
+import CoreImage.CIFilterBuiltins
+
+// MARK: - Visa & dela kod (ägare/konsulent)
+
+struct TeamInviteCodeSheet: View {
+    let team: Team
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var code: String?
+    @State private var isWorking = true
+    @State private var errorMessage: String?
+
+    /// Kod formaterad som "ABCD-EFGH" för läsbarhet.
+    private var displayCode: String {
+        guard let code else { return "" }
+        guard code.count == 8 else { return code }
+        return "\(code.prefix(4))-\(code.suffix(4))"
+    }
+
+    private var shareText: String {
+        """
+        Gå med i mitt team "\(team.name)" i Canine360! 🐾
+        1. Ladda ner Canine360-appen
+        2. Gå till Socialt → Team → Gå med med kod
+        3. Ange koden: \(displayCode)
+        """
+    }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: Theme.Spacing.l) {
+                    if isWorking {
+                        ProgressView()
+                            .padding(.top, 60)
+                    } else if let code {
+                        Text("Deltagare går med genom att ange koden — de behöver inte vara vänner med dig.")
+                            .font(Theme.Typography.caption)
+                            .foregroundStyle(Theme.Colors.textSecondary)
+                            .multilineTextAlignment(.center)
+
+                        Text(displayCode)
+                            .font(.system(size: 34, weight: .bold, design: .monospaced))
+                            .foregroundStyle(Theme.Colors.textPrimary)
+                            .padding(.vertical, Theme.Spacing.m)
+                            .frame(maxWidth: .infinity)
+                            .background(Theme.Colors.brand.opacity(0.1), in: RoundedRectangle(cornerRadius: 14))
+                            .contextMenu {
+                                Button {
+                                    UIPasteboard.general.string = displayCode
+                                } label: {
+                                    Label("Kopiera", systemImage: "doc.on.doc")
+                                }
+                            }
+
+                        if let qr = QRCodeImage.make(from: code) {
+                            Image(uiImage: qr)
+                                .interpolation(.none)
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 180, height: 180)
+                                .padding(Theme.Spacing.m)
+                                .background(.white, in: RoundedRectangle(cornerRadius: 14))
+                            Text("Visa QR-koden på kursen — den innehåller koden.")
+                                .font(.caption2)
+                                .foregroundStyle(Theme.Colors.textSecondary)
+                        }
+
+                        ShareLink(item: shareText) {
+                            Label("Dela inbjudan", systemImage: "square.and.arrow.up")
+                                .font(Theme.Typography.body.weight(.medium))
+                                .frame(maxWidth: .infinity, minHeight: 44)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(Theme.Colors.brand)
+
+                        Button {
+                            Task { await regenerate() }
+                        } label: {
+                            Label("Skapa ny kod", systemImage: "arrow.triangle.2.circlepath")
+                                .font(Theme.Typography.body.weight(.medium))
+                                .frame(maxWidth: .infinity, minHeight: 44)
+                        }
+                        .buttonStyle(.bordered)
+                        .tint(Theme.Colors.brand)
+
+                        Text("En ny kod gör den gamla ogiltig — bra om koden spridits utanför kursen.")
+                            .font(.caption2)
+                            .foregroundStyle(Theme.Colors.textSecondary)
+                            .multilineTextAlignment(.center)
+                    }
+
+                    if let errorMessage {
+                        Text(errorMessage)
+                            .font(.caption)
+                            .foregroundStyle(.red)
+                    }
+                }
+                .padding(Theme.Spacing.l)
+            }
+            .background(Theme.Colors.screenBackground)
+            .navigationTitle("Bjud in med kod")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Klar") { dismiss() }
+                }
+            }
+            .task { await loadOrCreate() }
+        }
+    }
+
+    private func loadOrCreate() async {
+        guard let teamID = team.id else { return }
+        if let existing = await TeamsRepository.shared.joinCode(teamID: teamID) {
+            code = existing
+        } else {
+            await regenerate()
+        }
+        isWorking = false
+    }
+
+    private func regenerate() async {
+        guard let teamID = team.id else { return }
+        do {
+            code = try await TeamsRepository.shared.generateJoinCode(teamID: teamID, teamName: team.name)
+            errorMessage = nil
+        } catch {
+            errorMessage = "Kunde inte skapa kod: \(error.localizedDescription)"
+        }
+    }
+}
+
+// MARK: - Gå med med kod (deltagare)
+
+struct JoinTeamByCodeView: View {
+    var onJoined: () -> Void = {}
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var code = ""
+    @State private var isJoining = false
+    @State private var errorMessage: String?
+    @State private var joinedTeamName: String?
+
+    private var canJoin: Bool {
+        code.filter(\.isLetter).count + code.filter(\.isNumber).count >= 6
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    TextField("Kod", text: $code, prompt: Text("t.ex. ABCD-EFGH"))
+                        .textInputAutocapitalization(.characters)
+                        .autocorrectionDisabled()
+                        .font(.system(.title3, design: .monospaced))
+                } footer: {
+                    Text("Koden får du av din hundinstruktör eller teamets ägare.")
+                }
+                if let errorMessage {
+                    Section {
+                        Text(errorMessage).font(.caption).foregroundStyle(.red)
+                    }
+                }
+            }
+            .navigationTitle("Gå med med kod")
+            .navigationBarTitleDisplayMode(.inline)
+            .tint(Theme.Colors.brand)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Avbryt") { dismiss() }
+                }
+            }
+            .bottomActionButton("Gå med", disabled: !canJoin, isBusy: isJoining) {
+                join()
+            }
+            .alert(
+                "Välkommen! 🎉",
+                isPresented: Binding(
+                    get: { joinedTeamName != nil },
+                    set: { if !$0 { joinedTeamName = nil; dismiss() } }
+                )
+            ) {
+                Button("OK") {
+                    joinedTeamName = nil
+                    dismiss()
+                }
+            } message: {
+                Text("Du är nu med i \(joinedTeamName ?? "teamet").")
+            }
+        }
+    }
+
+    private func join() {
+        isJoining = true
+        errorMessage = nil
+        Task {
+            do {
+                let teamName = try await TeamsRepository.shared.joinTeam(code: code)
+                onJoined()
+                joinedTeamName = teamName
+            } catch {
+                errorMessage = "Det gick inte att gå med — kontrollera koden och försök igen."
+            }
+            isJoining = false
+        }
+    }
+}
+
+// MARK: - QR-generering
+
+enum QRCodeImage {
+    /// Genererar en skarp QR-bild från en textsträng (CoreImage, inga beroenden).
+    static func make(from string: String, scale: CGFloat = 12) -> UIImage? {
+        let filter = CIFilter.qrCodeGenerator()
+        filter.message = Data(string.utf8)
+        filter.correctionLevel = "M"
+        guard let output = filter.outputImage else { return nil }
+        let scaled = output.transformed(by: CGAffineTransform(scaleX: scale, y: scale))
+        guard let cgImage = CIContext().createCGImage(scaled, from: scaled.extent) else { return nil }
+        return UIImage(cgImage: cgImage)
+    }
+}

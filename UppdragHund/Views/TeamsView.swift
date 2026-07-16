@@ -68,6 +68,7 @@ struct JoinOrCreateTeamView: View {
     @State private var invites: [TeamInvite] = []
     @State private var isLoading = true
     @State private var isPresentingNewTeam = false
+    @State private var isPresentingJoinByCode = false
 
     var body: some View {
         List {
@@ -113,13 +114,18 @@ struct JoinOrCreateTeamView: View {
 
             Section {
                 Button {
+                    isPresentingJoinByCode = true
+                } label: {
+                    Label("Gå med med kod", systemImage: "qrcode")
+                }
+                Button {
                     isPresentingNewTeam = true
                 } label: {
                     Label("Skapa team", systemImage: "plus")
                 }
             } footer: {
                 Text(teams.isEmpty && invites.isEmpty
-                     ? "Du går med i ett team genom att bli inbjuden av en vän — eller skapa ett eget och bjud in dina vänner."
+                     ? "Har du fått en kod av din hundinstruktör? Välj Gå med med kod. Eller skapa ett eget team och bjud in dina vänner."
                      : "")
             }
         }
@@ -130,6 +136,9 @@ struct JoinOrCreateTeamView: View {
         .task { await load() }
         .sheet(isPresented: $isPresentingNewTeam, onDismiss: { Task { await load() } }) {
             NewTeamView()
+        }
+        .sheet(isPresented: $isPresentingJoinByCode, onDismiss: { Task { await load() } }) {
+            JoinTeamByCodeView()
         }
     }
 

@@ -8,13 +8,47 @@
 
 import Foundation
 import FirebaseFirestore
+import FirebaseFunctions
 
 final class TeamsRepository {
     static let shared = TeamsRepository()
 
     private let db = Firestore.firestore()
+    private lazy var functions = Functions.functions(region: "europe-north1")
 
     private init() {}
+
+    // MARK: - Inbjudningskod
+
+    /// Teamets aktiva inbjudningskod, om en finns.
+    func joinCode(teamID: String) async -> String? {
+        let snapshot = try? await db.collection("teamJoinCodes").document(teamID).getDocument()
+        guard snapshot?.data()?["active"] as? Bool == true else { return nil }
+        return snapshot?.data()?["code"] as? String
+    }
+
+    /// Skapar (eller byter ut) teamets inbjudningskod. En kod per team —
+    /// att generera en ny gör automatiskt den gamla ogiltig.
+    func generateJoinCode(teamID: String, teamName: String) async throws -> String {
+        // Utan lättförväxlade tecken (0/O, 1/I) — koden ska gå att läsa upp.
+        let alphabet = Array("23456789ABCDEFGHJKLMNPQRSTUVWXYZ")
+        let code = String((0..<8).map { _ in alphabet.randomElement()! })
+        try await db.collection("teamJoinCodes").document(teamID).setData([
+            "code": code,
+            "teamName": teamName,
+            "active": true,
+            "createdAt": FieldValue.serverTimestamp(),
+        ])
+        return code
+    }
+
+    /// Går med i ett team via inbjudningskod. Returnerar teamets namn.
+    func joinTeam(code: String) async throws -> String {
+        let result = try await functions.httpsCallable("joinTeamWithCode")
+            .call(["code": code])
+        let data = result.data as? [String: Any]
+        return data?["teamName"] as? String ?? "teamet"
+    }
 
     // MARK: - Team
 

@@ -292,6 +292,60 @@ export const onDeviceTokenClaimed = onDocumentWritten(
   }
 );
 
+/** 11) Gå med i team via inbjudningskod — utan vänskaps-krav. Körs som
+ *  admin så deltagaren inte behöver läsrättigheter på teamet i förväg. */
+export const joinTeamWithCode = onCall({ region: REGION }, async (request) => {
+  const uid = request.auth?.uid;
+  if (!uid) {
+    throw new HttpsError("unauthenticated", "Du måste vara inloggad.");
+  }
+  const raw: string = (request.data?.code ?? "").toString();
+  const code = raw.toUpperCase().replace(/[^A-Z0-9]/g, "");
+  if (code.length < 6) {
+    throw new HttpsError("invalid-argument", "Ogiltig kod.");
+  }
+
+  const codeSnap = await db
+    .collection("teamJoinCodes")
+    .where("code", "==", code)
+    .where("active", "==", true)
+    .limit(1)
+    .get();
+  if (codeSnap.empty) {
+    throw new HttpsError("not-found", "Koden finns inte eller har slutat gälla.");
+  }
+  const teamId = codeSnap.docs[0].id;
+
+  const teamRef = db.collection("teams").doc(teamId);
+  const teamSnap = await teamRef.get();
+  const team = teamSnap.data();
+  if (!team) {
+    throw new HttpsError("not-found", "Teamet finns inte längre.");
+  }
+  if ((team.memberUids ?? []).includes(uid)) {
+    return { ok: true, teamId, teamName: team.name, alreadyMember: true };
+  }
+
+  const profile = await db.collection("users").doc(uid).get();
+  const name: string = profile.data()?.displayName ?? "Ny medlem";
+
+  await teamRef.update({
+    memberUids: FieldValue.arrayUnion(uid),
+    [`memberNames.${uid}`]: name,
+  });
+
+  // Säg till ägaren att någon anslutit.
+  await sendToUser(
+    team.ownerUid,
+    `Ny medlem i ${team.name}`,
+    `${name} gick med via inbjudningskoden.`,
+    { type: "teamMemberJoined", teamId }
+  ).catch(() => undefined);
+
+  logger.info(`${uid} gick med i team ${teamId} via kod`);
+  return { ok: true, teamId, teamName: team.name, alreadyMember: false };
+});
+
 /** 10) Vänlista ändrad → uppdatera denormaliserat friendCount på profilen,
  *  så att andra användare (som inte får läsa vänlistan) kan se antalet. */
 export const onFriendsChanged = onDocumentWritten(
