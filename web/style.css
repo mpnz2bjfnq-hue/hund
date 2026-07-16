@@ -1,0 +1,182 @@
+/* Canine360 deltagar-webb — mörkt tema med grön accent, matchar iOS-appen. */
+
+:root {
+  --bg: #0e0f0e;
+  --card: #1a1c1a;
+  --card-2: #232624;
+  --text: #f2f4f2;
+  --muted: #9aa39b;
+  --brand: #34c759;
+  --danger: #ff6b6b;
+  --warning: #f5b942;
+  --radius: 14px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+.view {
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 16px;
+  padding-bottom: 48px;
+}
+
+.hidden { display: none !important; }
+.center { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 80vh; gap: 12px; }
+.center-text { text-align: center; }
+.muted { color: var(--muted); }
+.small-text { font-size: 0.8rem; margin-top: 6px; }
+.error { color: var(--danger); font-size: 0.85rem; margin: 8px 0; }
+
+.logo { width: 72px; height: 72px; border-radius: 18px; }
+.logo.small { width: 34px; height: 34px; border-radius: 9px; }
+
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0 16px;
+}
+header h2 { font-size: 1.15rem; flex: 1; text-align: center; }
+
+.auth-box { text-align: center; padding-top: 10vh; }
+.auth-box h1 { margin: 10px 0 4px; }
+.auth-box .muted { margin-bottom: 20px; line-height: 1.4; }
+.auth-box .card { text-align: left; }
+
+.card {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 14px;
+}
+
+label { display: block; font-size: 0.85rem; color: var(--muted); margin-bottom: 12px; }
+input {
+  width: 100%;
+  margin-top: 6px;
+  padding: 12px;
+  border: 1px solid #333;
+  border-radius: 10px;
+  background: var(--card-2);
+  color: var(--text);
+  font-size: 1rem;
+}
+input:focus { outline: 2px solid var(--brand); border-color: transparent; }
+
+.row { display: flex; gap: 8px; margin-top: 6px; }
+.row input { margin-top: 0; flex: 1; }
+
+.btn {
+  border: none;
+  border-radius: 12px;
+  padding: 12px 18px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  background: var(--card-2);
+  color: var(--text);
+}
+.btn.primary { background: var(--brand); color: #04220d; width: 100%; }
+.row .btn.primary { width: auto; }
+.btn.link { background: none; color: var(--brand); padding: 8px; width: auto; font-size: 0.9rem; }
+.btn:disabled { opacity: 0.5; cursor: default; }
+.btn.small { padding: 8px 14px; font-size: 0.85rem; }
+.btn.outline { background: none; border: 1.5px solid var(--brand); color: var(--brand); }
+.btn.outline.declined { border-color: var(--danger); color: var(--danger); }
+.btn.selected { background: var(--brand); color: #04220d; }
+.btn.selected.declined { background: var(--danger); color: #2a0505; }
+
+/* Teamlista */
+.team-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  border: none;
+  width: 100%;
+  color: var(--text);
+  text-align: left;
+  font-size: 1rem;
+}
+.team-row .team-icon {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  background: rgba(52, 199, 89, 0.15);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.2rem;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+.team-row .team-icon img { width: 100%; height: 100%; object-fit: cover; }
+.team-row .sub { font-size: 0.8rem; color: var(--muted); }
+.team-row .chev { margin-left: auto; color: var(--muted); }
+
+/* Flikar */
+.tabs { display: flex; gap: 6px; margin-bottom: 14px; background: var(--card); border-radius: 12px; padding: 4px; }
+.tab {
+  flex: 1;
+  border: none;
+  background: none;
+  color: var(--muted);
+  padding: 9px 0;
+  border-radius: 9px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.tab.active { background: var(--card-2); color: var(--text); }
+
+/* Innehållskort */
+.item { background: var(--card); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 10px; }
+.item .title { font-weight: 600; margin-bottom: 2px; }
+.item .meta { font-size: 0.78rem; color: var(--muted); margin-top: 6px; }
+.item .body { font-size: 0.95rem; line-height: 1.45; white-space: pre-wrap; }
+.item img.post-photo { width: 100%; border-radius: 10px; margin-top: 10px; }
+.item .badge {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 99px;
+  background: rgba(52, 199, 89, 0.15);
+  color: var(--brand);
+  margin-right: 6px;
+}
+.item .badge.warn { background: rgba(245, 185, 66, 0.15); color: var(--warning); }
+
+/* Uppgifter */
+.task-check {
+  display: flex; align-items: flex-start; gap: 12px;
+  cursor: pointer;
+}
+.task-check .box {
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  border: 2px solid var(--muted);
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.95rem;
+  margin-top: 2px;
+}
+.task-check.done .box { background: var(--brand); border-color: var(--brand); color: #04220d; }
+.task-check.done .title { text-decoration: line-through; color: var(--muted); }
+
+/* Träffar */
+.rsvp-row { display: flex; gap: 8px; margin-top: 10px; }
+.rsvp-row .btn { flex: 1; }
+
+.empty { color: var(--muted); text-align: center; padding: 30px 10px; font-size: 0.9rem; }
