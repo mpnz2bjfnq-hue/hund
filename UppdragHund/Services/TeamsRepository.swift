@@ -79,7 +79,8 @@ final class TeamsRepository {
         dueDate: Date?,
         byUid: String,
         byName: String,
-        trainingPlan: SharedTrainingPlan? = nil
+        trainingPlan: SharedTrainingPlan? = nil,
+        meetup: Meetup? = nil
     ) async throws {
         let task = TeamTask(
             title: title,
@@ -89,7 +90,10 @@ final class TeamsRepository {
             createdByName: byName,
             createdAt: .now,
             completedUids: [],
-            trainingPlan: trainingPlan
+            trainingPlan: trainingPlan,
+            meetupId: meetup?.id,
+            meetupTitle: meetup?.title,
+            meetupDate: meetup?.date
         )
         _ = try tasksCollection(teamID: teamID).addDocument(from: task)
     }

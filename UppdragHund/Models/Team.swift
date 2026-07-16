@@ -51,6 +51,11 @@ struct TeamTask: Codable, Identifiable, Equatable {
     var completedUids: [String]
     /// Valfritt kopplat träningspass (samma delningsformat som inlägg).
     var trainingPlan: SharedTrainingPlan?
+    /// Valfri kopplad träff. Titel/datum cachas så uppgiften kan visa
+    /// träffen utan extra uppslag (och även om träffen senare tas bort).
+    var meetupId: String?
+    var meetupTitle: String?
+    var meetupDate: Date?
 
     func isCompleted(by uid: String?) -> Bool {
         guard let uid else { return false }

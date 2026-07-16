@@ -55,6 +55,8 @@ struct TeamPageView: View {
     @State private var moderationMessage: String?
     @State private var isPresentingNewPost = false
     @State private var isPresentingNewTask = false
+    /// Träff öppnad från en uppgifts träff-koppling.
+    @State private var taskMeetup: Meetup?
     @State private var isPresentingNewMeetup = false
     @State private var isPresentingAdd = false
     @State private var confirmLeaveOrDelete = false
@@ -103,7 +105,10 @@ struct TeamPageView: View {
             NewPostView(initialTeamID: team.id, lockTeam: true)
         }
         .sheet(isPresented: $isPresentingNewTask, onDismiss: { Task { await load() } }) {
-            NewTeamTaskView(team: team)
+            NewTeamTaskView(team: team, meetups: meetups)
+        }
+        .sheet(item: $taskMeetup) { meetup in
+            MeetupDetailView(meetup: meetup, onChanged: { Task { await load() } })
         }
         .sheet(isPresented: $isPresentingNewMeetup, onDismiss: { Task { await load() } }) {
             NewMeetupView(teams: [team], initialTeamID: team.id)
@@ -369,6 +374,10 @@ struct TeamPageView: View {
                 taskPlanBox(plan, task: task)
             }
 
+            if let meetupTitle = task.meetupTitle {
+                taskMeetupBox(task, title: meetupTitle)
+            }
+
             Divider().overlay(Theme.Colors.textSecondary.opacity(0.2))
 
             HStack {
@@ -463,6 +472,49 @@ struct TeamPageView: View {
         .padding(Theme.Spacing.s)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Theme.Colors.brand.opacity(0.08), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+    }
+
+    /// Kopplad träff på en uppgift: tryck för att öppna träffen med RSVP.
+    /// Om träffen tagits bort visas bara den cachade titeln, otryckbar.
+    private func taskMeetupBox(_ task: TeamTask, title: String) -> some View {
+        let liveMeetup = meetups.first { $0.id == task.meetupId }
+
+        return Button {
+            if let liveMeetup { taskMeetup = liveMeetup }
+        } label: {
+            HStack(spacing: Theme.Spacing.m) {
+                Image(systemName: "calendar.badge.clock")
+                    .font(.body)
+                    .foregroundStyle(Theme.Colors.brand)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(title)
+                        .font(Theme.Typography.body.weight(.medium))
+                        .foregroundStyle(Theme.Colors.textPrimary)
+                        .lineLimit(1)
+                    if let date = task.meetupDate {
+                        Text(date.formatted(date: .abbreviated, time: .shortened))
+                            .font(.caption2)
+                            .foregroundStyle(Theme.Colors.textSecondary)
+                    }
+                }
+                Spacer(minLength: 8)
+                if liveMeetup != nil {
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .foregroundStyle(Theme.Colors.textSecondary)
+                } else {
+                    Text("Borttagen")
+                        .font(.caption2)
+                        .foregroundStyle(Theme.Colors.textSecondary)
+                }
+            }
+            .padding(Theme.Spacing.s)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Theme.Colors.brand.opacity(0.08), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(liveMeetup == nil)
     }
 
     /// Öppnar passet: återanvänder en befintlig kopia i biblioteket om en
@@ -810,6 +862,8 @@ struct TeamPageView: View {
 /// Konsulenten/ägaren lägger ut en uppgift till hela teamet.
 struct NewTeamTaskView: View {
     let team: Team
+    /// Teamets träffar — för att kunna koppla uppgiften till en träff.
+    var meetups: [Meetup] = []
 
     @Environment(\.dismiss) private var dismiss
     @State private var authService = AuthService.shared
@@ -821,6 +875,7 @@ struct NewTeamTaskView: View {
     @State private var hasDueDate = false
     @State private var dueDate = Calendar.current.date(byAdding: .day, value: 7, to: .now) ?? .now
     @State private var selectedPlanID: PersistentIdentifier?
+    @State private var selectedMeetupID: String?
     @State private var isSaving = false
 
     /// Bara mina egna pass kan kopplas.
@@ -830,6 +885,17 @@ struct NewTeamTaskView: View {
 
     private var selectedPlan: TrainingPlan? {
         myPlans.first { $0.persistentModelID == selectedPlanID }
+    }
+
+    /// Kommande träffar, närmast först.
+    private var upcomingMeetups: [Meetup] {
+        meetups
+            .filter { $0.date >= Calendar.current.startOfDay(for: .now) }
+            .sorted { $0.date < $1.date }
+    }
+
+    private var selectedMeetup: Meetup? {
+        upcomingMeetups.first { $0.id == selectedMeetupID }
     }
 
     var body: some View {
@@ -864,6 +930,22 @@ struct NewTeamTaskView: View {
                         Text("Medlemmarna kan spara passet till sitt bibliotek och köra det direkt.")
                     }
                 }
+
+                if !upcomingMeetups.isEmpty {
+                    Section {
+                        Picker("Träff", selection: $selectedMeetupID) {
+                            Text("Ingen").tag(String?.none)
+                            ForEach(upcomingMeetups) { meetup in
+                                Text("\(meetup.title) · \(meetup.date.formatted(date: .abbreviated, time: .omitted))")
+                                    .tag(meetup.id)
+                            }
+                        }
+                    } header: {
+                        Text("Koppla träff (valfritt)")
+                    } footer: {
+                        Text("Uppgiften visar träffen, så alla vet vad ni ska öva på tills dess.")
+                    }
+                }
             }
             .navigationTitle("Ny uppgift")
             .navigationBarTitleDisplayMode(.inline)
@@ -894,7 +976,8 @@ struct NewTeamTaskView: View {
                 dueDate: hasDueDate ? dueDate : nil,
                 byUid: uid,
                 byName: currentUser.profile?.displayName ?? "Hundägare",
-                trainingPlan: selectedPlan?.asShared()
+                trainingPlan: selectedPlan?.asShared(),
+                meetup: selectedMeetup
             )
             dismiss()
         }

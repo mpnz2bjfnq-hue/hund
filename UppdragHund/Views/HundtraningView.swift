@@ -129,28 +129,57 @@ struct HundtraningView: View {
         }
     }
 
+    /// Spellista med träningsvideor — alltid länkad under Pass.
+    private static let trainingPlaylistURL =
+        URL(string: "https://youtube.com/playlist?list=PLOYwYhLsoScpxGR6IUs4yoo0-TILsmrFm")!
+
     @ViewBuilder private var plansContent: some View {
-        if plans.isEmpty {
-            ContentUnavailableView(
-                "Inga pass än",
-                systemImage: "list.bullet.rectangle",
-                description: Text("Tryck på + för att skapa ett träningspass du kan köra – och dela med vänner senare.")
-            )
-        } else {
-            List {
-                ForEach(plans) { plan in
-                    NavigationLink {
-                        TrainingPlanDetailView(plan: plan, dog: dog)
-                    } label: {
+        List {
+            Section {
+                Link(destination: Self.trainingPlaylistURL) {
+                    HStack(spacing: Theme.Spacing.m) {
+                        Image(systemName: "play.rectangle.fill")
+                            .font(.title2)
+                            .foregroundStyle(.red)
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(plan.title).font(.headline)
-                            Text("\(plan.exercises.count) övningar · ca \(plan.totalMinutes) min")
+                            Text("Träningstips på YouTube")
+                                .font(.body.weight(.medium))
+                                .foregroundStyle(Theme.Colors.textPrimary)
+                            Text("Spellista med videor att träna efter")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
+                        Spacer(minLength: 8)
+                        Image(systemName: "arrow.up.right")
+                            .font(.footnote.weight(.semibold))
+                            .foregroundStyle(.secondary)
                     }
                 }
-                .onDelete(perform: deletePlans)
+            }
+
+            if plans.isEmpty {
+                ContentUnavailableView(
+                    "Inga pass än",
+                    systemImage: "list.bullet.rectangle",
+                    description: Text("Tryck på + för att skapa ett träningspass du kan köra – och dela med vänner senare.")
+                )
+                .listRowBackground(Color.clear)
+            } else {
+                Section("Mina pass") {
+                    ForEach(plans) { plan in
+                        NavigationLink {
+                            TrainingPlanDetailView(plan: plan, dog: dog)
+                        } label: {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(plan.title).font(.headline)
+                                Text("\(plan.exercises.count) övningar · ca \(plan.totalMinutes) min")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                    .onDelete(perform: deletePlans)
+                }
             }
         }
     }
