@@ -31,7 +31,7 @@ struct MainTabView: View {
                 FeedView()
             }
             .tabItem {
-                Label("Flöde", systemImage: "text.bubble")
+                Label("Socialt", systemImage: "person.2.fill")
             }
             .tag(MainTab.flode)
 
