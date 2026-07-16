@@ -21,6 +21,8 @@ struct DogListView: View {
     @State private var dogPendingEdit: Dog?
     @State private var dogPendingDelete: Dog?
     @State private var dogPendingShare: Dog?
+    @State private var sharedDogPendingRemoval: Dog?
+    @State private var removalErrorMessage: String?
 
     var body: some View {
         Group {
@@ -126,6 +128,37 @@ struct DogListView: View {
                 dogPendingDelete = nil
             }
         }
+        .confirmationDialog(
+            "Ta bort delningen av \(sharedDogPendingRemoval?.name ?? "hund")?",
+            isPresented: Binding(
+                get: { sharedDogPendingRemoval != nil },
+                set: { if !$0 { sharedDogPendingRemoval = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button("Ta bort delning", role: .destructive) {
+                if let dog = sharedDogPendingRemoval {
+                    removeSharedDog(dog)
+                }
+                sharedDogPendingRemoval = nil
+            }
+            Button("Avbryt", role: .cancel) {
+                sharedDogPendingRemoval = nil
+            }
+        } message: {
+            Text("Hunden försvinner från din app. Ägarens data påverkas inte, och hen kan dela hunden med dig igen senare.")
+        }
+        .alert(
+            "Något gick fel",
+            isPresented: Binding(
+                get: { removalErrorMessage != nil },
+                set: { if !$0 { removalErrorMessage = nil } }
+            )
+        ) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(removalErrorMessage ?? "")
+        }
     }
 
     @ViewBuilder
@@ -227,6 +260,36 @@ struct DogListView: View {
         .buttonStyle(.plain)
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(isActive ? [.isSelected] : [])
+        .swipeActions(edge: .trailing) {
+            Button(role: .destructive) {
+                sharedDogPendingRemoval = dog
+            } label: {
+                Label("Ta bort delning", systemImage: "person.crop.circle.badge.xmark")
+            }
+        }
+        .contextMenu {
+            Button(role: .destructive) {
+                sharedDogPendingRemoval = dog
+            } label: {
+                Label("Ta bort delning", systemImage: "person.crop.circle.badge.xmark")
+            }
+        }
+    }
+
+    /// Mottagaren slutar följa en delad hund.
+    private func removeSharedDog(_ dog: Dog) {
+        let wasActive = activeDogStore.activeDog?.persistentModelID == dog.persistentModelID
+        let remaining = dogs.first(where: { $0.persistentModelID != dog.persistentModelID && !$0.isShared })
+        Task {
+            do {
+                try await DogShareService.shared.stopReceiving(dog: dog, context: modelContext)
+                if wasActive {
+                    activeDogStore.activeDog = remaining
+                }
+            } catch {
+                removalErrorMessage = "Kunde inte ta bort delningen: \(error.localizedDescription)"
+            }
+        }
     }
 
     private func delete(_ dog: Dog) {

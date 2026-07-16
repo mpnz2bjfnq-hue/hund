@@ -33,12 +33,15 @@ struct TeamPageView: View {
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
+    @Environment(ActiveDogStore.self) private var activeDogStore
     @State private var authService = AuthService.shared
     @State private var currentUser = CurrentUserStore.shared
 
     @State private var segment: Segment = .posts
     /// Uppgifter vars pass redan sparats till biblioteket denna session.
     @State private var savedPlanTaskIDs: Set<String> = []
+    /// Pass som öppnats från en uppgift (visas i sheet).
+    @State private var planToOpen: TrainingPlan?
     @State private var posts: [ProfilePost] = []
     @State private var tasks: [TeamTask] = []
     @State private var meetups: [Meetup] = []
@@ -108,6 +111,13 @@ struct TeamPageView: View {
         }
         .sheet(isPresented: $isPresentingAdd) {
             inviteSheet
+        }
+        .sheet(item: $planToOpen) { plan in
+            if let dog = activeDogStore.activeDog {
+                NavigationStack {
+                    TrainingPlanDetailView(plan: plan, dog: dog)
+                }
+            }
         }
         .alert(
             "Tack för din anmälan",
@@ -355,28 +365,44 @@ struct TeamPageView: View {
         }
     }
 
-    /// Kopplat träningspass på en uppgift: övningar + spara till biblioteket.
+    /// Kopplat träningspass på en uppgift: tryck för att öppna passet,
+    /// eller spara det till biblioteket.
     private func taskPlanBox(_ plan: SharedTrainingPlan, task: TeamTask) -> some View {
         let saved = task.id.map { savedPlanTaskIDs.contains($0) } ?? false
 
         return VStack(alignment: .leading, spacing: Theme.Spacing.s) {
-            Label(plan.title, systemImage: "list.bullet.rectangle.portrait")
-                .font(Theme.Typography.body.weight(.medium))
-                .foregroundStyle(Theme.Colors.textPrimary)
-            Text(plan.summaryLine)
-                .font(.caption2)
-                .foregroundStyle(Theme.Colors.textSecondary)
-            ForEach(plan.exercises) { exercise in
-                HStack(alignment: .top) {
-                    Text("•  \(exercise.name)")
-                        .font(.caption)
-                        .foregroundStyle(Theme.Colors.textPrimary)
-                    Spacer(minLength: 8)
-                    Text(exercise.goalDescription)
+            Button {
+                openPlan(plan, from: task)
+            } label: {
+                VStack(alignment: .leading, spacing: Theme.Spacing.s) {
+                    HStack {
+                        Label(plan.title, systemImage: "list.bullet.rectangle.portrait")
+                            .font(Theme.Typography.body.weight(.medium))
+                            .foregroundStyle(Theme.Colors.textPrimary)
+                        Spacer(minLength: 8)
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundStyle(Theme.Colors.textSecondary)
+                    }
+                    Text(plan.summaryLine)
                         .font(.caption2)
                         .foregroundStyle(Theme.Colors.textSecondary)
+                    ForEach(plan.exercises) { exercise in
+                        HStack(alignment: .top) {
+                            Text("•  \(exercise.name)")
+                                .font(.caption)
+                                .foregroundStyle(Theme.Colors.textPrimary)
+                            Spacer(minLength: 8)
+                            Text(exercise.goalDescription)
+                                .font(.caption2)
+                                .foregroundStyle(Theme.Colors.textSecondary)
+                        }
+                    }
                 }
+                .contentShape(Rectangle())
             }
+            .buttonStyle(.plain)
+
             Button {
                 savePlan(plan, from: task)
             } label: {
@@ -395,8 +421,24 @@ struct TeamPageView: View {
         .background(Theme.Colors.brand.opacity(0.08), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
     }
 
+    /// Öppnar passet: återanvänder en befintlig kopia i biblioteket om en
+    /// med samma titel redan finns, annars sparas en ny kopia först.
+    private func openPlan(_ shared: SharedTrainingPlan, from task: TeamTask) {
+        guard activeDogStore.activeDog != nil else {
+            errorMessage = "Lägg till en hund först — passet körs för din aktiva hund."
+            return
+        }
+        let title = shared.title
+        let myUid = authService.currentUserID
+        let descriptor = FetchDescriptor<TrainingPlan>(predicate: #Predicate { $0.title == title })
+        let existing = (try? modelContext.fetch(descriptor))?
+            .first { $0.authorUid == nil || $0.authorUid == myUid }
+        planToOpen = existing ?? savePlan(shared, from: task)
+    }
+
     /// Kopierar passet till mitt bibliotek (samma mönster som PostDetailView).
-    private func savePlan(_ shared: SharedTrainingPlan, from task: TeamTask) {
+    @discardableResult
+    private func savePlan(_ shared: SharedTrainingPlan, from task: TeamTask) -> TrainingPlan {
         let plan = TrainingPlan(
             title: shared.title,
             note: shared.note,
@@ -420,6 +462,7 @@ struct TeamPageView: View {
         if let id = task.id {
             savedPlanTaskIDs.insert(id)
         }
+        return plan
     }
 
     // MARK: - Träffar

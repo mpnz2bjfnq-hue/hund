@@ -92,6 +92,18 @@ final class DogShareService {
         }
     }
 
+    /// Mottagaren tar bort en delning från sin sida: share-dokumentet raderas
+    /// (reglerna tillåter mottagaren) och den lokala kopian tas bort direkt.
+    /// Ägarens data under sharedDogs/ rörs inte — den städar ägaren själv.
+    func stopReceiving(dog: Dog, context: ModelContext) async throws {
+        guard dog.isShared,
+              let remoteID = dog.remoteID?.uuidString,
+              let uid = AuthService.shared.currentUserID else { return }
+        try await repository.deleteShare(dogRemoteID: remoteID, recipientUid: uid)
+        context.delete(dog)
+        try context.save()
+    }
+
     /// Återkallar en delning. Var det hundens sista delning städas allt på servern.
     func revoke(_ share: ShareDoc) async throws {
         try await repository.deleteShare(dogRemoteID: share.dogRemoteID, recipientUid: share.recipientUid)

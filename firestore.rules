@@ -231,8 +231,10 @@ service cloud.firestore {
       allow create, update: if request.auth != null
                             && request.auth.uid == request.resource.data.ownerUid
                             && shareId == request.resource.data.dogRemoteID + '_' + request.resource.data.recipientUid;
+      // Ägaren återkallar — och mottagaren får ta bort delningen från sin sida.
       allow delete: if request.auth != null
-                    && request.auth.uid == resource.data.ownerUid;
+                    && (request.auth.uid == resource.data.ownerUid
+                        || request.auth.uid == resource.data.recipientUid);
     }
 
     match /sharedDogs/{dogId} {
