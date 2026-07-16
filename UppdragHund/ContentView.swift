@@ -60,6 +60,9 @@ struct ContentView: View {
                 } else {
                     NotificationService.cancelDailyTrainingReminder()
                 }
+                if let uid = authService.currentUserID {
+                    await NotificationService.syncMeetupReminders(for: uid)
+                }
             }
         }
         .onChange(of: dogs.count) {
@@ -83,6 +86,7 @@ struct ContentView: View {
                     await SharedDogPuller.shared.pull(context: modelContext)
                     if let uid = authService.currentUserID {
                         await ProfilePublisher.publish(dogs: AccountScope.ownDogs(for: uid, in: dogs), uid: uid)
+                        await NotificationService.syncMeetupReminders(for: uid)
                     }
                 }
             case .background:

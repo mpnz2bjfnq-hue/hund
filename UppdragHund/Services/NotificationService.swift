@@ -245,4 +245,45 @@ enum NotificationService {
             withIdentifiers: [recurringIdentifier(id)]
         )
     }
+
+    // MARK: - Träffpåminnelser (1 timme innan)
+
+    private static let meetupReminderPrefix = "meetup-reminder-"
+
+    /// Synkar lokala påminnelser mot mina kommande träffar: en notis 1 timme
+    /// innan varje träff jag ordnar eller tackat ja till. Rensar först alla
+    /// gamla träffpåminnelser så ändrade tider, avböjda svar och inställda
+    /// träffar hanteras automatiskt.
+    static func syncMeetupReminders(for uid: String) async {
+        let meetups = await TeamsRepository.shared.upcomingMeetups(uid: uid)
+        let center = UNUserNotificationCenter.current()
+
+        let pending = await center.pendingNotificationRequests()
+        let stale = pending.map(\.identifier).filter { $0.hasPrefix(meetupReminderPrefix) }
+        center.removePendingNotificationRequests(withIdentifiers: stale)
+
+        let attending = meetups.filter { $0.ownerUid == uid || $0.goingUids.contains(uid) }
+        guard !attending.isEmpty, await requestAuthorizationIfNeeded() else { return }
+
+        for meetup in attending {
+            guard let id = meetup.id else { continue }
+            let fireDate = meetup.date.addingTimeInterval(-3600)
+            guard fireDate > .now else { continue }
+
+            let content = UNMutableNotificationContent()
+            content.title = "Snart träff: \(meetup.title)"
+            content.body = "\(meetup.locationName) · kl \(meetup.date.formatted(date: .omitted, time: .shortened))"
+            content.sound = .default
+
+            let components = Calendar.current.dateComponents(
+                [.year, .month, .day, .hour, .minute], from: fireDate
+            )
+            let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
+            try? await center.add(UNNotificationRequest(
+                identifier: meetupReminderPrefix + id,
+                content: content,
+                trigger: trigger
+            ))
+        }
+    }
 }

@@ -380,6 +380,34 @@ export const onNewTeamPost = onDocumentCreated(
 );
 
 /** 4) Ny hundträff → notifiera de inbjudna. */
+/** Ny uppgift i ett team → notifiera alla medlemmar utom den som la ut den. */
+export const onNewTeamTask = onDocumentCreated(
+  { document: "teams/{teamId}/tasks/{taskId}", region: REGION },
+  async (event) => {
+    const task = event.data?.data();
+    if (!task) return;
+
+    const teamSnap = await db.collection("teams").doc(event.params.teamId).get();
+    const team = teamSnap.data();
+    if (!team) return;
+
+    const members: string[] = team.memberUids ?? [];
+    const byName: string = task.createdByName ?? "En konsulent";
+    const title: string = task.title ?? "ny uppgift";
+
+    await Promise.all(
+      members
+        .filter((uid) => uid !== task.createdByUid)
+        .map((uid) =>
+          sendToUser(uid, `Ny uppgift i ${team.name}`, `${byName}: ${title}`, {
+            type: "teamTask",
+            teamId: event.params.teamId,
+          })
+        )
+    );
+  }
+);
+
 export const onNewMeetup = onDocumentCreated(
   { document: "meetups/{meetupId}", region: REGION },
   async (event) => {

@@ -7,6 +7,7 @@
 //
 
 import SwiftUI
+import SwiftData
 
 struct TeamPageView: View {
     @State private var team: Team
@@ -31,10 +32,13 @@ struct TeamPageView: View {
     }
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
     @State private var authService = AuthService.shared
     @State private var currentUser = CurrentUserStore.shared
 
     @State private var segment: Segment = .posts
+    /// Uppgifter vars pass redan sparats till biblioteket denna session.
+    @State private var savedPlanTaskIDs: Set<String> = []
     @State private var posts: [ProfilePost] = []
     @State private var tasks: [TeamTask] = []
     @State private var meetups: [Meetup] = []
@@ -307,6 +311,10 @@ struct TeamPageView: View {
                     .foregroundStyle(Theme.Colors.textSecondary)
             }
 
+            if let plan = task.trainingPlan {
+                taskPlanBox(plan, task: task)
+            }
+
             Divider().overlay(Theme.Colors.textSecondary.opacity(0.2))
 
             HStack {
@@ -344,6 +352,73 @@ struct TeamPageView: View {
                     Label("Ta bort uppgiften", systemImage: "trash")
                 }
             }
+        }
+    }
+
+    /// Kopplat träningspass på en uppgift: övningar + spara till biblioteket.
+    private func taskPlanBox(_ plan: SharedTrainingPlan, task: TeamTask) -> some View {
+        let saved = task.id.map { savedPlanTaskIDs.contains($0) } ?? false
+
+        return VStack(alignment: .leading, spacing: Theme.Spacing.s) {
+            Label(plan.title, systemImage: "list.bullet.rectangle.portrait")
+                .font(Theme.Typography.body.weight(.medium))
+                .foregroundStyle(Theme.Colors.textPrimary)
+            Text(plan.summaryLine)
+                .font(.caption2)
+                .foregroundStyle(Theme.Colors.textSecondary)
+            ForEach(plan.exercises) { exercise in
+                HStack(alignment: .top) {
+                    Text("•  \(exercise.name)")
+                        .font(.caption)
+                        .foregroundStyle(Theme.Colors.textPrimary)
+                    Spacer(minLength: 8)
+                    Text(exercise.goalDescription)
+                        .font(.caption2)
+                        .foregroundStyle(Theme.Colors.textSecondary)
+                }
+            }
+            Button {
+                savePlan(plan, from: task)
+            } label: {
+                Label(saved ? "Sparat i biblioteket" : "Spara till mitt bibliotek",
+                      systemImage: saved ? "checkmark" : "square.and.arrow.down")
+                    .font(.caption.weight(.medium))
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+            .tint(Theme.Colors.brand)
+            .disabled(saved)
+        }
+        .padding(Theme.Spacing.s)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Theme.Colors.brand.opacity(0.08), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+    }
+
+    /// Kopierar passet till mitt bibliotek (samma mönster som PostDetailView).
+    private func savePlan(_ shared: SharedTrainingPlan, from task: TeamTask) {
+        let plan = TrainingPlan(
+            title: shared.title,
+            note: shared.note,
+            authorUid: authService.currentUserID,
+            authorName: task.createdByName
+        )
+        modelContext.insert(plan)
+        for (index, exercise) in shared.exercises.enumerated() {
+            let entity = TrainingPlanExercise(
+                name: exercise.name,
+                targetMinutes: exercise.targetMinutes,
+                reps: exercise.reps,
+                targetMeters: exercise.targetMeters,
+                instruction: exercise.instruction,
+                order: index
+            )
+            entity.plan = plan
+            modelContext.insert(entity)
+        }
+        try? modelContext.save()
+        if let id = task.id {
+            savedPlanTaskIDs.insert(id)
         }
     }
 
@@ -531,6 +606,7 @@ struct TeamPageView: View {
         }
         memberPhotos = photos
         isLoading = false
+        await NotificationService.syncMeetupReminders(for: uid)
     }
 
     private func deletePost(_ post: ProfilePost) {
@@ -651,12 +727,23 @@ struct NewTeamTaskView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var authService = AuthService.shared
     @State private var currentUser = CurrentUserStore.shared
+    @Query(sort: \TrainingPlan.title) private var allPlans: [TrainingPlan]
 
     @State private var title = ""
     @State private var note = ""
     @State private var hasDueDate = false
     @State private var dueDate = Calendar.current.date(byAdding: .day, value: 7, to: .now) ?? .now
+    @State private var selectedPlanID: PersistentIdentifier?
     @State private var isSaving = false
+
+    /// Bara mina egna pass kan kopplas.
+    private var myPlans: [TrainingPlan] {
+        allPlans.filter { $0.authorUid == nil || $0.authorUid == authService.currentUserID }
+    }
+
+    private var selectedPlan: TrainingPlan? {
+        myPlans.first { $0.persistentModelID == selectedPlanID }
+    }
 
     var body: some View {
         NavigationStack {
@@ -673,6 +760,21 @@ struct NewTeamTaskView: View {
                     Toggle("Slutdatum", isOn: $hasDueDate.animation())
                     if hasDueDate {
                         DatePicker("Klar senast", selection: $dueDate, in: Date.now..., displayedComponents: .date)
+                    }
+                }
+
+                if !myPlans.isEmpty {
+                    Section {
+                        Picker("Träningspass", selection: $selectedPlanID) {
+                            Text("Inget").tag(PersistentIdentifier?.none)
+                            ForEach(myPlans) { plan in
+                                Text(plan.title).tag(Optional(plan.persistentModelID))
+                            }
+                        }
+                    } header: {
+                        Text("Koppla träningspass (valfritt)")
+                    } footer: {
+                        Text("Medlemmarna kan spara passet till sitt bibliotek och köra det direkt.")
                     }
                 }
             }
@@ -701,7 +803,8 @@ struct NewTeamTaskView: View {
                     : note.trimmingCharacters(in: .whitespacesAndNewlines),
                 dueDate: hasDueDate ? dueDate : nil,
                 byUid: uid,
-                byName: currentUser.profile?.displayName ?? "Hundägare"
+                byName: currentUser.profile?.displayName ?? "Hundägare",
+                trainingPlan: selectedPlan?.asShared()
             )
             dismiss()
         }

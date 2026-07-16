@@ -19,6 +19,7 @@ struct FeedView: View {
     @State private var selectedPost: ProfilePost?
     @State private var feedFilter: FeedFilter = .all
     @State private var moderationMessage: String?
+    @State private var myTeams: [Team] = []
 
     private enum FeedFilter: String, CaseIterable, Identifiable {
         case all, mine, team
@@ -50,25 +51,36 @@ struct FeedView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: Theme.Spacing.m) {
-                HStack(spacing: Theme.Spacing.s) {
-                    Menu {
-                        Picker("Visa", selection: $feedFilter) {
-                            ForEach(FeedFilter.allCases) { filter in
-                                Label(filter.title, systemImage: filter.icon).tag(filter)
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: Theme.Spacing.s) {
+                        Menu {
+                            Picker("Visa", selection: $feedFilter) {
+                                ForEach(FeedFilter.allCases) { filter in
+                                    Label(filter.title, systemImage: filter.icon).tag(filter)
+                                }
                             }
+                        } label: {
+                            smallPill(icon: "line.3.horizontal.decrease.circle", text: feedFilter.title)
                         }
-                    } label: {
-                        smallPill(icon: "line.3.horizontal.decrease.circle", text: feedFilter.title)
-                    }
 
-                    NavigationLink {
-                        TeamsView()
-                    } label: {
-                        smallPill(icon: "person.3.fill", text: "Team & träffar")
-                    }
-                    .buttonStyle(.plain)
+                        // Egna team som genvägar rakt in på teamsidan.
+                        ForEach(myTeams) { team in
+                            NavigationLink {
+                                TeamPageView(team: team, onChanged: { Task { await loadFeed() } })
+                            } label: {
+                                smallPill(icon: "person.3.fill", text: team.name)
+                            }
+                            .buttonStyle(.plain)
+                        }
 
-                    Spacer()
+                        NavigationLink {
+                            TeamsView()
+                        } label: {
+                            smallPill(icon: myTeams.isEmpty ? "person.3.fill" : "calendar",
+                                      text: myTeams.isEmpty ? "Team & träffar" : "Träffar")
+                        }
+                        .buttonStyle(.plain)
+                    }
                 }
 
                 HStack {
@@ -215,6 +227,7 @@ struct FeedView: View {
         }
         authorPhotos = photos
         let teams = await TeamsRepository.shared.myTeams(uid: uid)
+        myTeams = teams
         let blocked = await ModerationService.shared.refreshBlocked(for: uid)
         feedPosts = await PostsRepository.shared.feed(forUids: uids, teams: teams)
             .filter { !blocked.contains($0.authorUid) }

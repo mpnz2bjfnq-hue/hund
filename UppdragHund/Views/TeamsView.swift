@@ -108,6 +108,7 @@ struct TeamsView: View {
         meetups = await loadedMeetups
         invites = await loadedInvites
         isLoading = false
+        await NotificationService.syncMeetupReminders(for: uid)
     }
 }
 

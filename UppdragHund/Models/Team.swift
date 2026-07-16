@@ -47,6 +47,8 @@ struct TeamTask: Codable, Identifiable, Equatable {
     var createdByName: String
     var createdAt: Date
     var completedUids: [String]
+    /// Valfritt kopplat träningspass (samma delningsformat som inlägg).
+    var trainingPlan: SharedTrainingPlan?
 
     func isCompleted(by uid: String?) -> Bool {
         guard let uid else { return false }
