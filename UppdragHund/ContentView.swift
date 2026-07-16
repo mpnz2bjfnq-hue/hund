@@ -7,6 +7,7 @@
 
 import SwiftUI
 import SwiftData
+import UserNotifications
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
@@ -82,6 +83,8 @@ struct ContentView: View {
         .onChange(of: scenePhase) { _, newPhase in
             switch newPhase {
             case .active:
+                // Nollställ notisbubblan på appikonen (pusharna sätter badge 1).
+                Task { try? await UNUserNotificationCenter.current().setBadgeCount(0) }
                 Task {
                     try? SyncIdentityService.backfillRemoteIDs(context: modelContext)
                     // Push före pull så egna ändringar inte hinner skrivas över.

@@ -20,6 +20,12 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
         return true
     }
 
+    // Pusharna sätter badge (aps.badge = 1) — nollställ varje gång appen
+    // öppnas, annars ligger siffran kvar på ikonen för alltid.
+    func applicationDidBecomeActive(_ application: UIApplication) {
+        Task { try? await UNUserNotificationCenter.current().setBadgeCount(0) }
+    }
+
     // APNs-token → skicka vidare till Firebase Messaging.
     func application(
         _ application: UIApplication,
