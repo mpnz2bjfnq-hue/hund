@@ -52,14 +52,15 @@ final class TeamsRepository {
 
     // MARK: - Team
 
-    func createTeam(name: String, ownerUid: String, ownerName: String) async throws {
+    func createTeam(name: String, kind: TeamKind, ownerUid: String, ownerName: String) async throws {
         let team = Team(
             name: name,
             ownerUid: ownerUid,
             ownerName: ownerName,
             memberUids: [ownerUid],
             memberNames: [ownerUid: ownerName],
-            createdAt: .now
+            createdAt: .now,
+            teamType: kind.rawValue
         )
         _ = try db.collection("teams").addDocument(from: team)
     }

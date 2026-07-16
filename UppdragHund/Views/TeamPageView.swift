@@ -74,13 +74,18 @@ struct TeamPageView: View {
         }
     }
 
+    /// Flikar efter teamtyp — vanliga grupper slipper Uppgifter.
+    private var availableSegments: [Segment] {
+        Segment.allCases.filter { $0 != .tasks || team.kind.hasTasks }
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: Theme.Spacing.m) {
                 header
 
                 Picker("Visa", selection: $segment) {
-                    ForEach(Segment.allCases) { segment in
+                    ForEach(availableSegments) { segment in
                         Text(segment.title).tag(segment)
                     }
                 }
@@ -615,7 +620,7 @@ struct TeamPageView: View {
                             roleBadge("Konsulent", color: Theme.Colors.verified)
                         }
                         Spacer(minLength: 0)
-                        if isOwner, uid != team.ownerUid {
+                        if isOwner, uid != team.ownerUid, team.kind.hasTasks {
                             Menu {
                                 if team.isConsultant(uid) {
                                     Button {
@@ -646,7 +651,7 @@ struct TeamPageView: View {
             }
             .cardStyle()
 
-            if team.canManageTasks(authService.currentUserID) {
+            if team.kind.hasJoinCode, team.canManageTasks(authService.currentUserID) {
                 Button {
                     isPresentingJoinCode = true
                 } label: {

@@ -217,6 +217,7 @@ struct NewTeamView: View {
     @State private var authService = AuthService.shared
     @State private var currentUser = CurrentUserStore.shared
     @State private var name = ""
+    @State private var kind: TeamKind = .social
     @State private var isSaving = false
 
     var body: some View {
@@ -224,8 +225,38 @@ struct NewTeamView: View {
             Form {
                 Section {
                     TextField("Teamets namn", text: $name, prompt: Text("t.ex. Kvällspromenadgänget"))
+                }
+
+                Section {
+                    ForEach(TeamKind.allCases) { option in
+                        Button {
+                            kind = option
+                        } label: {
+                            HStack(spacing: Theme.Spacing.m) {
+                                Image(systemName: option.icon)
+                                    .font(.title3)
+                                    .foregroundStyle(Theme.Colors.brand)
+                                    .frame(width: 32)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(option.displayName)
+                                        .font(Theme.Typography.body.weight(.medium))
+                                        .foregroundStyle(Theme.Colors.textPrimary)
+                                    Text(option.description)
+                                        .font(.caption)
+                                        .foregroundStyle(Theme.Colors.textSecondary)
+                                }
+                                Spacer(minLength: 8)
+                                Image(systemName: kind == option ? "checkmark.circle.fill" : "circle")
+                                    .foregroundStyle(kind == option ? Theme.Colors.brand : Theme.Colors.textSecondary.opacity(0.4))
+                            }
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                } header: {
+                    Text("Vad är teamet för?")
                 } footer: {
-                    Text("Du lägger till medlemmar (dina vänner) inne i teamet efteråt.")
+                    Text("Typen styr vilka funktioner teamet har — en promenadgrupp slipper uppgifter och roller.")
                 }
             }
             .navigationTitle("Nytt team")
@@ -249,6 +280,7 @@ struct NewTeamView: View {
         Task {
             try? await TeamsRepository.shared.createTeam(
                 name: name.trimmingCharacters(in: .whitespaces),
+                kind: kind,
                 ownerUid: uid,
                 ownerName: currentUser.profile?.displayName ?? "Hundägare"
             )

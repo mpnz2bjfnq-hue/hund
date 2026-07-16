@@ -9,6 +9,48 @@
 import Foundation
 import FirebaseFirestore
 
+/// Typ av team — styr vilka funktioner som visas. En promenadgrupp ska
+/// inte mötas av uppgifter och konsulentroller.
+enum TeamKind: String, CaseIterable, Identifiable {
+    /// Konsulent som coachar kunder löpande — full funktionalitet.
+    case consulting
+    /// Hundkurs med kursdeltagare — allt + inbjudningskod för gruppen.
+    case course
+    /// Vanlig grupp (t.ex. promenadgäng) — bara inlägg och träffar.
+    case social
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .consulting: "Konsulentverksamhet"
+        case .course: "Hundkurs"
+        case .social: "Vanlig grupp"
+        }
+    }
+
+    var description: String {
+        switch self {
+        case .consulting: "Coacha dina kunder med uppgifter, träningspass och träffar."
+        case .course: "Kursgrupp med uppgifter, hemläxor och inbjudningskod till deltagarna."
+        case .social: "Dela inlägg och planera träffar — t.ex. ett promenadgäng."
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .consulting: "person.badge.shield.checkmark"
+        case .course: "graduationcap.fill"
+        case .social: "figure.walk"
+        }
+    }
+
+    /// Uppgifter/hemläxor och konsulentroller.
+    var hasTasks: Bool { self != .social }
+    /// Inbjudningskod för att få in en hel kursgrupp.
+    var hasJoinCode: Bool { self == .course }
+}
+
 struct Team: Codable, Identifiable, Equatable {
     @DocumentID var id: String?
     var name: String
@@ -23,6 +65,11 @@ struct Team: Codable, Identifiable, Equatable {
     var consultantUids: [String]?
     /// Teamets profilbild (liten JPEG, Firestore Blob). Sätts av ägaren.
     var photoData: Data?
+    /// Teamtyp (rå sträng för framtidssäker avkodning). Team skapade innan
+    /// fältet fanns behandlas som konsulentverksamhet — full funktionalitet.
+    var teamType: String?
+
+    var kind: TeamKind { TeamKind(rawValue: teamType ?? "") ?? .consulting }
 
     var memberCount: Int { memberUids.count }
 

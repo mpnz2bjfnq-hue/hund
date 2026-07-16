@@ -34,7 +34,7 @@ struct FeedView: View {
                         bigCard(
                             icon: "person.3.fill",
                             title: team.name,
-                            subtitle: "\(team.memberCount) medlemmar · uppgifter, inlägg och träffar",
+                            subtitle: "\(team.memberCount) medlemmar · \(team.kind.displayName)",
                             photoData: team.photoData
                         ) {
                             TeamPageView(team: team, onChanged: { Task { await load() } })
