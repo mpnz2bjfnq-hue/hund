@@ -54,6 +54,17 @@ struct FeedView: View {
                     }
                 }
 
+                // Alltid en väg till fler team — man kan vara med i hur många som helst.
+                if !myTeams.isEmpty {
+                    bigCard(
+                        icon: "plus.circle.fill",
+                        title: "Fler team",
+                        subtitle: "Skapa ett nytt team eller gå med med kod"
+                    ) {
+                        JoinOrCreateTeamView()
+                    }
+                }
+
                 // ===== Träffar =====
                 bigCard(
                     icon: "calendar",
