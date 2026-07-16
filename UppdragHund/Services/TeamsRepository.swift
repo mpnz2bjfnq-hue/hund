@@ -50,6 +50,61 @@ final class TeamsRepository {
         ])
     }
 
+    /// Ägaren utser eller tar bort en konsulent.
+    func setConsultant(teamID: String, uid: String, isConsultant: Bool) async throws {
+        try await db.collection("teams").document(teamID).updateData([
+            "consultantUids": isConsultant
+                ? FieldValue.arrayUnion([uid])
+                : FieldValue.arrayRemove([uid])
+        ])
+    }
+
+    // MARK: - Uppgifter
+
+    private func tasksCollection(teamID: String) -> CollectionReference {
+        db.collection("teams").document(teamID).collection("tasks")
+    }
+
+    func tasks(teamID: String) async -> [TeamTask] {
+        let snapshot = try? await tasksCollection(teamID: teamID)
+            .order(by: "createdAt", descending: true)
+            .getDocuments()
+        return snapshot?.documents.compactMap { try? $0.data(as: TeamTask.self) } ?? []
+    }
+
+    func createTask(
+        teamID: String,
+        title: String,
+        note: String?,
+        dueDate: Date?,
+        byUid: String,
+        byName: String
+    ) async throws {
+        let task = TeamTask(
+            title: title,
+            note: note,
+            dueDate: dueDate,
+            createdByUid: byUid,
+            createdByName: byName,
+            createdAt: .now,
+            completedUids: []
+        )
+        _ = try tasksCollection(teamID: teamID).addDocument(from: task)
+    }
+
+    func deleteTask(teamID: String, taskID: String) async throws {
+        try await tasksCollection(teamID: teamID).document(taskID).delete()
+    }
+
+    /// Medlemmen bockar av (eller ångrar) sin egen del av uppgiften.
+    func setTaskCompleted(teamID: String, taskID: String, uid: String, completed: Bool) async throws {
+        try await tasksCollection(teamID: teamID).document(taskID).updateData([
+            "completedUids": completed
+                ? FieldValue.arrayUnion([uid])
+                : FieldValue.arrayRemove([uid])
+        ])
+    }
+
     // MARK: - Inbjudningar
 
     func sendInvite(team: Team, toUid: String, fromUid: String, fromName: String) async throws {
@@ -119,7 +174,9 @@ final class TeamsRepository {
         ownerUid: String,
         ownerName: String,
         team: Team?,
-        invited: [(uid: String, name: String)]
+        invited: [(uid: String, name: String)],
+        latitude: Double? = nil,
+        longitude: Double? = nil
     ) async throws {
         var names = Dictionary(uniqueKeysWithValues: invited.map { ($0.uid, $0.name) })
         names[ownerUid] = ownerName
@@ -135,7 +192,9 @@ final class TeamsRepository {
             invitedNames: names,
             goingUids: [ownerUid],
             declinedUids: [],
-            createdAt: .now
+            createdAt: .now,
+            latitude: latitude,
+            longitude: longitude
         )
         _ = try db.collection("meetups").addDocument(from: meetup)
     }

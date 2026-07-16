@@ -12,6 +12,10 @@ import PhotosUI
 struct NewPostView: View {
     /// Anropas efter lyckad publicering så profilen kan uppdatera sig.
     var onPosted: () -> Void = {}
+    /// Förvalt team när inlägget skrivs från en teamsida.
+    var initialTeamID: String? = nil
+    /// Låser mottagaren till förvalda teamet (teamsidan) — väljaren döljs.
+    var lockTeam = false
 
     @Environment(\.dismiss) private var dismiss
     @Query(filter: #Predicate<Dog> { !$0.isShared }, sort: \Dog.name) private var allOwnDogs: [Dog]
@@ -75,7 +79,16 @@ struct NewPostView: View {
                     }
                 }
 
-                if !teams.isEmpty {
+                if lockTeam, let team = selectedTeam {
+                    Section {
+                        Label(team.name, systemImage: "person.3.fill")
+                            .foregroundStyle(Theme.Colors.brand)
+                    } header: {
+                        Text("Skickas till")
+                    } footer: {
+                        Text("Bara medlemmarna i \(team.name) ser inlägget.")
+                    }
+                } else if !teams.isEmpty {
                     Section {
                         Picker("Vem ser inlägget?", selection: $selectedTeamID) {
                             Text("Alla vänner").tag(String?.none)
@@ -123,6 +136,10 @@ struct NewPostView: View {
             .task {
                 if let uid = authService.currentUserID {
                     teams = await TeamsRepository.shared.myTeams(uid: uid)
+                    if selectedTeamID == nil, let initialTeamID,
+                       teams.contains(where: { $0.id == initialTeamID }) {
+                        selectedTeamID = initialTeamID
+                    }
                 }
             }
         }

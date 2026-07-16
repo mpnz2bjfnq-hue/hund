@@ -7,6 +7,7 @@
 //
 
 import SwiftUI
+import MapKit
 
 struct TeamsView: View {
     @State private var authService = AuthService.shared
@@ -51,7 +52,7 @@ struct TeamsView: View {
                     .foregroundStyle(Theme.Colors.textSecondary)
             } else {
                 ForEach(meetups) { meetup in
-                    MeetupRow(meetup: meetup, onChanged: { Task { await load() } })
+                    MeetupCard(meetup: meetup, onChanged: { Task { await load() } })
                 }
             }
             Button {
@@ -72,7 +73,7 @@ struct TeamsView: View {
             } else {
                 ForEach(teams) { team in
                     NavigationLink {
-                        TeamDetailView(team: team, onChanged: { Task { await load() } })
+                        TeamPageView(team: team, onChanged: { Task { await load() } })
                     } label: {
                         HStack(spacing: Theme.Spacing.m) {
                             Image(systemName: "person.3.fill")
@@ -168,87 +169,6 @@ struct TeamInviteRow: View {
     }
 }
 
-// MARK: - Träff-rad med RSVP
-
-struct MeetupRow: View {
-    let meetup: Meetup
-    var onChanged: () -> Void = {}
-
-    @State private var authService = AuthService.shared
-    @State private var isWorking = false
-
-    private var myUid: String? { authService.currentUserID }
-    private var myRSVP: MeetupRSVP {
-        guard let myUid else { return .pending }
-        return meetup.rsvp(for: myUid)
-    }
-    private var goingNames: String {
-        meetup.goingUids.compactMap { meetup.invitedNames[$0] }.joined(separator: ", ")
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Text(meetup.title)
-                    .font(.headline)
-                    .foregroundStyle(Theme.Colors.textPrimary)
-                Spacer()
-                Text(meetup.date.formatted(date: .abbreviated, time: .shortened))
-                    .font(.caption)
-                    .foregroundStyle(Theme.Colors.textSecondary)
-            }
-            HStack(spacing: 4) {
-                Image(systemName: "mappin.and.ellipse")
-                Text(meetup.locationName)
-                if let teamName = meetup.teamName {
-                    Text("· \(teamName)")
-                }
-            }
-            .font(.caption)
-            .foregroundStyle(Theme.Colors.textSecondary)
-
-            if !goingNames.isEmpty {
-                Text("Kommer: \(goingNames)")
-                    .font(.caption2)
-                    .foregroundStyle(Theme.Colors.brand)
-            }
-
-            if let myUid, meetup.ownerUid != myUid {
-                HStack(spacing: Theme.Spacing.m) {
-                    Button {
-                        rsvp(going: true)
-                    } label: {
-                        Label("Kommer", systemImage: myRSVP == .going ? "checkmark.circle.fill" : "circle")
-                    }
-                    .buttonStyle(.bordered)
-                    .tint(myRSVP == .going ? .green : Theme.Colors.brand)
-                    Button {
-                        rsvp(going: false)
-                    } label: {
-                        Label("Kan inte", systemImage: myRSVP == .declined ? "xmark.circle.fill" : "circle")
-                    }
-                    .buttonStyle(.bordered)
-                    .tint(myRSVP == .declined ? .red : Theme.Colors.textSecondary)
-                }
-                .controlSize(.small)
-                .disabled(isWorking)
-                .padding(.top, 2)
-            }
-        }
-        .padding(.vertical, 2)
-    }
-
-    private func rsvp(going: Bool) {
-        guard let uid = myUid, let id = meetup.id else { return }
-        isWorking = true
-        Task {
-            try? await TeamsRepository.shared.setRSVP(meetupID: id, uid: uid, going: going)
-            isWorking = false
-            onChanged()
-        }
-    }
-}
-
 // MARK: - Nytt team
 
 struct NewTeamView: View {
@@ -293,174 +213,15 @@ struct NewTeamView: View {
     }
 }
 
-// MARK: - Teamdetalj
-
-struct TeamDetailView: View {
-    @State private var team: Team
-    var onChanged: () -> Void = {}
-
-    init(team: Team, onChanged: @escaping () -> Void = {}) {
-        _team = State(initialValue: team)
-        self.onChanged = onChanged
-    }
-
-    @Environment(\.dismiss) private var dismiss
-    @State private var authService = AuthService.shared
-    @State private var friends: [UserProfile] = []
-    @State private var isPresentingAdd = false
-    @State private var confirmLeaveOrDelete = false
-    @State private var errorMessage: String?
-    @State private var invitedUids: Set<String> = []
-
-    private var isOwner: Bool { authService.currentUserID == team.ownerUid }
-
-    private var addableFriends: [UserProfile] {
-        friends.filter { profile in
-            guard let uid = profile.id else { return false }
-            return !team.memberUids.contains(uid)
-        }
-    }
-
-    var body: some View {
-        List {
-            Section("Medlemmar") {
-                ForEach(team.memberUids, id: \.self) { uid in
-                    HStack {
-                        Text(team.memberNames[uid] ?? "Medlem")
-                            .foregroundStyle(Theme.Colors.textPrimary)
-                        if uid == team.ownerUid {
-                            Text("Ägare")
-                                .font(.caption2)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(Theme.Colors.brand.opacity(0.15), in: Capsule())
-                                .foregroundStyle(Theme.Colors.brand)
-                        }
-                    }
-                }
-                if isOwner {
-                    Button {
-                        isPresentingAdd = true
-                    } label: {
-                        Label("Bjud in vän", systemImage: "person.badge.plus")
-                    }
-                }
-            }
-
-            Section {
-                Button(role: .destructive) {
-                    confirmLeaveOrDelete = true
-                } label: {
-                    Text(isOwner ? "Ta bort teamet" : "Lämna teamet")
-                }
-            }
-        }
-        .navigationTitle(team.name)
-        .navigationBarTitleDisplayMode(.inline)
-        .tint(Theme.Colors.brand)
-        .task {
-            guard let uid = authService.currentUserID else { return }
-            friends = (try? await FriendsRepository.shared.friends(for: uid)) ?? []
-        }
-        .alert(
-            "Något gick fel",
-            isPresented: Binding(
-                get: { errorMessage != nil },
-                set: { if !$0 { errorMessage = nil } }
-            )
-        ) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text(errorMessage ?? "")
-        }
-        .confirmationDialog(
-            isOwner ? "Ta bort teamet?" : "Lämna teamet?",
-            isPresented: $confirmLeaveOrDelete,
-            titleVisibility: .visible
-        ) {
-            Button(isOwner ? "Ta bort" : "Lämna", role: .destructive) { leaveOrDelete() }
-            Button("Avbryt", role: .cancel) {}
-        }
-        .sheet(isPresented: $isPresentingAdd) {
-            NavigationStack {
-                List(addableFriends) { friend in
-                    Button {
-                        add(friend)
-                    } label: {
-                        HStack {
-                            ProfileAvatar(photoData: friend.photoData, size: 32)
-                            Text(friend.displayName)
-                                .foregroundStyle(Theme.Colors.textPrimary)
-                            Spacer()
-                            if let uid = friend.id, invitedUids.contains(uid) {
-                                Label("Inbjuden", systemImage: "paperplane.fill")
-                                    .font(.caption.weight(.medium))
-                                    .foregroundStyle(Theme.Colors.brand)
-                            }
-                        }
-                    }
-                    .disabled(friend.id.map { invitedUids.contains($0) } ?? false)
-                }
-                .overlay {
-                    if addableFriends.isEmpty {
-                        ContentUnavailableView(
-                            "Inga fler vänner att bjuda in",
-                            systemImage: "person.2",
-                            description: Text("Alla dina vänner är redan med, eller så har du inga vänner än.")
-                        )
-                    }
-                }
-                .navigationTitle("Bjud in vän")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .confirmationAction) {
-                        Button("Klar") { isPresentingAdd = false }
-                    }
-                }
-            }
-        }
-    }
-
-    private func add(_ friend: UserProfile) {
-        guard let teamID = team.id, let uid = friend.id,
-              let myUid = authService.currentUserID else { return }
-        Task {
-            if await TeamsRepository.shared.hasPendingInvite(teamId: teamID, toUid: uid) {
-                errorMessage = "\(friend.displayName) har redan en väntande inbjudan."
-                return
-            }
-            do {
-                try await TeamsRepository.shared.sendInvite(
-                    team: team,
-                    toUid: uid,
-                    fromUid: myUid,
-                    fromName: CurrentUserStore.shared.profile?.displayName ?? "Hundägare"
-                )
-                invitedUids.insert(uid)
-            } catch {
-                errorMessage = "Kunde inte bjuda in \(friend.displayName): \(error.localizedDescription)"
-            }
-        }
-    }
-
-    private func leaveOrDelete() {
-        guard let teamID = team.id, let uid = authService.currentUserID else { return }
-        Task {
-            if isOwner {
-                try? await TeamsRepository.shared.deleteTeam(teamID: teamID)
-            } else {
-                try? await TeamsRepository.shared.removeMember(teamID: teamID, uid: uid)
-            }
-            onChanged()
-            dismiss()
-        }
-    }
-}
-
 // MARK: - Ny träff
 
 struct NewMeetupView: View {
     let teams: [Team]
+
+    init(teams: [Team], initialTeamID: String? = nil) {
+        self.teams = teams
+        _selectedTeamID = State(initialValue: initialTeamID)
+    }
 
     @Environment(\.dismiss) private var dismiss
     @State private var authService = AuthService.shared
@@ -473,6 +234,21 @@ struct NewMeetupView: View {
     @State private var friends: [UserProfile] = []
     @State private var selectedFriendUids: Set<String> = []
     @State private var isSaving = false
+
+    // Kartnål: sätts via platssökning eller tryck på kartan.
+    @State private var pinLatitude: Double?
+    @State private var pinLongitude: Double?
+    @State private var searchResults: [MKMapItem] = []
+    @State private var suppressSearch = false
+    @State private var camera: MapCameraPosition = .region(MKCoordinateRegion(
+        center: CLLocationCoordinate2D(latitude: 62.0, longitude: 15.0),
+        span: MKCoordinateSpan(latitudeDelta: 12, longitudeDelta: 12)
+    ))
+
+    private var pinCoordinate: CLLocationCoordinate2D? {
+        guard let pinLatitude, let pinLongitude else { return nil }
+        return CLLocationCoordinate2D(latitude: pinLatitude, longitude: pinLongitude)
+    }
 
     private var selectedTeam: Team? {
         teams.first { $0.id == selectedTeamID }
@@ -491,6 +267,57 @@ struct NewMeetupView: View {
                     TextField("Titel", text: $title, prompt: Text("t.ex. Söndagspromenad"))
                     TextField("Plats", text: $locationName, prompt: Text("t.ex. Pildammsparken"))
                     DatePicker("När", selection: $date, in: Date.now...)
+                }
+
+                Section {
+                    ForEach(Array(searchResults.enumerated()), id: \.offset) { _, item in
+                        Button {
+                            selectSearchResult(item)
+                        } label: {
+                            VStack(alignment: .leading, spacing: 1) {
+                                Text(item.name ?? "Plats")
+                                    .foregroundStyle(Theme.Colors.textPrimary)
+                                if let subtitle = item.placemark.title {
+                                    Text(subtitle)
+                                        .font(.caption)
+                                        .foregroundStyle(Theme.Colors.textSecondary)
+                                        .lineLimit(1)
+                                }
+                            }
+                        }
+                    }
+
+                    MapReader { proxy in
+                        Map(position: $camera) {
+                            if let pinCoordinate {
+                                Marker(
+                                    locationName.isEmpty ? "Träffen" : locationName,
+                                    systemImage: "pawprint.fill",
+                                    coordinate: pinCoordinate
+                                )
+                                .tint(Theme.Colors.brand)
+                            }
+                        }
+                        .frame(height: 200)
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        .onTapGesture { position in
+                            if let coordinate = proxy.convert(position, from: .local) {
+                                pinLatitude = coordinate.latitude
+                                pinLongitude = coordinate.longitude
+                            }
+                        }
+                    }
+                    .listRowInsets(EdgeInsets())
+                    .listRowBackground(Color.clear)
+                } header: {
+                    Text("Kartnål (valfritt)")
+                } footer: {
+                    Text(pinCoordinate == nil
+                         ? "Skriv i Plats-fältet för att söka, eller tryck på kartan för att placera nålen."
+                         : "Nålen är satt — tryck på kartan för att flytta den.")
+                }
+                .task(id: locationName) {
+                    await searchLocations()
                 }
 
                 Section {
@@ -551,6 +378,42 @@ struct NewMeetupView: View {
         }
     }
 
+    /// Debouncad platssökning medan användaren skriver i Plats-fältet.
+    private func searchLocations() async {
+        if suppressSearch {
+            suppressSearch = false
+            return
+        }
+        let query = locationName.trimmingCharacters(in: .whitespaces)
+        guard query.count >= 3 else {
+            searchResults = []
+            return
+        }
+        try? await Task.sleep(for: .milliseconds(400))
+        guard !Task.isCancelled else { return }
+
+        let request = MKLocalSearch.Request()
+        request.naturalLanguageQuery = query
+        let response = try? await MKLocalSearch(request: request).start()
+        guard !Task.isCancelled else { return }
+        searchResults = Array((response?.mapItems ?? []).prefix(4))
+    }
+
+    private func selectSearchResult(_ item: MKMapItem) {
+        let coordinate = item.placemark.coordinate
+        suppressSearch = true
+        if let name = item.name { locationName = name }
+        pinLatitude = coordinate.latitude
+        pinLongitude = coordinate.longitude
+        searchResults = []
+        withAnimation {
+            camera = .region(MKCoordinateRegion(
+                center: coordinate,
+                span: MKCoordinateSpan(latitudeDelta: 0.02, longitudeDelta: 0.02)
+            ))
+        }
+    }
+
     private func save() {
         guard let uid = authService.currentUserID else { return }
         let myName = currentUser.profile?.displayName ?? "Hundägare"
@@ -580,7 +443,9 @@ struct NewMeetupView: View {
                 ownerUid: uid,
                 ownerName: myName,
                 team: selectedTeam,
-                invited: invited
+                invited: invited,
+                latitude: pinLatitude,
+                longitude: pinLongitude
             )
             dismiss()
         }

@@ -146,6 +146,32 @@ service cloud.firestore {
           allow delete: if (request.auth != null && resource.data.authorUid == request.auth.uid) || isAdmin();
         }
       }
+
+      // Uppgifter: ägaren/konsulenter lägger ut, varje medlem bockar av sig själv.
+      match /tasks/{taskId} {
+        function teamData() {
+          return get(/databases/$(database)/documents/teams/$(teamId)).data;
+        }
+        function isMember() {
+          return request.auth != null && request.auth.uid in teamData().memberUids;
+        }
+        function canManageTasks() {
+          return request.auth != null
+                 && (request.auth.uid == teamData().ownerUid
+                     || request.auth.uid in teamData().get('consultantUids', []));
+        }
+
+        allow read: if isMember() || isAdmin();
+        allow create: if canManageTasks() && request.resource.data.createdByUid == request.auth.uid;
+        // Medlemmar får bara ändra completedUids, och bara lägga till/ta bort sitt eget uid.
+        allow update: if isMember()
+                      && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['completedUids'])
+                      && request.resource.data.completedUids.toSet().difference(resource.data.completedUids.toSet()).hasOnly([request.auth.uid])
+                      && resource.data.completedUids.toSet().difference(request.resource.data.completedUids.toSet()).hasOnly([request.auth.uid]);
+        allow delete: if canManageTasks()
+                      || (request.auth != null && resource.data.createdByUid == request.auth.uid)
+                      || isAdmin();
+      }
     }
 
     match /teamInvites/{inviteId} {

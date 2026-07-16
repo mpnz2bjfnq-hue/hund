@@ -18,8 +18,40 @@ struct Team: Codable, Identifiable, Equatable {
     /// uid -> visningsnamn, så medlemslistan kan visas utan extra uppslag.
     var memberNames: [String: String]
     var createdAt: Date
+    /// Medlemmar med titeln Konsulent (utsedda av ägaren). Optional så att
+    /// team skapade före fältet fanns fortfarande kan avkodas.
+    var consultantUids: [String]?
 
     var memberCount: Int { memberUids.count }
+
+    func isConsultant(_ uid: String?) -> Bool {
+        guard let uid else { return false }
+        return (consultantUids ?? []).contains(uid)
+    }
+
+    /// Ägaren och konsulenter får skapa uppgifter till teamet.
+    func canManageTasks(_ uid: String?) -> Bool {
+        uid == ownerUid || isConsultant(uid)
+    }
+}
+
+/// Uppgift som en konsulent (eller ägaren) lägger ut till teamet.
+/// Lagras under teams/{teamId}/tasks. Varje medlem bockar av sig själv
+/// i completedUids så alla ser vilka som är klara.
+struct TeamTask: Codable, Identifiable, Equatable {
+    @DocumentID var id: String?
+    var title: String
+    var note: String?
+    var dueDate: Date?
+    var createdByUid: String
+    var createdByName: String
+    var createdAt: Date
+    var completedUids: [String]
+
+    func isCompleted(by uid: String?) -> Bool {
+        guard let uid else { return false }
+        return completedUids.contains(uid)
+    }
 }
 
 struct Meetup: Codable, Identifiable, Equatable {
@@ -37,6 +69,9 @@ struct Meetup: Codable, Identifiable, Equatable {
     var goingUids: [String]
     var declinedUids: [String]
     var createdAt: Date
+    /// Kartnål (valfri, sätts via platssökning eller tryck på kartan).
+    var latitude: Double?
+    var longitude: Double?
 
     func rsvp(for uid: String) -> MeetupRSVP {
         if goingUids.contains(uid) { return .going }

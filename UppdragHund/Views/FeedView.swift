@@ -90,7 +90,7 @@ struct FeedView: View {
                             Button {
                                 selectedPost = post
                             } label: {
-                                feedRow(post)
+                                PostRowView(post: post, authorPhoto: authorPhotos[post.authorUid])
                             }
                             .buttonStyle(.plain)
                             .contextMenu {
@@ -194,76 +194,6 @@ struct FeedView: View {
         case .team: return "Inga team-inlägg än. Skriv ett inlägg och välj ett team som mottagare."
         case .all:  return "Inga inlägg än. Dela något själv eller lägg till vänner för att fylla flödet."
         }
-    }
-
-    private func feedRow(_ post: ProfilePost) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 8) {
-                ProfileAvatar(photoData: authorPhotos[post.authorUid], size: 32)
-                    .tint(Theme.Colors.brand)
-                Text(post.authorName)
-                    .font(Theme.Typography.body.weight(.semibold))
-                    .foregroundStyle(Theme.Colors.textPrimary)
-                    .lineLimit(1)
-                if let teamName = post.teamName {
-                    Label(teamName, systemImage: "person.3.fill")
-                        .font(.caption2.weight(.medium))
-                        .foregroundStyle(Theme.Colors.brand)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(Theme.Colors.brand.opacity(0.12), in: Capsule())
-                        .lineLimit(1)
-                }
-                Spacer(minLength: 8)
-                Text(post.createdAt.formatted(date: .abbreviated, time: .shortened))
-                    .font(.caption2)
-                    .foregroundStyle(Theme.Colors.textSecondary)
-            }
-            Text(post.text)
-                .font(Theme.Typography.body)
-                .foregroundStyle(Theme.Colors.textPrimary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            if let photoData = post.photoData, let uiImage = UIImage(data: photoData) {
-                Image(uiImage: uiImage)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 200)
-                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-            }
-            if let dogName = post.dogName {
-                Label(dogName, systemImage: "pawprint.fill")
-                    .font(.caption2)
-                    .foregroundStyle(Theme.Colors.textSecondary)
-            }
-            if let plan = post.trainingPlan {
-                HStack(spacing: Theme.Spacing.s) {
-                    Image(systemName: "list.bullet.rectangle.portrait")
-                        .foregroundStyle(Theme.Colors.brand)
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text(plan.title)
-                            .font(Theme.Typography.body.weight(.medium))
-                            .foregroundStyle(Theme.Colors.textPrimary)
-                        Text(plan.summaryLine)
-                            .font(.caption2)
-                            .foregroundStyle(Theme.Colors.textSecondary)
-                    }
-                    Spacer(minLength: 0)
-                }
-                .padding(Theme.Spacing.s)
-                .background(Theme.Colors.brand.opacity(0.12), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-            }
-            HStack(spacing: Theme.Spacing.l) {
-                Label("Gilla", systemImage: "pawprint")
-                Label("Kommentera", systemImage: "bubble.right")
-            }
-            .font(.caption2)
-            .foregroundStyle(Theme.Colors.textSecondary)
-            .padding(.top, 2)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.vertical, Theme.Spacing.s)
-        .contentShape(Rectangle())
     }
 
     private func loadFeed() async {
