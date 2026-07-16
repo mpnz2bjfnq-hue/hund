@@ -13,19 +13,25 @@ struct WeightChartCard: View {
     @State private var selected: (date: Date, weight: Double)?
     @State private var isPresentingNewWeighing = false
 
+    private var access: DogAccess {
+        DogAccess(dog: dog, currentUid: AuthService.shared.currentUserID)
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Text("Viktutveckling")
                     .font(.headline)
                 Spacer()
-                Button {
-                    isPresentingNewWeighing = true
-                } label: {
-                    Label("Logga vikt", systemImage: "plus")
-                        .font(.subheadline)
-                        .frame(minHeight: 44)
-                        .contentShape(Rectangle())
+                if access.canLog(in: .health) {
+                    Button {
+                        isPresentingNewWeighing = true
+                    } label: {
+                        Label("Logga vikt", systemImage: "plus")
+                            .font(.subheadline)
+                            .frame(minHeight: 44)
+                            .contentShape(Rectangle())
+                    }
                 }
             }
 
