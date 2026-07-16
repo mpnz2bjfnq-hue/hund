@@ -6,7 +6,7 @@
  * users/{uid}/fcmTokens/{token}.
  */
 
-import { onDocumentCreated, onDocumentWritten } from "firebase-functions/v2/firestore";
+import { onDocumentCreated, onDocumentDeleted, onDocumentWritten } from "firebase-functions/v2/firestore";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { logger } from "firebase-functions";
 import { initializeApp } from "firebase-admin/app";
@@ -317,6 +317,25 @@ export const onDeviceTokenClaimed = onDocumentWritten(
       .delete()
       .catch(() => undefined);
     logger.info(`Token flyttad från ${before.uid} till ${after.uid}`);
+  }
+);
+
+/** 13) Team raderat → städa allt som hör till teamet: träffar,
+ *  inbjudningskoden och föräldralösa underkollektioner (inlägg/uppgifter). */
+export const onTeamDeleted = onDocumentDeleted(
+  { document: "teams/{teamId}", region: REGION },
+  async (event) => {
+    const teamId = event.params.teamId;
+
+    // Underkollektionerna överlever när själva dokumentet raderas.
+    await db.recursiveDelete(db.collection("teams").doc(teamId)).catch(() => undefined);
+
+    const meetups = await db.collection("meetups").where("teamId", "==", teamId).get();
+    await Promise.all(meetups.docs.map((d) => d.ref.delete().catch(() => undefined)));
+
+    await db.collection("teamJoinCodes").doc(teamId).delete().catch(() => undefined);
+
+    logger.info(`Städade team ${teamId}: ${meetups.size} träffar + kod + underkollektioner`);
   }
 );
 
