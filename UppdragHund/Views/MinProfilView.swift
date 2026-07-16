@@ -40,7 +40,9 @@ struct MinProfilView: View {
     private var allDogs: [Dog] { ownDogs.filter { !$0.isDeceased } + sharedDogs }
 
     /// Änglar: avlidna hundar som hedras med en egen räknare.
-    private var angelCount: Int { ownDogs.filter(\.isDeceased).count }
+    private var angelDogs: [Dog] { ownDogs.filter(\.isDeceased) }
+    private var angelCount: Int { angelDogs.count }
+    @State private var isPresentingAngels = false
 
     var body: some View {
         ScrollView {
@@ -98,6 +100,9 @@ struct MinProfilView: View {
         .sheet(isPresented: $isPresentingFriends) {
             FriendsView()
         }
+        .sheet(isPresented: $isPresentingAngels) {
+            AngelDogsView(angels: angelDogs)
+        }
         .task {
             if currentUser.profile == nil {
                 await currentUser.refresh()
@@ -113,7 +118,12 @@ struct MinProfilView: View {
             statTile(value: "\(ownDogs.count - angelCount)", label: "Hundar")
             if angelCount > 0 {
                 statDivider
-                statTile(value: "\(angelCount)", label: "Änglar 🌈")
+                Button {
+                    isPresentingAngels = true
+                } label: {
+                    statTile(value: "\(angelCount)", label: "Änglar 🌈")
+                }
+                .buttonStyle(.plain)
             }
             statDivider
             Button {
@@ -538,6 +548,42 @@ struct MinProfilView: View {
         }
         .buttonStyle(.plain)
         .foregroundStyle(.red)
+    }
+}
+
+/// Lista över änglar 🌈 — öppnas från räknaren på Min profil. Varje hund
+/// leder vidare till den fulla profilen med minnesbanner.
+struct AngelDogsView: View {
+    let angels: [Dog]
+
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            List(angels) { dog in
+                NavigationLink {
+                    DogProfileDetailView(dog: dog)
+                } label: {
+                    HStack(spacing: Theme.Spacing.m) {
+                        DogAvatar(photoData: dog.photoData, size: 48, isActive: false)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(dog.name)
+                                .font(.body.weight(.semibold))
+                            Text("\(dog.breed) · \(dog.memorialYears)")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+            }
+            .navigationTitle("Änglar 🌈")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Klar") { dismiss() }
+                }
+            }
+        }
     }
 }
 
