@@ -45,6 +45,9 @@ final class TrainingSession {
     var date: Date
     var activity: String
     var durationMinutes: Int?
+    var distanceMeters: Double?
+    /// GPS-rutt som JSON av [[lat, lon], …]. Sätts av promenad-loggaren.
+    var routeData: Data?
     var note: String?
     var dog: Dog?
 
@@ -52,6 +55,7 @@ final class TrainingSession {
         date: Date,
         activity: String,
         durationMinutes: Int? = nil,
+        distanceMeters: Double? = nil,
         note: String? = nil,
         dog: Dog? = nil
     ) {
@@ -59,7 +63,29 @@ final class TrainingSession {
         self.date = date
         self.activity = activity
         self.durationMinutes = durationMinutes
+        self.distanceMeters = distanceMeters
         self.note = note
         self.dog = dog
+    }
+
+    /// Formaterad sträcka, t.ex. "850 m" eller "3,2 km".
+    var distanceText: String? {
+        guard let distanceMeters, distanceMeters > 0 else { return nil }
+        if distanceMeters >= 1000 {
+            return String(format: "%.1f km", distanceMeters / 1000)
+        }
+        return "\(Int(distanceMeters)) m"
+    }
+
+    /// Avkodad GPS-rutt som (lat, lon)-par.
+    var routeCoordinates: [(latitude: Double, longitude: Double)] {
+        guard let routeData,
+              let pairs = try? JSONDecoder().decode([[Double]].self, from: routeData) else { return [] }
+        return pairs.compactMap { $0.count == 2 ? (latitude: $0[0], longitude: $0[1]) : nil }
+    }
+
+    static func encodeRoute(_ coordinates: [(latitude: Double, longitude: Double)]) -> Data? {
+        guard !coordinates.isEmpty else { return nil }
+        return try? JSONEncoder().encode(coordinates.map { [$0.latitude, $0.longitude] })
     }
 }

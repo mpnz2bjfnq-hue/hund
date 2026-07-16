@@ -39,9 +39,6 @@ struct HealthLogView: View {
         .navigationTitle("Hälsa")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .cancellationAction) {
-                Button("Stäng") { dismiss() }
-            }
             if access.canLog(in: .health) {
                 ToolbarItem(placement: .primaryAction) {
                     Button {

@@ -174,6 +174,9 @@ struct AddDogView: View {
                 birthDate: birthDate,
                 sex: sex
             )
+            // Knyt hunden till det inloggade kontot (kontobyten på samma
+            // enhet ska inte visa varandras hundar).
+            dog.ownerUid = AuthService.shared.currentUserID
             dog.photoData = photoData
             dog.color = trimmedOrNil(color)
             dog.registrationNumber = trimmedOrNil(registrationNumber)

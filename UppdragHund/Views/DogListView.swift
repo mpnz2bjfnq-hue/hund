@@ -9,8 +9,13 @@ import SwiftData
 struct DogListView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(ActiveDogStore.self) private var activeDogStore
-    @Query(filter: #Predicate<Dog> { !$0.isShared }, sort: \Dog.name) private var dogs: [Dog]
+    @Query(filter: #Predicate<Dog> { !$0.isShared }, sort: \Dog.name) private var allOwnDogs: [Dog]
     @Query(filter: #Predicate<Dog> { $0.isShared }, sort: \Dog.name) private var sharedDogs: [Dog]
+
+    /// Bara det inloggade kontots egna hundar.
+    private var dogs: [Dog] {
+        allOwnDogs.filter { $0.ownerUid == AuthService.shared.currentUserID }
+    }
 
     @State private var isPresentingAddDog = false
     @State private var dogPendingEdit: Dog?
@@ -55,7 +60,7 @@ struct DogListView: View {
                         }
                     }
 
-                    Section("Delade med mig") {
+                    Section {
                         if sharedDogs.isEmpty {
                             Text("Hundar som vänner delar med dig dyker upp här.")
                                 .font(.footnote)
@@ -64,6 +69,13 @@ struct DogListView: View {
                             ForEach(sharedDogs) { dog in
                                 sharedDogRow(for: dog)
                             }
+                        }
+                    } header: {
+                        Text("Delade med mig")
+                    } footer: {
+                        if let message = SharedDogPuller.shared.lastSyncMessage {
+                            Text(message)
+                                .foregroundStyle(SharedDogPuller.shared.lastSyncFailed ? .orange : .secondary)
                         }
                     }
                 }

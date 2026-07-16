@@ -76,7 +76,7 @@ struct ProfileView: View {
                     HStack { Spacer(); ProgressView(); Spacer() }
                 } else if posts.isEmpty {
                     Text(isOwnProfile
-                         ? "Du har inte delat något än. Tryck på + för att skriva din första uppdatering."
+                         ? "Du har inte delat något än. Tryck på pennan för att skriva din första uppdatering."
                          : "Inga uppdateringar än.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
@@ -99,7 +99,10 @@ struct ProfileView: View {
             if isOwnProfile {
                 Section {
                     Button("Logga ut", role: .destructive) {
-                        try? authService.signOut()
+                        Task {
+                            await PushNotificationService.shared.removeToken()
+                            try? authService.signOut()
+                        }
                     }
                     .frame(maxWidth: .infinity)
                 }
@@ -109,9 +112,6 @@ struct ProfileView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             if isOwnProfile {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Stäng") { dismiss() }
-                }
                 ToolbarItem(placement: .primaryAction) {
                     Button {
                         isPresentingNewPost = true
@@ -279,9 +279,8 @@ struct ProfileView: View {
     }
 
     private func delete(_ post: ProfilePost) {
-        guard let uid = authService.currentUserID, let postID = post.id else { return }
         Task {
-            try? await PostsRepository.shared.deletePost(authorUid: uid, postID: postID)
+            try? await PostsRepository.shared.delete(post: post)
             await load()
         }
     }
@@ -300,6 +299,19 @@ private struct PostRow: View {
         VStack(alignment: .leading, spacing: 6) {
             Text(post.text)
                 .font(.body)
+            if let photoData = post.photoData, let uiImage = UIImage(data: photoData) {
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 180)
+                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            }
+            if let plan = post.trainingPlan {
+                Label("\(plan.title) · \(plan.summaryLine)", systemImage: "list.bullet.rectangle.portrait")
+                    .font(.caption)
+                    .foregroundStyle(Theme.Colors.brand)
+            }
             HStack(spacing: 6) {
                 if let dogName = post.dogName {
                     Label(dogName, systemImage: "pawprint.fill")

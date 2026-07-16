@@ -39,6 +39,9 @@ struct OmOssView: View {
                     Text("Canine360 hjälper dig hålla koll på din hunds löpcykler, hälsa och vardag.")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
+                    Text("Appen ersätter inte veterinärvård. Kontakta alltid veterinär vid frågor om din hunds hälsa.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
                 }
                 .padding(.vertical, 4)
             }
@@ -63,9 +66,6 @@ struct OmOssView: View {
         .navigationTitle("Om oss")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .cancellationAction) {
-                Button("Stäng") { dismiss() }
-            }
         }
     }
 }

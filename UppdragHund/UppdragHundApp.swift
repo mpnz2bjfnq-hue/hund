@@ -11,6 +11,7 @@ import FirebaseCore
 
 @main
 struct UppdragHundApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     private let container: ModelContainer
 
     init() {
@@ -19,6 +20,8 @@ struct UppdragHundApp: App {
             container = try ModelContainer(
                 for: Dog.self, HealthEvent.self, HeatCycle.self,
                 DiaryEntry.self, MealEntry.self, TrainingSession.self,
+                TrainingPlan.self, TrainingPlanExercise.self,
+                TrainingSkill.self,
                 SyncTombstone.self
             )
         } catch {

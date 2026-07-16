@@ -15,6 +15,7 @@ struct KalenderView: View {
     @State private var cyclePendingDelete: HeatCycle?
     @State private var displayedMonth = Date.now
     @State private var selectedDay: SelectedDay?
+    @AppStorage("heatRemindersEnabled") private var heatRemindersEnabled = true
 
     private let calendar = Calendar.current
 
@@ -52,6 +53,11 @@ struct KalenderView: View {
         }
         .navigationTitle("Kalender")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                BrandPrincipal(title: "Kalender")
+            }
+        }
     }
 
     private var calendarContent: some View {
@@ -122,12 +128,20 @@ struct KalenderView: View {
         }
         .background(Theme.Colors.screenBackground)
         .task(id: prediction.nextExpectedStartDate) {
-            guard let nextStart = prediction.nextExpectedStartDate else {
+            guard heatRemindersEnabled, let nextStart = prediction.nextExpectedStartDate else {
                 NotificationService.cancelHeatPredictionNotification(for: dog)
                 return
             }
             guard await NotificationService.requestAuthorizationIfNeeded() else { return }
             await NotificationService.scheduleHeatPredictionNotification(for: dog, predictedStartDate: nextStart)
+        }
+        .task(id: ongoingCycle?.startDate) {
+            guard heatRemindersEnabled, let ongoing = ongoingCycle else {
+                NotificationService.cancelOngoingHeatNotifications(for: dog)
+                return
+            }
+            guard await NotificationService.requestAuthorizationIfNeeded() else { return }
+            await NotificationService.scheduleOngoingHeatNotifications(for: dog, cycleStart: ongoing.startDate)
         }
         .sheet(isPresented: $isPresentingStart) {
             StartHeatCycleView(dog: dog)

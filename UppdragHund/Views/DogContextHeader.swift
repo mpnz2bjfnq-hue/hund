@@ -12,7 +12,7 @@ struct DogContextHeader: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            Image("Canine360Logo")
+            Image("Canine360Mark")
                 .resizable()
                 .scaledToFit()
                 .frame(width: 40, height: 40)

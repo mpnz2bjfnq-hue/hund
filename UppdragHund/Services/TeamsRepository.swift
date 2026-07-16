@@ -1,0 +1,174 @@
+//
+//  TeamsRepository.swift
+//  UppdragHund
+//
+//  Firestore-åtkomst för team och hundträffar. Samma stil som övriga
+//  repositories: DTO in/ut, ingen vy-logik.
+//
+
+import Foundation
+import FirebaseFirestore
+
+final class TeamsRepository {
+    static let shared = TeamsRepository()
+
+    private let db = Firestore.firestore()
+
+    private init() {}
+
+    // MARK: - Team
+
+    func createTeam(name: String, ownerUid: String, ownerName: String) async throws {
+        let team = Team(
+            name: name,
+            ownerUid: ownerUid,
+            ownerName: ownerName,
+            memberUids: [ownerUid],
+            memberNames: [ownerUid: ownerName],
+            createdAt: .now
+        )
+        _ = try db.collection("teams").addDocument(from: team)
+    }
+
+    func team(id: String) async -> Team? {
+        let snapshot = try? await db.collection("teams").document(id).getDocument()
+        return snapshot.flatMap { try? $0.data(as: Team.self) }
+    }
+
+    func myTeams(uid: String) async -> [Team] {
+        let snapshot = try? await db.collection("teams")
+            .whereField("memberUids", arrayContains: uid)
+            .getDocuments()
+        return (snapshot?.documents.compactMap { try? $0.data(as: Team.self) } ?? [])
+            .sorted { $0.createdAt < $1.createdAt }
+    }
+
+    func addMember(teamID: String, uid: String, name: String) async throws {
+        try await db.collection("teams").document(teamID).updateData([
+            "memberUids": FieldValue.arrayUnion([uid]),
+            "memberNames.\(uid)": name
+        ])
+    }
+
+    // MARK: - Inbjudningar
+
+    func sendInvite(team: Team, toUid: String, fromUid: String, fromName: String) async throws {
+        guard let teamId = team.id else { return }
+        let invite = TeamInvite(
+            teamId: teamId,
+            teamName: team.name,
+            fromUid: fromUid,
+            fromName: fromName,
+            toUid: toUid,
+            status: "pending",
+            createdAt: .now
+        )
+        try db.collection("teamInvites")
+            .document(TeamInvite.documentID(teamId: teamId, toUid: toUid))
+            .setData(from: invite)
+    }
+
+    func pendingInvites(for uid: String) async -> [TeamInvite] {
+        let snapshot = try? await db.collection("teamInvites")
+            .whereField("toUid", isEqualTo: uid)
+            .whereField("status", isEqualTo: "pending")
+            .getDocuments()
+        return snapshot?.documents.compactMap { try? $0.data(as: TeamInvite.self) } ?? []
+    }
+
+    /// Har vännen redan en väntande inbjudan till teamet?
+    func hasPendingInvite(teamId: String, toUid: String) async -> Bool {
+        let doc = try? await db.collection("teamInvites")
+            .document(TeamInvite.documentID(teamId: teamId, toUid: toUid))
+            .getDocument()
+        guard let doc, doc.exists else { return false }
+        return (doc.get("status") as? String) == "pending"
+    }
+
+    /// Svara på en inbjudan. Vid accept läggs användaren till i teamet
+    /// (reglerna tillåter det bara när en väntande inbjudan finns).
+    func respondToInvite(_ invite: TeamInvite, accept: Bool, myName: String) async throws {
+        guard let inviteID = invite.id else { return }
+        if accept {
+            try await db.collection("teams").document(invite.teamId).updateData([
+                "memberUids": FieldValue.arrayUnion([invite.toUid]),
+                "memberNames.\(invite.toUid)": myName
+            ])
+        }
+        try await db.collection("teamInvites").document(inviteID)
+            .updateData(["status": accept ? "accepted" : "declined"])
+    }
+
+    func removeMember(teamID: String, uid: String) async throws {
+        try await db.collection("teams").document(teamID).updateData([
+            "memberUids": FieldValue.arrayRemove([uid]),
+            "memberNames.\(uid)": FieldValue.delete()
+        ])
+    }
+
+    func deleteTeam(teamID: String) async throws {
+        try await db.collection("teams").document(teamID).delete()
+    }
+
+    // MARK: - Träffar
+
+    func createMeetup(
+        title: String,
+        locationName: String,
+        date: Date,
+        ownerUid: String,
+        ownerName: String,
+        team: Team?,
+        invited: [(uid: String, name: String)]
+    ) async throws {
+        var names = Dictionary(uniqueKeysWithValues: invited.map { ($0.uid, $0.name) })
+        names[ownerUid] = ownerName
+        let meetup = Meetup(
+            title: title,
+            locationName: locationName,
+            date: date,
+            ownerUid: ownerUid,
+            ownerName: ownerName,
+            teamId: team?.id,
+            teamName: team?.name,
+            invitedUids: invited.map(\.uid),
+            invitedNames: names,
+            goingUids: [ownerUid],
+            declinedUids: [],
+            createdAt: .now
+        )
+        _ = try db.collection("meetups").addDocument(from: meetup)
+    }
+
+    /// Träffar jag är inbjuden till eller ordnar, framåt i tiden.
+    func upcomingMeetups(uid: String) async -> [Meetup] {
+        async let invitedSnap = try? db.collection("meetups")
+            .whereField("invitedUids", arrayContains: uid)
+            .getDocuments()
+        async let ownedSnap = try? db.collection("meetups")
+            .whereField("ownerUid", isEqualTo: uid)
+            .getDocuments()
+
+        let docs = (await invitedSnap?.documents ?? []) + (await ownedSnap?.documents ?? [])
+        var seen = Set<String>()
+        return docs
+            .compactMap { try? $0.data(as: Meetup.self) }
+            .filter { meetup in
+                guard let id = meetup.id, !seen.contains(id) else { return false }
+                seen.insert(id)
+                return meetup.date > Calendar.current.date(byAdding: .hour, value: -6, to: .now)!
+            }
+            .sorted { $0.date < $1.date }
+    }
+
+    func setRSVP(meetupID: String, uid: String, going: Bool) async throws {
+        try await db.collection("meetups").document(meetupID).updateData([
+            "goingUids": going ? FieldValue.arrayUnion([uid]) : FieldValue.arrayRemove([uid]),
+            "declinedUids": going ? FieldValue.arrayRemove([uid]) : FieldValue.arrayUnion([uid])
+        ])
+    }
+
+    func deleteMeetup(meetupID: String) async throws {
+        try await db.collection("meetups").document(meetupID).delete()
+    }
+}

@@ -18,6 +18,7 @@ struct NewTrainingSessionView: View {
     @State private var selectedActivity = TrainingActivityType.recall.displayName
     @State private var customActivityText = ""
     @State private var durationText = ""
+    @State private var distanceText = ""
     @State private var note = ""
 
     private var isCustomActivity: Bool {
@@ -30,6 +31,11 @@ struct NewTrainingSessionView: View {
 
     private var parsedDuration: Int? {
         Int(durationText)
+    }
+
+    private var parsedDistance: Double? {
+        guard let value = Double(distanceText.replacingOccurrences(of: ",", with: ".")), value > 0 else { return nil }
+        return value
     }
 
     private var isValid: Bool {
@@ -53,6 +59,8 @@ struct NewTrainingSessionView: View {
                 DatePicker("Datum", selection: $date, in: ...Date.now, displayedComponents: .date)
                 TextField("Längd (minuter)", text: $durationText)
                     .keyboardType(.numberPad)
+                TextField("Sträcka (meter)", text: $distanceText)
+                    .keyboardType(.numberPad)
                 TextField("Anteckning", text: $note, axis: .vertical)
                     .lineLimit(2...4)
             }
@@ -75,6 +83,7 @@ struct NewTrainingSessionView: View {
             date: date,
             activity: resolvedActivity,
             durationMinutes: parsedDuration,
+            distanceMeters: parsedDistance,
             note: note.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : note,
             dog: dog
         )

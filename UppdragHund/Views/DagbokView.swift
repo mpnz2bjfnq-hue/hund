@@ -58,6 +58,9 @@ struct DagbokView: View {
         .navigationTitle("Dagbok")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            ToolbarItem(placement: .principal) {
+                BrandPrincipal(title: "Dagbok")
+            }
             if access.canLog(in: .diary) {
                 ToolbarItem(placement: .primaryAction) {
                     Button {

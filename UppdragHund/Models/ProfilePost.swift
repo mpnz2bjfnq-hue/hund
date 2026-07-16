@@ -18,4 +18,12 @@ struct ProfilePost: Codable, Identifiable, Equatable {
     // Valfri koppling till en av författarens hundar.
     var dogRemoteID: String?
     var dogName: String?
+    // Valfritt inbäddat träningspass (delat pass).
+    var trainingPlan: SharedTrainingPlan?
+    // Valfritt foto (komprimerad JPEG, ryms i dokumentet).
+    var photoData: Data?
+    // Satta när inlägget bara är synligt för ett team (lagras då under
+    // teams/{teamId}/posts istället för users/{uid}/posts).
+    var teamId: String?
+    var teamName: String?
 }

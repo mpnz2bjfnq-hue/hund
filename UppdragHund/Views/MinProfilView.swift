@@ -3,7 +3,7 @@
 //  UppdragHund
 //
 //  Profil-flik (f.d. "Mer"). Samlar användarprofil, "Mina hundar"
-//  (snabbväxling av aktiv hund + hantering), genvägar och app-inställningar.
+//  (snabbväxling av aktiv hund + hantering) och app-inställningar.
 //  Visuellt utformad efter Canine360-mockupen.
 //
 
@@ -12,8 +12,19 @@ import SwiftData
 
 struct MinProfilView: View {
     @Environment(ActiveDogStore.self) private var activeDogStore
-    @Query(filter: #Predicate<Dog> { !$0.isShared }, sort: \Dog.name) private var ownDogs: [Dog]
+    @Environment(\.modelContext) private var modelContext
+    @State private var isSyncingShared = false
+    @State private var settingsExpanded = false
+    @State private var isAdmin = false
+    @State private var ticketKind: TicketKind?
+    @AppStorage("hasDiscoveredSettings") private var hasDiscoveredSettings = false
+    @Query(filter: #Predicate<Dog> { !$0.isShared }, sort: \Dog.name) private var allOwnDogs: [Dog]
     @Query(filter: #Predicate<Dog> { $0.isShared }, sort: \Dog.name) private var sharedDogs: [Dog]
+
+    /// Bara det inloggade kontots egna hundar.
+    private var ownDogs: [Dog] {
+        allOwnDogs.filter { $0.ownerUid == authService.currentUserID }
+    }
 
     @State private var currentUser = CurrentUserStore.shared
     @State private var authService = AuthService.shared
@@ -21,11 +32,10 @@ struct MinProfilView: View {
     @State private var isEditingProfile = false
 
     // Socialt (laddas från Firestore).
-    @State private var posts: [ProfilePost] = []
+    @State private var postCount: Int?
     @State private var friendCount: Int?
+    @State private var myTeams: [Team] = []
     @State private var isPresentingFriends = false
-    @State private var isPresentingNewPost = false
-    @State private var postPendingDelete: ProfilePost?
 
     private var allDogs: [Dog] { ownDogs + sharedDogs }
 
@@ -35,8 +45,12 @@ struct MinProfilView: View {
                 profileHeader
                 statsRow
                 dogsCard
-                shortcutsCard
-                updatesCard
+                if isAdmin {
+                    adminCard
+                }
+                if !hasDiscoveredSettings && !settingsExpanded {
+                    settingsHint
+                }
                 settingsCard
                 logoutButton
             }
@@ -44,14 +58,24 @@ struct MinProfilView: View {
         }
         .frame(maxWidth: .infinity)
         .background(Theme.Colors.screenBackground)
+        .overlay(alignment: .bottomTrailing) {
+            feedbackBubble
+        }
+        .sheet(item: $ticketKind) { kind in
+            NewTicketView(kind: kind)
+        }
+        .refreshable {
+            await SharedDogPuller.shared.pull(context: modelContext)
+            await loadSocial()
+        }
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .principal) {
-                Canine360Wordmark(size: 20)
+                BrandPrincipal(title: "Min profil")
             }
             ToolbarItem(placement: .topBarTrailing) {
                 NavigationLink {
-                    PlaceholderComingSoonView(title: "Notiser", systemImage: "bell")
+                    NotificationsCenterView(dog: activeDogStore.activeDog)
                 } label: {
                     Image(systemName: "bell")
                 }
@@ -67,23 +91,6 @@ struct MinProfilView: View {
         }
         .sheet(isPresented: $isPresentingFriends) {
             FriendsView()
-        }
-        .sheet(isPresented: $isPresentingNewPost) {
-            NewPostView(onPosted: { Task { await loadSocial() } })
-        }
-        .confirmationDialog(
-            "Ta bort uppdateringen?",
-            isPresented: Binding(
-                get: { postPendingDelete != nil },
-                set: { if !$0 { postPendingDelete = nil } }
-            ),
-            titleVisibility: .visible
-        ) {
-            Button("Ta bort", role: .destructive) {
-                if let post = postPendingDelete { deletePost(post) }
-                postPendingDelete = nil
-            }
-            Button("Avbryt", role: .cancel) { postPendingDelete = nil }
         }
         .task {
             if currentUser.profile == nil {
@@ -106,7 +113,7 @@ struct MinProfilView: View {
             }
             .buttonStyle(.plain)
             statDivider
-            statTile(value: "\(posts.count)", label: "Inlägg")
+            statTile(value: postCount.map(String.init) ?? "–", label: "Inlägg")
         }
         .cardStyle()
     }
@@ -130,80 +137,80 @@ struct MinProfilView: View {
             .frame(width: 1, height: 28)
     }
 
-    // MARK: - Uppdateringar (inlägg)
-
-    private var updatesCard: some View {
-        VStack(alignment: .leading, spacing: Theme.Spacing.m) {
-            HStack {
-                Text("Uppdateringar")
-                    .font(Theme.Typography.sectionTitle)
-                    .foregroundStyle(Theme.Colors.textPrimary)
-                Spacer()
-                Button {
-                    isPresentingNewPost = true
-                } label: {
-                    Image(systemName: "square.and.pencil")
-                        .font(.body.weight(.medium))
-                        .foregroundStyle(Theme.Colors.brand)
-                }
-                .accessibilityLabel("Ny uppdatering")
-            }
-
-            if posts.isEmpty {
-                Text("Du har inte delat något än. Tryck på pennan för att skriva din första uppdatering.")
-                    .font(Theme.Typography.caption)
-                    .foregroundStyle(Theme.Colors.textSecondary)
-            } else {
-                ForEach(Array(posts.enumerated()), id: \.element.id) { index, post in
-                    postRow(post)
-                        .contextMenu {
-                            Button(role: .destructive) {
-                                postPendingDelete = post
-                            } label: {
-                                Label("Ta bort", systemImage: "trash")
-                            }
-                        }
-                    if index < posts.count - 1 {
-                        Divider().overlay(Theme.Colors.textSecondary.opacity(0.2))
-                    }
-                }
-            }
+    private func syncSharedDogs() {
+        isSyncingShared = true
+        Task {
+            await SharedDogPuller.shared.pull(context: modelContext)
+            isSyncingShared = false
         }
-        .cardStyle()
     }
 
-    private func postRow(_ post: ProfilePost) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(post.text)
-                .font(Theme.Typography.body)
-                .foregroundStyle(Theme.Colors.textPrimary)
-            HStack(spacing: 6) {
-                if let dogName = post.dogName {
-                    Label(dogName, systemImage: "pawprint.fill")
-                }
-                Text(post.createdAt.formatted(date: .abbreviated, time: .shortened))
-            }
-            .font(.caption2)
-            .foregroundStyle(Theme.Colors.textSecondary)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.vertical, 4)
-    }
+    // MARK: - Socialt (räknare)
 
     private func loadSocial() async {
         guard let uid = authService.currentUserID else { return }
-        posts = (try? await PostsRepository.shared.posts(forUid: uid)) ?? []
+        postCount = try? await PostsRepository.shared.postCount(forUid: uid)
         if let friends = try? await FriendsRepository.shared.friends(for: uid) {
             friendCount = friends.count
         }
+        myTeams = await TeamsRepository.shared.myTeams(uid: uid)
+        isAdmin = await AdminService.shared.checkIsAdmin(uid: uid)
     }
 
-    private func deletePost(_ post: ProfilePost) {
-        guard let uid = authService.currentUserID, let postID = post.id else { return }
-        Task {
-            try? await PostsRepository.shared.deletePost(authorUid: uid, postID: postID)
-            await loadSocial()
+    // MARK: - Feedback-bubbla
+
+    private var feedbackBubble: some View {
+        Menu {
+            Button {
+                ticketKind = .feedback
+            } label: {
+                Label("Skicka feedback", systemImage: "heart.text.square")
+            }
+            Button {
+                ticketKind = .support
+            } label: {
+                Label("Skapa supportärende", systemImage: "ticket")
+            }
+        } label: {
+            Image(systemName: "bubble.left.and.bubble.right.fill")
+                .font(.title3)
+                .foregroundStyle(.white)
+                .frame(width: 52, height: 52)
+                .background(Circle().fill(Theme.Colors.brand))
+                .shadow(color: .black.opacity(0.3), radius: 5, y: 2)
         }
+        .accessibilityLabel("Feedback och support")
+        .padding(.trailing, Theme.Spacing.l)
+        .padding(.bottom, Theme.Spacing.l)
+    }
+
+    // MARK: - Admin
+
+    private var adminCard: some View {
+        NavigationLink {
+            AdminPanelView()
+        } label: {
+            HStack(spacing: Theme.Spacing.l) {
+                Image(systemName: "shield.lefthalf.filled")
+                    .font(.title3)
+                    .foregroundStyle(Theme.Colors.brand)
+                    .frame(width: 32)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Adminpanel")
+                        .font(Theme.Typography.body.weight(.semibold))
+                        .foregroundStyle(Theme.Colors.textPrimary)
+                    Text("Anmälningar, användare och broadcast")
+                        .font(Theme.Typography.caption)
+                        .foregroundStyle(Theme.Colors.textSecondary)
+                }
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(Theme.Colors.textSecondary)
+            }
+            .cardStyle()
+        }
+        .buttonStyle(.plain)
     }
 
     // MARK: - Profilhuvud
@@ -236,6 +243,34 @@ struct MinProfilView: View {
                         .font(Theme.Typography.caption)
                         .foregroundStyle(Theme.Colors.textSecondary)
                 }
+                if isAdmin {
+                    Label("Admin", systemImage: "shield.lefthalf.filled")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(Theme.Colors.brand)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(Theme.Colors.brand.opacity(0.15), in: Capsule())
+                        .padding(.top, 2)
+                }
+                if !myTeams.isEmpty {
+                    HStack(spacing: 6) {
+                        ForEach(myTeams.prefix(3)) { team in
+                            Label(team.name, systemImage: "person.3.fill")
+                                .font(.caption2.weight(.medium))
+                                .foregroundStyle(Theme.Colors.brand)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 3)
+                                .background(Theme.Colors.brand.opacity(0.12), in: Capsule())
+                                .lineLimit(1)
+                        }
+                        if myTeams.count > 3 {
+                            Text("+\(myTeams.count - 3)")
+                                .font(.caption2)
+                                .foregroundStyle(Theme.Colors.textSecondary)
+                        }
+                    }
+                    .padding(.top, 2)
+                }
             }
         }
         .frame(maxWidth: .infinity)
@@ -246,8 +281,32 @@ struct MinProfilView: View {
 
     private var dogsCard: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.m) {
-            cardHeader(title: "Mina hundar", action: "Visa alla") {
-                DogListView()
+            HStack(spacing: Theme.Spacing.m) {
+                Text("Mina hundar")
+                    .font(Theme.Typography.sectionTitle)
+                    .foregroundStyle(Theme.Colors.textPrimary)
+                Button {
+                    syncSharedDogs()
+                } label: {
+                    if isSyncingShared {
+                        ProgressView()
+                            .controlSize(.small)
+                    } else {
+                        Image(systemName: "arrow.triangle.2.circlepath")
+                            .font(.caption.weight(.medium))
+                            .foregroundStyle(Theme.Colors.brand)
+                    }
+                }
+                .accessibilityLabel("Uppdatera delade hundar")
+                .disabled(isSyncingShared)
+                Spacer()
+                NavigationLink {
+                    DogListView()
+                } label: {
+                    Text("Visa alla")
+                        .font(Theme.Typography.caption.weight(.medium))
+                        .foregroundStyle(Theme.Colors.brand)
+                }
             }
 
             ScrollView(.horizontal, showsIndicators: false) {
@@ -316,89 +375,73 @@ struct MinProfilView: View {
         .buttonStyle(.plain)
     }
 
-    // MARK: - Genvägar
-
-    private var shortcutsCard: some View {
-        VStack(alignment: .leading, spacing: Theme.Spacing.l) {
-            Text("Mina genvägar")
-                .font(Theme.Typography.sectionTitle)
-                .foregroundStyle(Theme.Colors.textPrimary)
-
-            LazyVGrid(
-                columns: Array(repeating: GridItem(.flexible()), count: 4),
-                spacing: Theme.Spacing.l
-            ) {
-                shortcut(title: "Hälsa", icon: "stethoscope") { dog in
-                    HealthLogView(dog: dog)
-                }
-                shortcut(title: "Statistik", icon: "chart.bar.fill") { dog in
-                    StatistikView(dog: dog)
-                }
-                shortcut(title: "Träning", icon: "figure.run") { dog in
-                    HundtraningView(dog: dog)
-                }
-                shortcut(title: "Foder", icon: "fork.knife") { dog in
-                    FoderdagbokView(dog: dog)
-                }
-            }
-        }
-        .cardStyle()
-    }
-
-    private func shortcut<Destination: View>(
-        title: String,
-        icon: String,
-        @ViewBuilder destination: @escaping (Dog) -> Destination
-    ) -> some View {
-        NavigationLink {
-            if let dog = activeDogStore.activeDog {
-                destination(dog)
-            }
-        } label: {
-            VStack(spacing: Theme.Spacing.s) {
-                Image(systemName: icon)
-                    .font(.title2)
-                    .foregroundStyle(Theme.Colors.brand)
-                    .frame(height: 28)
-                Text(title)
-                    .font(.caption)
-                    .foregroundStyle(Theme.Colors.textSecondary)
-            }
-            .frame(maxWidth: .infinity)
-        }
-        .buttonStyle(.plain)
-    }
-
-    // MARK: - Inställningar
+    // MARK: - Inställningar (hopfällda)
 
     private var settingsCard: some View {
         VStack(spacing: 0) {
-            settingsRow(icon: "gearshape", title: "Inställningar") {
-                PlaceholderComingSoonView(title: "Inställningar", systemImage: "gearshape")
-            }
-            rowDivider
-            ShareLink(item: "Kolla in Canine360 – appen för allt om din hund! 🐾") {
-                settingsRowLabel(icon: "square.and.arrow.up", title: "Dela appen")
+            Button {
+                withAnimation(.spring(duration: 0.35)) {
+                    settingsExpanded.toggle()
+                }
+                hasDiscoveredSettings = true
+            } label: {
+                HStack(spacing: Theme.Spacing.m) {
+                    Image(systemName: "gearshape")
+                        .font(.body)
+                        .foregroundStyle(Theme.Colors.brand)
+                        .frame(width: 26)
+                    Text("Inställningar & mer")
+                        .font(Theme.Typography.body)
+                        .foregroundStyle(Theme.Colors.textPrimary)
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(Theme.Colors.textSecondary)
+                        .rotationEffect(.degrees(settingsExpanded ? 90 : 0))
+                }
+                .padding(.horizontal, Theme.Spacing.l)
+                .padding(.vertical, Theme.Spacing.m)
+                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            rowDivider
-            settingsRow(icon: "arrow.triangle.2.circlepath", title: "Backup & Synk") {
-                PlaceholderComingSoonView(title: "Backup & Synk", systemImage: "arrow.triangle.2.circlepath")
-            }
-            rowDivider
-            settingsRow(icon: "lock.shield", title: "Integritetsinställningar") {
-                PlaceholderComingSoonView(title: "Integritetsinställningar", systemImage: "lock.shield")
-            }
-            rowDivider
-            settingsRow(icon: "questionmark.circle", title: "Hjälp & Support") {
-                PlaceholderComingSoonView(title: "Hjälp & Support", systemImage: "questionmark.circle")
-            }
-            rowDivider
-            settingsRow(icon: "info.circle", title: "Om Canine360") {
-                OmOssView()
+
+            if settingsExpanded {
+                rowDivider
+                settingsRow(icon: "slider.horizontal.3", title: "Inställningar") {
+                    SettingsView()
+                }
+                rowDivider
+                ShareLink(item: "Kolla in Canine360 – appen för allt om din hund! 🐾") {
+                    settingsRowLabel(icon: "square.and.arrow.up", title: "Dela appen")
+                }
+                .buttonStyle(.plain)
+                rowDivider
+                settingsRow(icon: "arrow.triangle.2.circlepath", title: "Backup & Synk") {
+                    SyncInfoView()
+                }
+                rowDivider
+                settingsRow(icon: "lock.shield", title: "Integritet & data") {
+                    PrivacyInfoView()
+                }
+                rowDivider
+                settingsRow(icon: "questionmark.circle", title: "Hjälp & Support") {
+                    HelpSupportView()
+                }
+                rowDivider
+                settingsRow(icon: "info.circle", title: "Om Canine360") {
+                    OmOssView()
+                }
             }
         }
         .cardStyle(padding: 0)
+    }
+
+    private var settingsHint: some View {
+        HStack {
+            Spacer()
+            HintBubble("Psst – mer finns här 👇", key: "hasDiscoveredSettings")
+        }
+        .padding(.bottom, -Theme.Spacing.m)
     }
 
     private func settingsRow<Destination: View>(
@@ -463,7 +506,11 @@ struct MinProfilView: View {
 
     private var logoutButton: some View {
         Button(role: .destructive) {
-            try? authService.signOut()
+            Task {
+                // Avregistrera push-token FÖRE utloggning (kräver aktiv inloggning).
+                await PushNotificationService.shared.removeToken()
+                try? authService.signOut()
+            }
         } label: {
             Text("Logga ut")
                 .font(.body.weight(.medium))

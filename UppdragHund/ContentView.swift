@@ -16,6 +16,12 @@ struct ContentView: View {
     @State private var authService = AuthService.shared
     @State private var currentUser = CurrentUserStore.shared
     @State private var isLoadingProfile = false
+    @AppStorage("trainingReminderEnabled") private var trainingReminderEnabled = true
+
+    /// Hundar som hör till det inloggade kontot (kontobyte får inte läcka data).
+    private var accountDogs: [Dog] {
+        AccountScope.dogs(for: authService.currentUserID, in: dogs)
+    }
 
     var body: some View {
         Group {
@@ -27,7 +33,7 @@ struct ContentView: View {
                 CompleteProfileView(profile: profile) {
                     Task { await currentUser.refresh() }
                 }
-            } else if dogs.isEmpty {
+            } else if accountDogs.isEmpty {
                 NavigationStack {
                     DogListView()
                 }
@@ -39,13 +45,28 @@ struct ContentView: View {
         .onAppear { ensureActiveDogSelected() }
         .task(id: authService.isSignedIn) {
             if authService.isSignedIn {
+                if let uid = authService.currentUserID {
+                    AccountScope.claimUntaggedData(context: modelContext, uid: uid)
+                }
+                ensureActiveDogSelected()
                 await loadProfile()
+                // Hämta delade hundar direkt efter inloggning (scenePhase .active
+                // hinner köras före inloggning på första sign-in, annars missas de).
+                await SharedDogPuller.shared.pull(context: modelContext)
+                await PushNotificationService.shared.registerForPushNotifications()
+                await PushNotificationService.shared.syncTokenAfterSignIn()
+                if trainingReminderEnabled {
+                    await NotificationService.scheduleDailyTrainingReminder()
+                } else {
+                    NotificationService.cancelDailyTrainingReminder()
+                }
             }
         }
         .onChange(of: dogs.count) {
             ensureActiveDogSelected()
             if let uid = authService.currentUserID {
-                Task { await ProfilePublisher.publish(dogs: dogs, uid: uid) }
+                let owned = AccountScope.ownDogs(for: uid, in: dogs)
+                Task { await ProfilePublisher.publish(dogs: owned, uid: uid) }
             }
         }
         .task {
@@ -61,7 +82,7 @@ struct ContentView: View {
                     await SyncCoordinator.shared.pushDirtyDogs()
                     await SharedDogPuller.shared.pull(context: modelContext)
                     if let uid = authService.currentUserID {
-                        await ProfilePublisher.publish(dogs: dogs, uid: uid)
+                        await ProfilePublisher.publish(dogs: AccountScope.ownDogs(for: uid, in: dogs), uid: uid)
                     }
                 }
             case .background:
@@ -73,6 +94,8 @@ struct ContentView: View {
         }
         .onChange(of: authService.isSignedIn) { _, isSignedIn in
             if !isSignedIn {
+                // Push-token avregistreras FÖRE signOut (i utloggningsknapparna) —
+                // här är auth redan borta och skrivningar nekas av reglerna.
                 SessionCleanupService.handleSignOut(context: modelContext, activeDogStore: activeDogStore)
                 ensureActiveDogSelected()
             }
@@ -107,13 +130,14 @@ struct ContentView: View {
     }
 
     private func ensureActiveDogSelected() {
-        guard !dogs.isEmpty else {
+        let available = accountDogs
+        guard !available.isEmpty else {
             activeDogStore.activeDog = nil
             return
         }
         if activeDogStore.activeDog == nil ||
-            !dogs.contains(where: { $0.persistentModelID == activeDogStore.activeDog?.persistentModelID }) {
-            activeDogStore.activeDog = dogs.first
+            !available.contains(where: { $0.persistentModelID == activeDogStore.activeDog?.persistentModelID }) {
+            activeDogStore.activeDog = available.first
         }
     }
 }

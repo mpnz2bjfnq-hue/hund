@@ -15,6 +15,10 @@ import FirebaseFirestore
 final class SharedDogPuller {
     static let shared = SharedDogPuller()
 
+    /// Senaste synk-utfallet, för felsökning i UI:t (t.ex. hundlistan).
+    private(set) var lastSyncMessage: String?
+    private(set) var lastSyncFailed = false
+
     private init() {}
 
     /// Fjärrläget för en delad hund — byggs från Firestore men är ren data,
@@ -37,13 +41,30 @@ final class SharedDogPuller {
     /// samt hämtar vänners bidrag till mina egna delade hundar.
     /// Fel sväljs tyst (offline etc.) — den lokala kopian blir kvar som den är.
     func pull(context: ModelContext) async {
-        guard let uid = AuthService.shared.currentUserID else { return }
+        guard let uid = AuthService.shared.currentUserID else {
+            lastSyncMessage = "Inte inloggad."
+            lastSyncFailed = true
+            return
+        }
         do {
+            let shareCount = try await SharingRepository.shared.sharesWithMe(recipientUid: uid).count
             let snapshots = try await fetchSnapshots(recipientUid: uid)
             try apply(snapshots: snapshots, context: context)
             try await pullFriendContributions(ownerUid: uid, context: context)
+            let time = Date.now.formatted(date: .omitted, time: .shortened)
+            if shareCount > snapshots.count {
+                // Delning finns men hunddokument saknas — ägarens uppladdning misslyckades.
+                lastSyncMessage = "\(shareCount) delning(ar) hittades men bara \(snapshots.count) hund(ar) kunde hämtas (\(time)). Be ägaren öppna appen så hunden laddas upp igen."
+                lastSyncFailed = true
+            } else {
+                lastSyncMessage = snapshots.isEmpty
+                    ? "Inga delningar hittades (\(time))."
+                    : "\(snapshots.count) delad(e) hund(ar) synkade \(time)."
+                lastSyncFailed = false
+            }
         } catch {
-            // Offline eller regelfel — behåll den lokala kopian tyst.
+            lastSyncMessage = "Synkfel: \(error.localizedDescription)"
+            lastSyncFailed = true
         }
     }
 
@@ -59,9 +80,20 @@ final class SharedDogPuller {
             FetchDescriptor<Dog>(predicate: #Predicate { !$0.isShared })
         )
 
+        var needsReupload = false
         for dogRemoteIDString in sharedDogIDs {
             guard let dogRemoteID = UUID(uuidString: dogRemoteIDString),
                   let dog = ownDogs.first(where: { $0.remoteID == dogRemoteID }) else { continue }
+
+            // Självläkning: delningen finns men hunddokumentet saknas på servern
+            // (avbruten uppladdning / raderat dokument) — ladda upp igen DIREKT
+            // så efterföljande modulläsningar fungerar.
+            if (try? await repository.fetchDogDoc(dogRemoteID: dogRemoteIDString)) == nil {
+                dog.needsUpload = true
+                try? context.save()
+                needsReupload = true
+                await SyncCoordinator.shared.pushDirtyDogs()
+            }
 
             let sharedModules = Set(
                 sharesIOwn.filter { $0.dogRemoteID == dogRemoteIDString }
@@ -70,7 +102,7 @@ final class SharedDogPuller {
             )
 
             for module in sharedModules {
-                let documents = try await repository.fetchEntryDocuments(dogRemoteID: dogRemoteIDString, module: module)
+                guard let documents = try? await repository.fetchEntryDocuments(dogRemoteID: dogRemoteIDString, module: module) else { continue }
                 mergeFriendEntries(
                     module: module,
                     documents: documents,
@@ -81,6 +113,9 @@ final class SharedDogPuller {
             }
         }
         try context.save()
+        if needsReupload {
+            await SyncCoordinator.shared.pushDirtyDogs()
+        }
     }
 
     private func mergeFriendEntries(
@@ -170,16 +205,17 @@ final class SharedDogPuller {
         var snapshots: [RemoteDogSnapshot] = []
 
         for share in try await repository.sharesWithMe(recipientUid: recipientUid) {
-            // Saknat hunddokument = ägaren har raderat hunden; att den utelämnas
-            // ur snapshot-listan gör att apply städar bort den lokala kopian.
-            guard let dogDoc = try await repository.fetchDogDoc(dogRemoteID: share.dogRemoteID) else { continue }
+            // Saknat/oläsbart hunddokument = ägaren har raderat hunden (eller
+            // uppladdningen är trasig) — hoppa över just den delningen istället
+            // för att fälla hela synken.
+            guard let dogDoc = try? await repository.fetchDogDoc(dogRemoteID: share.dogRemoteID) else { continue }
             var snapshot = RemoteDogSnapshot(share: share, dogDoc: dogDoc)
 
             for module in snapshot.modules {
-                let documents = try await repository.fetchEntryDocuments(
+                guard let documents = try? await repository.fetchEntryDocuments(
                     dogRemoteID: share.dogRemoteID,
                     module: module
-                )
+                ) else { continue }
                 for (id, document) in documents {
                     guard let uuid = UUID(uuidString: id) else { continue }
                     switch module {

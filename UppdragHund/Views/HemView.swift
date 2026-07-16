@@ -2,7 +2,7 @@
 //  HemView.swift
 //  UppdragHund
 //
-//  Startflik: aktiv-hund-kort + Översikt (status för hunden idag) + Kommande.
+//  Startflik: anpassningsbara block (hundkort, genvägar, översikt).
 //
 
 import SwiftUI
@@ -13,21 +13,70 @@ struct HemView: View {
 
     private let calendar = Calendar.current
 
+    @AppStorage(HomeShortcutStore.storageKey) private var shortcutsRaw = HomeShortcutStore.defaultRaw
+    @AppStorage(HomeBlockStore.storageKey) private var blocksRaw = HomeBlockStore.defaultRaw
+    @State private var isEditingShortcuts = false
+    @State private var isEditingHome = false
+
+    @State private var tilesAppeared = false
+
+    private var shortcuts: [HomeShortcut] { HomeShortcutStore.decode(shortcutsRaw) }
+    private var blocks: [HomeBlock] { HomeBlockStore.decode(blocksRaw) }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: Theme.Spacing.xl) {
-                dogCard
-                oversiktSection
-                kommandeSection
+                if blocks.isEmpty {
+                    Button {
+                        isEditingHome = true
+                    } label: {
+                        Text("Alla block är dolda. Tryck här för att anpassa hem.")
+                            .font(Theme.Typography.caption)
+                            .foregroundStyle(Theme.Colors.textSecondary)
+                            .frame(maxWidth: .infinity)
+                            .cardStyle()
+                    }
+                    .buttonStyle(.plain)
+                } else {
+                    HStack {
+                        Spacer()
+                        HintBubble("Anpassa hem med ⊞ där uppe 👆", key: "hint.editHome")
+                    }
+                    .padding(.bottom, -Theme.Spacing.m)
+
+                    ForEach(blocks) { block in
+                        switch block {
+                        case .dog:       dogCard
+                        case .shortcuts: shortcutsSection
+                        case .overview:  oversiktSection
+                        }
+                    }
+                }
             }
             .padding(Theme.Spacing.l)
+            .animation(.spring(duration: 0.4), value: blocks)
+        }
+        .sheet(isPresented: $isEditingShortcuts) {
+            EditShortcutsView()
+        }
+        .sheet(isPresented: $isEditingHome) {
+            EditHomeView()
         }
         .frame(maxWidth: .infinity)
         .background(Theme.Colors.screenBackground)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .principal) {
-                Canine360Wordmark(size: 20)
+                BrandPrincipal(title: "Hem")
+            }
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    HintBubble.dismiss("hint.editHome")
+                    isEditingHome = true
+                } label: {
+                    Image(systemName: "square.grid.2x2")
+                }
+                .accessibilityLabel("Anpassa hem")
             }
         }
     }
@@ -62,6 +111,71 @@ struct HemView: View {
         .buttonStyle(.plain)
     }
 
+    // MARK: - Genvägar
+
+    private var shortcutsSection: some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.m) {
+            HStack {
+                Text("Genvägar")
+                    .font(Theme.Typography.sectionTitle)
+                    .foregroundStyle(Theme.Colors.textPrimary)
+                Spacer()
+                HintBubble("Fler genvägar finns 👉", key: "hint.shortcuts")
+                Button {
+                    HintBubble.dismiss("hint.shortcuts")
+                    isEditingShortcuts = true
+                } label: {
+                    Label("Ändra", systemImage: "slider.horizontal.3")
+                        .font(Theme.Typography.caption.weight(.medium))
+                        .foregroundStyle(Theme.Colors.brand)
+                }
+            }
+
+            if shortcuts.isEmpty {
+                Button {
+                    isEditingShortcuts = true
+                } label: {
+                    Text("Lägg till genvägar")
+                        .font(Theme.Typography.caption)
+                        .foregroundStyle(Theme.Colors.textSecondary)
+                        .frame(maxWidth: .infinity)
+                        .cardStyle()
+                }
+                .buttonStyle(.plain)
+            } else {
+                LazyVGrid(
+                    columns: Array(repeating: GridItem(.flexible()), count: 4),
+                    spacing: Theme.Spacing.l
+                ) {
+                    ForEach(shortcuts) { shortcut in
+                        NavigationLink {
+                            shortcut.destination(for: dog)
+                        } label: {
+                            shortcutLabel(shortcut)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .cardStyle()
+            }
+        }
+    }
+
+    private func shortcutLabel(_ shortcut: HomeShortcut) -> some View {
+        VStack(spacing: Theme.Spacing.s) {
+            Image(systemName: shortcut.icon)
+                .font(.title2)
+                .foregroundStyle(Theme.Colors.brand)
+                .frame(height: 28)
+            Text(shortcut.title)
+                .font(.caption)
+                .foregroundStyle(Theme.Colors.textSecondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
     // MARK: - Översikt
 
     private var oversiktSection: some View {
@@ -80,13 +194,14 @@ struct HemView: View {
                 columns: [GridItem(.flexible()), GridItem(.flexible())],
                 spacing: Theme.Spacing.m
             ) {
-                weightTile
-                motionTile
-                healthTile
+                weightTile.tileAppear(0, shown: tilesAppeared)
+                motionTile.tileAppear(1, shown: tilesAppeared)
+                healthTile.tileAppear(2, shown: tilesAppeared)
                 if dog.tracksHeat {
-                    heatTile
+                    heatTile.tileAppear(3, shown: tilesAppeared)
                 }
             }
+            .onAppear { tilesAppeared = true }
         }
     }
 
@@ -94,19 +209,21 @@ struct HemView: View {
         let weighings = dog.healthEvents.weighingsSortedByDate
         let latest = weighings.last?.weightKg
         let previous = weighings.dropLast().last?.weightKg
-        let value = latest.map { String(format: "%.1f kg", $0) } ?? "–"
         var delta: String? = nil
         var deltaPositive = true
         if let latest, let previous {
             let diff = latest - previous
             if abs(diff) >= 0.05 {
-                delta = String(format: "%@%.1f kg", diff > 0 ? "+" : "", diff)
+                delta = String(format: "%@ %@%.1f kg", diff > 0 ? "↑" : "↓", diff > 0 ? "+" : "−", abs(diff))
                 deltaPositive = diff > 0
             }
         }
         return StatTile(
-            icon: "scalemass.fill", category: "Vikt", value: value,
-            delta: delta, deltaPositive: deltaPositive, tint: Theme.Colors.brand
+            icon: "scalemass.fill", category: "Vikt",
+            value: latest.map { String(format: "%.1f kg", $0) } ?? "Logga vikt",
+            delta: delta, deltaPositive: deltaPositive,
+            subtitle: latest == nil ? "Väg in \(dog.name) under Hälsa" : nil,
+            tint: Theme.Colors.brand
         )
     }
 
@@ -117,7 +234,8 @@ struct HemView: View {
             .reduce(0, +)
         return StatTile(
             icon: "figure.walk", category: "Motion",
-            value: todaysMinutes > 0 ? "\(todaysMinutes) min" : "–",
+            value: todaysMinutes > 0 ? "\(todaysMinutes) min" : "0 min",
+            subtitle: todaysMinutes > 0 ? nil : "Dags för en promenad? 🐾",
             tint: Theme.Colors.brand
         )
     }
@@ -137,7 +255,8 @@ struct HemView: View {
         let data = heatTileData
         return StatTile(
             icon: "drop.fill", category: "Löp", value: data.value,
-            subtitle: data.subtitle, tint: Theme.Colors.heat
+            subtitle: data.subtitle, tint: Theme.Colors.heat,
+            pulse: dog.heatCycles.contains { $0.isOngoing }
         )
     }
 
@@ -150,91 +269,14 @@ struct HemView: View {
             return ("Dag \(day)", HeatPhase.forDayInCycle(day).displayName)
         }
         if let next = nextHeatDate, next > .now {
-            let days = calendar.dateComponents([.day], from: .now, to: next).day ?? 0
-            return ("Om \(days) d", "till löp")
+            let days = calendar.dateComponents(
+                [.day],
+                from: calendar.startOfDay(for: .now),
+                to: calendar.startOfDay(for: next)
+            ).day ?? 0
+            return ("\(days) dagar", "till nästa löp")
         }
-        return ("–", nil)
-    }
-
-    // MARK: - Kommande
-
-    private var kommandeSection: some View {
-        VStack(alignment: .leading, spacing: Theme.Spacing.m) {
-            HStack {
-                Text("Kommande")
-                    .font(Theme.Typography.sectionTitle)
-                    .foregroundStyle(Theme.Colors.textPrimary)
-                Spacer()
-                NavigationLink {
-                    HealthLogView(dog: dog)
-                } label: {
-                    Text("Visa alla")
-                        .font(Theme.Typography.caption.weight(.medium))
-                        .foregroundStyle(Theme.Colors.brand)
-                }
-            }
-
-            if upcomingItems.isEmpty {
-                Text("Inget planerat framåt.")
-                    .font(Theme.Typography.caption)
-                    .foregroundStyle(Theme.Colors.textSecondary)
-                    .cardStyle()
-            } else {
-                VStack(spacing: 0) {
-                    ForEach(Array(upcomingItems.enumerated()), id: \.offset) { index, item in
-                        HStack(spacing: Theme.Spacing.m) {
-                            Image(systemName: item.icon)
-                                .font(.body)
-                                .foregroundStyle(item.tint)
-                                .frame(width: 26)
-                            Text(item.title)
-                                .font(Theme.Typography.body)
-                                .foregroundStyle(Theme.Colors.textPrimary)
-                            Spacer()
-                            Text(item.date.formatted(date: .abbreviated, time: .omitted))
-                                .font(Theme.Typography.caption)
-                                .foregroundStyle(Theme.Colors.textSecondary)
-                        }
-                        .padding(.vertical, Theme.Spacing.m)
-                        if index < upcomingItems.count - 1 {
-                            Divider().overlay(Theme.Colors.textSecondary.opacity(0.2))
-                        }
-                    }
-                }
-                .padding(.horizontal, Theme.Spacing.l)
-                .background(
-                    Theme.Colors.cardBackground,
-                    in: RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous)
-                )
-            }
-        }
-    }
-
-    private struct UpcomingItem {
-        let date: Date
-        let title: String
-        let icon: String
-        let tint: Color
-    }
-
-    private var upcomingItems: [UpcomingItem] {
-        var items: [UpcomingItem] = dog.healthEvents
-            .filter { $0.date > .now }
-            .map { event in
-                UpcomingItem(
-                    date: event.date,
-                    title: event.title.isEmpty ? event.type.displayName : event.title,
-                    icon: event.type.systemImage,
-                    tint: Theme.Colors.brand
-                )
-            }
-        if dog.sex == .female, let next = nextHeatDate, next > .now {
-            items.append(UpcomingItem(
-                date: next, title: "Förväntat löp",
-                icon: "drop.fill", tint: Theme.Colors.heat
-            ))
-        }
-        return items.sorted { $0.date < $1.date }.prefix(4).map { $0 }
+        return ("Ingen prognos än", "Registrera löp i Kalender")
     }
 
     // MARK: - Löp-prediktion (samma källa som Kalender)
@@ -257,6 +299,7 @@ private struct StatTile: View {
     var deltaPositive: Bool = true
     var subtitle: String? = nil
     let tint: Color
+    var pulse: Bool = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.s) {
@@ -264,6 +307,7 @@ private struct StatTile: View {
                 Image(systemName: icon)
                     .font(.subheadline)
                     .foregroundStyle(tint)
+                    .symbolEffect(.pulse, isActive: pulse)
                 Text(category)
                     .font(Theme.Typography.caption)
                     .foregroundStyle(Theme.Colors.textSecondary)
@@ -273,10 +317,13 @@ private struct StatTile: View {
                 .foregroundStyle(Theme.Colors.textPrimary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
+                .contentTransition(.numericText())
+                .animation(.spring(duration: 0.4), value: value)
             if let delta {
                 Text(delta)
-                    .font(.caption.weight(.medium))
+                    .font(.caption.weight(.semibold))
                     .foregroundStyle(deltaPositive ? Theme.Colors.brand : Theme.Colors.heat)
+                    .transition(.opacity.combined(with: .move(edge: .bottom)))
             }
             if let subtitle {
                 Text(subtitle)
@@ -286,6 +333,27 @@ private struct StatTile: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .cardStyle()
+    }
+}
+
+// MARK: - Intågs-animation för statistikrutorna
+
+private struct TileAppearModifier: ViewModifier {
+    let index: Int
+    let shown: Bool
+
+    func body(content: Content) -> some View {
+        content
+            .opacity(shown ? 1 : 0)
+            .offset(y: shown ? 0 : 16)
+            .scaleEffect(shown ? 1 : 0.96)
+            .animation(.spring(duration: 0.5, bounce: 0.25).delay(Double(index) * 0.08), value: shown)
+    }
+}
+
+private extension View {
+    func tileAppear(_ index: Int, shown: Bool) -> some View {
+        modifier(TileAppearModifier(index: index, shown: shown))
     }
 }
 

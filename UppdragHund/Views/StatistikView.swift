@@ -95,11 +95,6 @@ struct StatistikView: View {
         }
         .navigationTitle("Statistik")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .cancellationAction) {
-                Button("Stäng") { dismiss() }
-            }
-        }
     }
 
     private func statTile(value: String, label: String) -> some View {

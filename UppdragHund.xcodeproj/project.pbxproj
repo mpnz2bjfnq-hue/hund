@@ -9,6 +9,8 @@
 /* Begin PBXBuildFile section */
 		FA5D83DF3005AA720004E39E /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = FA5D83DE3005AA720004E39E /* FirebaseAuth */; };
 		FA5D83E13005AA720004E39E /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = FA5D83E03005AA720004E39E /* FirebaseFirestore */; };
+		FA5D83F03005AA720004E39E /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = FA5D83F13005AA720004E39E /* FirebaseMessaging */; };
+		FA5D83F23005AA720004E39E /* FirebaseFunctions in Frameworks */ = {isa = PBXBuildFile; productRef = FA5D83F33005AA720004E39E /* FirebaseFunctions */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -59,6 +61,8 @@
 			files = (
 				FA5D83DF3005AA720004E39E /* FirebaseAuth in Frameworks */,
 				FA5D83E13005AA720004E39E /* FirebaseFirestore in Frameworks */,
+				FA5D83F03005AA720004E39E /* FirebaseMessaging in Frameworks */,
+				FA5D83F23005AA720004E39E /* FirebaseFunctions in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -121,6 +125,8 @@
 			packageProductDependencies = (
 				FA5D83DE3005AA720004E39E /* FirebaseAuth */,
 				FA5D83E03005AA720004E39E /* FirebaseFirestore */,
+				FA5D83F13005AA720004E39E /* FirebaseMessaging */,
+				FA5D83F33005AA720004E39E /* FirebaseFunctions */,
 			);
 			productName = UppdragHund;
 			productReference = FA5D82D33005699C0004E39E /* UppdragHund.app */;
@@ -415,6 +421,8 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Canine360;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
+				INFOPLIST_KEY_NSFaceIDUsageDescription = "Används för att bekräfta din identitet innan du raderar ditt konto.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Används för att mäta hur långt du och din hund tränar (t.ex. antal meter i en övning).";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -450,6 +458,8 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Canine360;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
+				INFOPLIST_KEY_NSFaceIDUsageDescription = "Används för att bekräfta din identitet innan du raderar ditt konto.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Används för att mäta hur långt du och din hund tränar (t.ex. antal meter i en övning).";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -618,6 +628,16 @@
 			isa = XCSwiftPackageProductDependency;
 			package = FA5D83DD3005AA720004E39E /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseFirestore;
+		};
+		FA5D83F13005AA720004E39E /* FirebaseMessaging */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FA5D83DD3005AA720004E39E /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseMessaging;
+		};
+		FA5D83F33005AA720004E39E /* FirebaseFunctions */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FA5D83DD3005AA720004E39E /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFunctions;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

@@ -66,9 +66,6 @@ struct FoderdagbokView: View {
         .navigationTitle("Foderdagbok")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .cancellationAction) {
-                Button("Stäng") { dismiss() }
-            }
             if access.canLog(in: .meals) {
                 ToolbarItem(placement: .primaryAction) {
                     Button {

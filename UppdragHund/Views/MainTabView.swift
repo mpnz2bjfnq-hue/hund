@@ -6,7 +6,7 @@
 import SwiftUI
 
 private enum MainTab: Hashable {
-    case hem, kalender, dagbok, profil
+    case hem, flode, kalender, profil
 }
 
 struct MainTabView: View {
@@ -24,6 +24,14 @@ struct MainTabView: View {
                 }
                 .tag(MainTab.hem)
 
+                NavigationStack {
+                    FeedView()
+                }
+                .tabItem {
+                    Label("Flöde", systemImage: "text.bubble")
+                }
+                .tag(MainTab.flode)
+
                 VStack(spacing: 0) {
                     DogContextHeader(dog: activeDog)
                     NavigationStack {
@@ -34,17 +42,6 @@ struct MainTabView: View {
                     Label("Kalender", systemImage: "calendar")
                 }
                 .tag(MainTab.kalender)
-
-                VStack(spacing: 0) {
-                    DogContextHeader(dog: activeDog)
-                    NavigationStack {
-                        DagbokView(dog: activeDog)
-                    }
-                }
-                .tabItem {
-                    Label("Dagbok", systemImage: "list.clipboard")
-                }
-                .tag(MainTab.dagbok)
 
                 NavigationStack {
                     MinProfilView()

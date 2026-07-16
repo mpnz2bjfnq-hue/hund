@@ -28,39 +28,34 @@ struct ExportPDFView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            Form {
-                Section("Datumintervall") {
-                    DatePicker("Från", selection: $startDate, in: ...endDate, displayedComponents: .date)
-                    DatePicker("Till", selection: $endDate, in: startDate...Date.now, displayedComponents: .date)
-                }
+        Form {
+            Section("Datumintervall") {
+                DatePicker("Från", selection: $startDate, in: ...endDate, displayedComponents: .date)
+                DatePicker("Till", selection: $endDate, in: startDate...Date.now, displayedComponents: .date)
+            }
 
-                Section("Inkludera") {
-                    Toggle("Hälsologg", isOn: $includeHealth)
-                    Toggle("Löphistorik", isOn: $includeHeat)
-                }
+            Section("Inkludera") {
+                Toggle("Hälsologg", isOn: $includeHealth)
+                Toggle("Löphistorik", isOn: $includeHeat)
             }
-            .navigationTitle("Exportera PDF")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Avbryt") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Exportera") { generateAndShare() }
-                        .disabled(!isValid)
-                }
+        }
+        .navigationTitle("Exportera PDF")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .confirmationAction) {
+                Button("Exportera") { generateAndShare() }
+                    .disabled(!isValid)
             }
-            .sheet(isPresented: $isSharePresented) {
-                if let pdfURL {
-                    ShareSheet(activityItems: [pdfURL])
-                }
+        }
+        .sheet(isPresented: $isSharePresented) {
+            if let pdfURL {
+                ShareSheet(activityItems: [pdfURL])
             }
-            .alert("Export misslyckades", isPresented: $showingExportError) {
-                Button("OK", role: .cancel) {}
-            } message: {
-                Text("PDF:en kunde inte skapas. Försök igen.")
-            }
+        }
+        .alert("Export misslyckades", isPresented: $showingExportError) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("PDF:en kunde inte skapas. Försök igen.")
         }
     }
 

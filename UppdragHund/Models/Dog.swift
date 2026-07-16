@@ -68,6 +68,9 @@ final class Dog {
     @Relationship(deleteRule: .cascade, inverse: \TrainingSession.dog)
     var trainingSessions: [TrainingSession] = []
 
+    @Relationship(deleteRule: .cascade, inverse: \TrainingSkill.dog)
+    var trainingSkills: [TrainingSkill] = []
+
     init(name: String, breed: String, birthDate: Date, sex: DogSex) {
         self.remoteID = UUID()
         self.name = name
