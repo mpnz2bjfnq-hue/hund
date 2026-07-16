@@ -19,6 +19,9 @@ struct UserProfile: Codable, Identifiable {
     /// Komprimerad profilbild (~256px JPEG) lagrad direkt i profilen.
     /// Ingen Firebase Storage behövs i v1.
     var photoData: Data?
+    /// Denormaliserat antal vänner — vänlistan är privat per säkerhetsreglerna,
+    /// så antalet speglas hit (Cloud Function + self-heal vid egen laddning).
+    var friendCount: Int?
 }
 
 extension UserProfile {

@@ -263,8 +263,11 @@ struct ProfileView: View {
             }
             profile = fetched
             posts = try await PostsRepository.shared.posts(forUid: uid)
-            // Vänners vänlista är privat per reglerna — bara läsbar för egen profil.
-            friendCount = isOwnProfile ? try await FriendsRepository.shared.friends(for: uid).count : nil
+            // Vänners vänlista är privat per reglerna — för andra läses det
+            // denormaliserade friendCount från profilen i stället.
+            friendCount = isOwnProfile
+                ? try await FriendsRepository.shared.syncFriendCount(uid: uid)
+                : fetched?.friendCount
             if isOwnProfile, let profile {
                 CurrentUserStore.shared.setProfile(profile)
             }

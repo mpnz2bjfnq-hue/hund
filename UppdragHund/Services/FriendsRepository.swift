@@ -76,6 +76,18 @@ final class FriendsRepository {
         try await db.collection("users").document(uid).setData(data, merge: true)
     }
 
+    /// Räknar mina vänner och speglar antalet till profil-dokumentets
+    /// friendCount (läsbart för alla, till skillnad från själva vänlistan).
+    /// Returnerar antalet. Self-heal för konton från innan fältet fanns.
+    func syncFriendCount(uid: String) async throws -> Int {
+        let count = try await db.collection("users").document(uid)
+            .collection("friends").count.getAggregation(source: .server)
+            .count.intValue
+        try? await db.collection("users").document(uid)
+            .setData(["friendCount": count], merge: true)
+        return count
+    }
+
     /// Prefix-sökning på @handle och visningsnamn — för live-förslag när man
     /// lägger till vänner. Firestore saknar substrings, så det är "börjar med".
     func searchUsers(matching query: String, excludingUid: String, limit: Int = 8) async -> [UserProfile] {

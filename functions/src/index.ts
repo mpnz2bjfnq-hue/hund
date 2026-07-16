@@ -168,20 +168,27 @@ export const adminBroadcast = onCall({ region: REGION }, async (request) => {
   }
 
   const tokensSnap = await db.collectionGroup("fcmTokens").get();
-  const tokens = tokensSnap.docs.map((d) => d.id);
+  const tokenDocs = tokensSnap.docs;
   let sent = 0;
-  for (let i = 0; i < tokens.length; i += 500) {
-    const chunk = tokens.slice(i, i + 500);
+  for (let i = 0; i < tokenDocs.length; i += 500) {
+    const chunk = tokenDocs.slice(i, i + 500);
     const response = await getMessaging().sendEachForMulticast({
-      tokens: chunk,
+      tokens: chunk.map((d) => d.id),
       notification: { title, body },
       data: { type: "broadcast" },
       apns: { payload: { aps: { sound: "default" } } },
     });
     sent += response.successCount;
+    response.responses.forEach((r, j) => {
+      if (!r.success) {
+        logger.warn(
+          `Broadcast-fel för ${chunk[j].ref.path} (…${chunk[j].id.slice(-8)}): ${r.error?.code} – ${r.error?.message}`
+        );
+      }
+    });
   }
-  logger.info(`ADMIN ${callerUid} broadcast till ${tokens.length} tokens, ${sent} levererade`);
-  return { ok: true, tokens: tokens.length, sent };
+  logger.info(`ADMIN ${callerUid} broadcast till ${tokenDocs.length} tokens, ${sent} levererade`);
+  return { ok: true, tokens: tokenDocs.length, sent };
 });
 
 /** Gemensam raderings-kaskad för deleteAccount + adminDeleteUser. */
@@ -282,6 +289,21 @@ export const onDeviceTokenClaimed = onDocumentWritten(
       .delete()
       .catch(() => undefined);
     logger.info(`Token flyttad från ${before.uid} till ${after.uid}`);
+  }
+);
+
+/** 10) Vänlista ändrad → uppdatera denormaliserat friendCount på profilen,
+ *  så att andra användare (som inte får läsa vänlistan) kan se antalet. */
+export const onFriendsChanged = onDocumentWritten(
+  { document: "users/{uid}/friends/{friendId}", region: REGION },
+  async (event) => {
+    const uid = event.params.uid;
+    const snap = await db.collection("users").doc(uid).collection("friends").count().get();
+    await db
+      .collection("users")
+      .doc(uid)
+      .set({ friendCount: snap.data().count }, { merge: true })
+      .catch(() => undefined);
   }
 );
 

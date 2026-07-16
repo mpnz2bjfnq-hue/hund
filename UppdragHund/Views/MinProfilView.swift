@@ -157,8 +157,8 @@ struct MinProfilView: View {
 
     private func loadSocial() async {
         guard let uid = authService.currentUserID else { return }
-        if let friends = try? await FriendsRepository.shared.friends(for: uid) {
-            friendCount = friends.count
+        if let count = try? await FriendsRepository.shared.syncFriendCount(uid: uid) {
+            friendCount = count
         }
         myTeams = await TeamsRepository.shared.myTeams(uid: uid)
         isAdmin = await AdminService.shared.checkIsAdmin(uid: uid)
