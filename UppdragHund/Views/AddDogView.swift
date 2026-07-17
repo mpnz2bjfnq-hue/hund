@@ -27,6 +27,7 @@ struct AddDogView: View {
     @State private var registrationNumber: String
     @State private var chipNumber: String
     @State private var breeder: String
+    @State private var normalTempText: String
 
     init(dogToEdit: Dog? = nil) {
         self.dogToEdit = dogToEdit
@@ -56,6 +57,7 @@ struct AddDogView: View {
         _registrationNumber = State(initialValue: dogToEdit?.registrationNumber ?? "")
         _chipNumber = State(initialValue: dogToEdit?.chipNumber ?? "")
         _breeder = State(initialValue: dogToEdit?.breeder ?? "")
+        _normalTempText = State(initialValue: dogToEdit?.normalTemperatureCelsius.map { String(format: "%.1f", $0) } ?? "")
         _isDeceased = State(initialValue: dogToEdit?.passedAwayDate != nil)
         _passedAwayDate = State(initialValue: dogToEdit?.passedAwayDate ?? .now)
     }
@@ -131,6 +133,15 @@ struct AddDogView: View {
                 }
 
                 Section {
+                    TextField("Normaltemp (°C)", text: $normalTempText)
+                        .keyboardType(.decimalPad)
+                } header: {
+                    Text("Hälsa (valfritt)")
+                } footer: {
+                    Text("Hundars normaltemp ligger oftast på 38–39 °C. Anger du den flaggar hälsologgen en temp som är över den.")
+                }
+
+                Section {
                     Toggle("Hunden har gått bort", isOn: $isDeceased.animation())
                         if isDeceased {
                             DatePicker(
@@ -186,6 +197,7 @@ struct AddDogView: View {
             dogToEdit.registrationNumber = trimmedOrNil(registrationNumber)
             dogToEdit.chipNumber = trimmedOrNil(chipNumber)
             dogToEdit.breeder = trimmedOrNil(breeder)
+            dogToEdit.normalTemperatureCelsius = parsedNormalTemp
             dogToEdit.passedAwayDate = isDeceased ? passedAwayDate : nil
             SyncCoordinator.shared.dogProfileTouched(dogToEdit)
         } else {
@@ -204,6 +216,7 @@ struct AddDogView: View {
             dog.registrationNumber = trimmedOrNil(registrationNumber)
             dog.chipNumber = trimmedOrNil(chipNumber)
             dog.breeder = trimmedOrNil(breeder)
+            dog.normalTemperatureCelsius = parsedNormalTemp
             modelContext.insert(dog)
         }
         dismiss()
@@ -212,6 +225,11 @@ struct AddDogView: View {
     private func trimmedOrNil(_ text: String) -> String? {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? nil : trimmed
+    }
+
+    private var parsedNormalTemp: Double? {
+        Double(normalTempText.replacingOccurrences(of: ",", with: ".")
+            .trimmingCharacters(in: .whitespaces))
     }
 }
 

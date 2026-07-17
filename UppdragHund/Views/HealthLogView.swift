@@ -137,6 +137,11 @@ private struct HealthEventRow: View {
                 Text(detailText)
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                if isElevatedTemperature {
+                    Label("Förhöjd temperatur", systemImage: "exclamationmark.triangle.fill")
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(Theme.Colors.warning)
+                }
                 if let note = event.note, !note.isEmpty {
                     Text(note)
                         .font(.caption)
@@ -152,6 +157,11 @@ private struct HealthEventRow: View {
             }
         }
         .contentShape(Rectangle())
+    }
+
+    private var isElevatedTemperature: Bool {
+        guard event.type == .temperature, let temp = event.temperatureCelsius, let dog = event.dog else { return false }
+        return dog.isTemperatureElevated(temp)
     }
 
     private var detailText: String {

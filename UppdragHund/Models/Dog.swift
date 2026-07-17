@@ -41,6 +41,10 @@ final class Dog {
     var chipNumber: String? = nil
     var breeder: String? = nil
 
+    /// Hundens normala kroppstemperatur (°C), om ägaren angett den. Används för
+    /// att flagga förhöjd temp i hälsologgen.
+    var normalTemperatureCelsius: Double? = nil
+
     // Minnesläge: satt när hunden gått bort. All data behålls för att
     // kunna hedras — hunden visas som "ängel" istället för aktiv hund.
     var passedAwayDate: Date? = nil
@@ -88,6 +92,15 @@ final class Dog {
 extension Dog {
     /// Löp gäller endast tikar — hela löp-funktionen döljs för hanar.
     var tracksHeat: Bool { sex == .female }
+
+    /// Tröskel för förhöjd temperatur: hundens egen normaltemp om satt, annars
+    /// ett generellt riktvärde (39,2 °C är övre normalgräns för hund).
+    var elevatedTemperatureThreshold: Double { normalTemperatureCelsius ?? 39.2 }
+
+    /// Är en uppmätt temperatur förhöjd för den här hunden?
+    func isTemperatureElevated(_ celsius: Double) -> Bool {
+        celsius > elevatedTemperatureThreshold
+    }
 
     /// Har hunden gått bort? (Ängel — visas i minnesläge.)
     var isDeceased: Bool { passedAwayDate != nil }

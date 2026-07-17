@@ -37,6 +37,11 @@ struct NewHealthEventView: View {
         Double(temperatureText.replacingOccurrences(of: ",", with: "."))
     }
 
+    /// Vad tröskeln jämförs mot: hundens normaltemp om satt, annars riktvärdet.
+    private var referenceText: String {
+        dog.normalTemperatureCelsius != nil ? "\(dog.name)s normaltemp" : "riktvärdet"
+    }
+
     private var isValid: Bool {
         guard !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return false }
         switch type {
@@ -55,6 +60,11 @@ struct NewHealthEventView: View {
                             Label(type.displayName, systemImage: type.systemImage).tag(type)
                         }
                     }
+                    .onChange(of: type) { _, newType in
+                        // Fyll rubriken automatiskt med typens namn (t.ex.
+                        // Vägning, Temperatur); veterinärbesök namnger man själv.
+                        title = newType == .vetVisit ? "" : newType.displayName
+                    }
                 }
 
                 Section {
@@ -69,6 +79,15 @@ struct NewHealthEventView: View {
                     if type == .temperature {
                         TextField("Temperatur (°C)", text: $temperatureText)
                             .keyboardType(.decimalPad)
+                        if let temp = parsedTemperature, dog.isTemperatureElevated(temp) {
+                            Label {
+                                Text("Förhöjd temp – över \(referenceText) (\(String(format: "%.1f", dog.elevatedTemperatureThreshold)) °C)")
+                            } icon: {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                            }
+                            .font(.caption)
+                            .foregroundStyle(Theme.Colors.warning)
+                        }
                     }
 
                 }
