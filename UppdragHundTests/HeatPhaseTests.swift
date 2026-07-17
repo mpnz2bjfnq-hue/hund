@@ -127,4 +127,66 @@ struct HeatPhaseTests {
         #expect(testSteps.count == 1)
         #expect(testSteps.first?.title.contains("LH-toppen") == true)
     }
+
+    // MARK: - Glömt löp
+
+    /// Utan tak målade ett glömt löp kalendern i all oändlighet.
+    @Test func ongoingCycleStopsPaintingAtTheCap() {
+        let start = calendar.date(byAdding: .day, value: -200, to: .now)!
+        let cycle = HeatCycle(startDate: start)
+
+        let lastPainted = calendar.date(byAdding: .day, value: HeatPhase.maxOngoingDays - 1, to: start)!
+        let dayAfterCap = calendar.date(byAdding: .day, value: HeatPhase.maxOngoingDays, to: start)!
+
+        #expect(HeatPhase.dayInCycle(on: lastPainted, in: cycle, calendar: calendar) == HeatPhase.maxOngoingDays)
+        #expect(HeatPhase.dayInCycle(on: dayAfterCap, in: cycle, calendar: calendar) == nil)
+        #expect(HeatPhase.dayInCycle(on: .now, in: cycle, calendar: calendar) == nil)
+    }
+
+    /// Ett löp som drar några dagar över taket ska fortfarande målas — taket
+    /// får inte råka kapa ett verkligt långt löp.
+    @Test func aLongButPlausibleHeatIsStillPainted() {
+        let start = calendar.date(byAdding: .day, value: -25, to: .now)!
+        let cycle = HeatCycle(startDate: start)
+        #expect(HeatPhase.dayInCycle(on: .now, in: cycle, calendar: calendar) == 26)
+        #expect(!HeatPhase.isOverdue(day: 26))
+    }
+
+    @Test func overdueStartsJustAfterTheCap() {
+        #expect(!HeatPhase.isOverdue(day: HeatPhase.maxOngoingDays))
+        #expect(HeatPhase.isOverdue(day: HeatPhase.maxOngoingDays + 1))
+    }
+
+    /// elapsedDays har inget tak — "har varit registrerat i N dagar" ska räkna
+    /// vidare även när kalendern slutat färga.
+    @Test func elapsedDaysKeepsCountingPastTheCap() {
+        let start = calendar.date(byAdding: .day, value: -200, to: .now)!
+        let cycle = HeatCycle(startDate: start)
+        #expect(HeatPhase.elapsedDays(in: cycle, calendar: calendar) == 201)
+    }
+
+    // MARK: - Notiser
+
+    /// Den gamla dagliga räknaren är borta. Notiser ligger bara på dagar som
+    /// bär ett beslut — växer den här listan ska det vara ett medvetet val.
+    @Test func nudgesOnlyLandOnDecisionDays() {
+        let days = HeatGuide.nudges(dogName: "Bella").map(\.day).sorted()
+        #expect(days == [HeatPhase.bookingLeadDay, HeatPhase.progesteroneTestDay, HeatPhase.maxOngoingDays])
+    }
+
+    @Test func nudgesNameTheDog() {
+        for nudge in HeatGuide.nudges(dogName: "Bella") {
+            #expect(nudge.body.contains("Bella"), "notis dag \(nudge.day) nämner inte hunden")
+        }
+    }
+
+    /// Städspannet måste täcka den gamla räknarens dag 1–28, annars ligger
+    /// redan schemalagda notiser kvar i befintliga installationer.
+    @Test func cancellationRangeCoversTheLegacyDailyCounter() {
+        #expect(HeatGuide.notificationDayRange.contains(1))
+        #expect(HeatGuide.notificationDayRange.contains(28))
+        for nudge in HeatGuide.nudges(dogName: "Bella") {
+            #expect(HeatGuide.notificationDayRange.contains(nudge.day))
+        }
+    }
 }

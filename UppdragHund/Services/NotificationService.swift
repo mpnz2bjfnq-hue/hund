@@ -69,40 +69,40 @@ enum NotificationService {
         UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [identifier(for: dog)])
     }
 
-    // MARK: - Pågående löp ("har löpt i X dagar")
+    // MARK: - Pågående löp
 
     private static func ongoingHeatIdentifier(for dog: Dog, day: Int) -> String {
         "ongoing-heat-\(String(describing: dog.persistentModelID))-day-\(day)"
     }
 
-    /// Daglig notis under ett pågående löp som räknar antalet dagar. iOS-notiser
-    /// har statisk text, så vi lägger en per kommande dag i cykeln.
+    /// Notiser under ett pågående löp — bara på de dagar som bär ett beslut
+    /// (boka provet, ta provet, och till sist en fråga om ett löp som blivit
+    /// liggande). Se HeatGuide.nudges. iOS-notiser har statisk text, så varje
+    /// dag schemaläggs som en egen notis.
     static func scheduleOngoingHeatNotifications(
         for dog: Dog,
         cycleStart: Date,
         calendar: Calendar = .current,
-        maxDays: Int = 28,
         hour: Int = 9
     ) async {
         let center = UNUserNotificationCenter.current()
-        cancelOngoingHeatNotifications(for: dog, maxDays: maxDays)
+        cancelOngoingHeatNotifications(for: dog)
 
         let startDay = calendar.startOfDay(for: cycleStart)
-        for day in 1...maxDays {
-            guard let fireDay = calendar.date(byAdding: .day, value: day, to: startDay) else { continue }
-            var comps = calendar.dateComponents([.year, .month, .day], from: fireDay)
-            comps.hour = hour
-            comps.minute = 0
+        for nudge in HeatGuide.nudges(dogName: dog.name) {
+            // Dag 1 = startdagen, så dag N ligger N-1 dygn efter start.
+            guard let fireDay = calendar.date(byAdding: .day, value: nudge.day - 1, to: startDay) else { continue }
+            let comps = triggerDateComponents(for: fireDay, calendar: calendar, hour: hour)
             guard let fireDate = calendar.date(from: comps), fireDate > .now else { continue }
 
             let content = UNMutableNotificationContent()
-            content.title = "Löp pågår"
-            content.body = "\(dog.name) har löpt i \(day) \(day == 1 ? "dag" : "dagar")."
+            content.title = nudge.title
+            content.body = nudge.body
             content.sound = .default
 
             let trigger = UNCalendarNotificationTrigger(dateMatching: comps, repeats: false)
             let request = UNNotificationRequest(
-                identifier: ongoingHeatIdentifier(for: dog, day: day),
+                identifier: ongoingHeatIdentifier(for: dog, day: nudge.day),
                 content: content,
                 trigger: trigger
             )
@@ -110,8 +110,11 @@ enum NotificationService {
         }
     }
 
-    static func cancelOngoingHeatNotifications(for dog: Dog, maxDays: Int = 28) {
-        let ids = (1...maxDays).map { ongoingHeatIdentifier(for: dog, day: $0) }
+    /// Städar hela det historiska dagsspannet, inte bara dagens notis-dagar —
+    /// annars ligger den gamla dagliga räknaren kvar i befintliga
+    /// installationer och fortsätter avfyras varje morgon.
+    static func cancelOngoingHeatNotifications(for dog: Dog) {
+        let ids = HeatGuide.notificationDayRange.map { ongoingHeatIdentifier(for: dog, day: $0) }
         UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: ids)
     }
 

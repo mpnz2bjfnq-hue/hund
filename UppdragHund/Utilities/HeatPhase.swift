@@ -36,6 +36,13 @@ enum HeatPhase: Equatable {
     /// Synligt löp — så många dagar projiceras i kalendern.
     static let visibleCycleDays = 21
 
+    /// Så länge ett oavslutat löp får färga kalendern. Ett löp som ligger kvar
+    /// längre är i praktiken alltid ett glömt löp och inte ett pågående — då
+    /// frågar appen i stället för att måla efterlöp i all oändlighet.
+    /// Taket är generöst: östrus kan i sällsynta fall vara 3 veckor, och 21+
+    /// dagars projektion ska rymmas utan att någon blir tillfrågad i onödan.
+    static let maxOngoingDays = 30
+
     /// Löpdygnet då LH-toppen infaller hos de flesta tikar, och därmed dagen
     /// då progesteronprov ska tas om parning planeras (SSRK 4/2022).
     /// Snittvärde — provet tas just för att snittet inte går att lita på.
@@ -107,6 +114,19 @@ enum HeatPhase: Equatable {
         (bookingLeadDay..<progesteroneTestDay).contains(day)
     }
 
+    /// Har ett oavslutat löp legat kvar så länge att det troligen är glömt?
+    static func isOverdue(day: Int) -> Bool {
+        day > maxOngoingDays
+    }
+
+    /// Dag i löpet räknat till `date` utan tak — för "löpet har pågått i N
+    /// dagar", där även ett glömt löp ska kunna räknas.
+    static func elapsedDays(in cycle: HeatCycle, until date: Date = .now, calendar: Calendar = .current) -> Int {
+        let start = calendar.startOfDay(for: cycle.startDate)
+        let day0 = calendar.startOfDay(for: date)
+        return (calendar.dateComponents([.day], from: start, to: day0).day ?? 0) + 1
+    }
+
     /// Dagnummer (1 = start) för ett datum inom cykeln, eller nil utanför.
     /// Ett pågående löp projiceras hela det synliga löpet (21 dagar) framåt
     /// direkt vid registrering — så ägaren ser kommande faser i kalendern.
@@ -121,9 +141,11 @@ enum HeatPhase: Equatable {
         if let endDate = cycle.endDate {
             end = calendar.startOfDay(for: endDate)
         } else {
-            // Pågående: visa hela projektionen, och fortsätt förbi dag 21
-            // om löpet ännu inte avslutats (visas som efterlöp).
-            end = max(projectedEnd, calendar.startOfDay(for: .now))
+            // Pågående: visa hela projektionen, och fortsätt förbi dag 21 om
+            // löpet ännu inte avslutats (visas som efterlöp) — men bara fram
+            // till taket. Utan tak målar ett glömt löp kalendern för alltid.
+            let hardEnd = calendar.date(byAdding: .day, value: maxOngoingDays - 1, to: start) ?? start
+            end = min(max(projectedEnd, calendar.startOfDay(for: .now)), hardEnd)
         }
         guard day0 <= end else { return nil }
         return (calendar.dateComponents([.day], from: start, to: day0).day ?? 0) + 1
@@ -238,6 +260,44 @@ enum HeatGuide {
             url: URL(string: "https://www.merckvetmanual.com/management-and-nutrition/management-of-reproduction-dogs-and-cats/breeding-management-of-dogs-and-cats")!
         )
     ]
+
+    // MARK: - Notiser
+
+    /// En push under ett pågående löp. Notiser ligger BARA på dagar som bär
+    /// ett beslut. Tidigare låg en daglig räknare här — 28 pushar som
+    /// berättade vad ägaren redan visste, vilket lär folk att svepa bort
+    /// appens notiser. Lägg inte till en dag här utan att den motiverar att
+    /// ägaren avbryter det hen håller på med.
+    struct Nudge {
+        let day: Int
+        let title: String
+        let body: String
+    }
+
+    static func nudges(dogName: String) -> [Nudge] {
+        [
+            Nudge(
+                day: HeatPhase.bookingLeadDay,
+                title: "Dags att boka prov?",
+                body: "Planerar du parning med \(dogName)? Progesteronprovet tas runt dygn \(HeatPhase.progesteroneTestDay) — boka tid nu."
+            ),
+            Nudge(
+                day: HeatPhase.progesteroneTestDay,
+                title: "Provdag",
+                body: "\(dogName) är på dygn \(HeatPhase.progesteroneTestDay). Ett progesteronprov idag fångar LH-toppen hos de flesta tikar."
+            ),
+            Nudge(
+                day: HeatPhase.maxOngoingDays,
+                title: "Pågår löpet fortfarande?",
+                body: "\(dogName)s löp har varit registrerat i \(HeatPhase.maxOngoingDays) dagar. Avsluta det i Kalender om det är över."
+            )
+        ]
+    }
+
+    /// Alla dagnummer som någonsin haft en notis — inklusive den gamla dagliga
+    /// räknaren (dag 1–28), så att redan schemalagda notiser i befintliga
+    /// installationer städas bort vid nästa schemaläggning.
+    static let notificationDayRange = 1...max(28, HeatPhase.maxOngoingDays)
 
     /// Kort rad som visas för dagens läge i ett pågående löp.
     static func todayHint(forDay day: Int) -> String? {
