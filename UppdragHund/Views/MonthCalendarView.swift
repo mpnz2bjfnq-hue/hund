@@ -8,7 +8,7 @@ import SwiftUI
 struct MonthCalendarView: View {
     @Binding var displayedMonth: Date
     var heatPhase: (Date) -> HeatPhase? = { _ in nil }
-    var isFertile: (Date) -> Bool = { _ in false }
+    var isTestDay: (Date) -> Bool = { _ in false }
     var isPredicted: (Date) -> Bool = { _ in false }
     var hasNote: (Date) -> Bool = { _ in false }
     var hasHealthEvent: (Date) -> Bool = { _ in false }
@@ -98,7 +98,7 @@ struct MonthCalendarView: View {
     @ViewBuilder
     private func dayCell(for date: Date) -> some View {
         let phase = heatPhase(date)
-        let fertile = isFertile(date)
+        let testDay = isTestDay(date)
         let predicted = isPredicted(date)
         let noted = hasNote(date)
         let health = hasHealthEvent(date)
@@ -133,11 +133,12 @@ struct MonthCalendarView: View {
                         Circle().stroke(isToday ? Color.accentColor : .clear, lineWidth: 1.5)
                     )
                     .overlay(alignment: .topTrailing) {
-                        // Mest fertila fönstret (riktvärde dag 11–14).
-                        if fertile {
-                            Image(systemName: "heart.fill")
+                        // Rekommenderad provdag (dygn 8) — inte ett påstående om
+                        // fertilitet, utan en uppmaning att mäta. Se HeatPhase.
+                        if testDay {
+                            Image(systemName: "cross.case.fill")
                                 .font(.system(size: 8))
-                                .foregroundStyle(.pink)
+                                .foregroundStyle(Theme.Colors.verified)
                                 .offset(x: 3, y: -2)
                         }
                     }
@@ -157,19 +158,19 @@ struct MonthCalendarView: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(accessibilityLabel(
-            for: date, phase: phase, fertile: fertile,
+            for: date, phase: phase, testDay: testDay,
             predicted: predicted, noted: noted, health: health, isToday: isToday
         ))
     }
 
     private func accessibilityLabel(
-        for date: Date, phase: HeatPhase?, fertile: Bool,
+        for date: Date, phase: HeatPhase?, testDay: Bool,
         predicted: Bool, noted: Bool, health: Bool, isToday: Bool
     ) -> String {
         var parts = [date.formatted(date: .complete, time: .omitted)]
         if isToday { parts.append("Idag") }
         if let phase { parts.append("Löp – \(phase.swedishCommon)") }
-        if fertile { parts.append("Mest fertil period") }
+        if testDay { parts.append("Rekommenderad dag för progesteronprov") }
         if predicted { parts.append("Förväntat löp") }
         if noted { parts.append("Har dagboksinlägg") }
         if health { parts.append("Har hälsologg") }

@@ -65,13 +65,17 @@ struct KalenderView: View {
             VStack(alignment: .leading, spacing: 20) {
                 if dog.tracksHeat {
                     actionCard
+
+                    if let ongoingCycle {
+                        HeatGuideCard(currentDay: dayInOngoing(ongoingCycle))
+                    }
                 }
 
                 VStack(alignment: .leading, spacing: 12) {
                     MonthCalendarView(
                         displayedMonth: $displayedMonth,
                         heatPhase: heatPhase(for:),
-                        isFertile: isFertileDate,
+                        isTestDay: isTestDate,
                         isPredicted: isPredictedStartDate,
                         hasNote: hasDiaryEntry,
                         hasHealthEvent: hasHealthEvent,
@@ -96,8 +100,10 @@ struct KalenderView: View {
                             }
                             HStack(spacing: 14) {
                                 HStack(spacing: 6) {
-                                    Image(systemName: "heart.fill").font(.system(size: 9)).foregroundStyle(.pink)
-                                    Text("Mest fertil")
+                                    Image(systemName: "cross.case.fill")
+                                        .font(.system(size: 9))
+                                        .foregroundStyle(Theme.Colors.verified)
+                                    Text("Provdag")
                                 }
                                 legendItem("Förväntat löp") {
                                     Circle().strokeBorder(Theme.Colors.heat, style: StrokeStyle(lineWidth: 1.5, dash: [3, 2]))
@@ -266,20 +272,21 @@ struct KalenderView: View {
         return nil
     }
 
-    private func isFertileDate(_ date: Date) -> Bool {
-        dog.heatCycles.contains { HeatPhase.isFertile(on: date, in: $0, calendar: calendar) }
+    private func isTestDate(_ date: Date) -> Bool {
+        dog.heatCycles.contains { HeatPhase.isTestDay(on: date, in: $0, calendar: calendar) }
+    }
+
+    /// Dag i löpet (1 = startdagen) räknat till idag.
+    private func dayInOngoing(_ cycle: HeatCycle) -> Int {
+        let start = calendar.startOfDay(for: cycle.startDate)
+        let today = calendar.startOfDay(for: .now)
+        return (calendar.dateComponents([.day], from: start, to: today).day ?? 0) + 1
     }
 
     private func ongoingHeatSummary(_ cycle: HeatCycle) -> String {
-        let start = calendar.startOfDay(for: cycle.startDate)
-        let today = calendar.startOfDay(for: .now)
-        let day = (calendar.dateComponents([.day], from: start, to: today).day ?? 0) + 1
+        let day = dayInOngoing(cycle)
         let phase = HeatPhase.forDayInCycle(day)
-        var summary = "Löp pågår – Dag \(day) · \(phase.swedishCommon)"
-        if HeatPhase.isFertileDay(day) {
-            summary += " · Mest fertil 💗"
-        }
-        return summary
+        return "Löp pågår – Dag \(day) · \(phase.swedishCommon)"
     }
 
     private func isPredictedStartDate(_ date: Date) -> Bool {
