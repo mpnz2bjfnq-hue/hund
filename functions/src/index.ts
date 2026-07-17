@@ -647,26 +647,35 @@ export const onFriendRequest = onDocumentCreated(
  * Medlemsdokumenten (communities/{id}/members/{uid}) är privata — bara
  * ägaren själv får läsa sitt eget, så namnen syns inte för andra. Därför
  * kan klienten inte räkna dem med count() (det kräver läsrätt på dokumenten).
- * I stället håller de här triggarna en publik räknare på communities/{id},
- * som appen läser. FieldValue.increment är atomiskt, så samtidiga med-/
- * urgångar krockar inte.
+ * I stället håller de här triggarna en publik räknare på communities/{id}.
+ *
+ * Vi RÄKNAR OM det faktiska antalet vid varje ändring i stället för att öka/
+ * minska en siffra. Det är självläkande: en ökning/minskning som kommer i
+ * otakt (t.ex. ett medlemskap skapat innan räknaren fanns) kan annars driva
+ * siffran negativ, och då rättas den vid nästa ändring i stället för att
+ * fastna. count() är en server-aggregering och läser inte dokumenten.
  */
+async function recountCommunity(communityId: string): Promise<void> {
+  const snap = await db
+    .collection(`communities/${communityId}/members`)
+    .count()
+    .get();
+  await db.doc(`communities/${communityId}`).set(
+    { memberCount: snap.data().count },
+    { merge: true }
+  );
+}
+
 export const onCommunityMemberJoined = onDocumentCreated(
   { document: "communities/{communityId}/members/{memberUid}", region: REGION },
   async (event) => {
-    await db.doc(`communities/${event.params.communityId}`).set(
-      { memberCount: FieldValue.increment(1) },
-      { merge: true }
-    );
+    await recountCommunity(event.params.communityId);
   }
 );
 
 export const onCommunityMemberLeft = onDocumentDeleted(
   { document: "communities/{communityId}/members/{memberUid}", region: REGION },
   async (event) => {
-    await db.doc(`communities/${event.params.communityId}`).set(
-      { memberCount: FieldValue.increment(-1) },
-      { merge: true }
-    );
+    await recountCommunity(event.params.communityId);
   }
 );

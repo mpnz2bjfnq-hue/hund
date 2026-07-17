@@ -12,16 +12,20 @@ import SwiftUI
 struct FeedView: View {
     @State private var authService = AuthService.shared
     @State private var myTeams: [Team] = []
+    @State private var myCommunities: [Community] = []
+    @State private var communityCounts: [String: Int] = [:]
     @State private var pendingTeamInvites = 0
     @State private var upcomingMeetups = 0
     @State private var isLoading = true
+
+    private var hasGroups: Bool { !myTeams.isEmpty || !myCommunities.isEmpty }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: Theme.Spacing.m) {
 
-                // ===== Team =====
-                if myTeams.isEmpty {
+                // ===== Team & grupper =====
+                if !hasGroups {
                     bigCard(
                         icon: "person.3.fill",
                         title: "Team",
@@ -40,6 +44,15 @@ struct FeedView: View {
                             TeamPageView(team: team, onChanged: { Task { await load() } })
                         }
                     }
+                    ForEach(myCommunities) { community in
+                        bigCard(
+                            icon: "building.2.fill",
+                            title: community.name,
+                            subtitle: communitySubtitle(community)
+                        ) {
+                            CommunityPageView(community: community)
+                        }
+                    }
                 }
 
                 if pendingTeamInvites > 0 {
@@ -54,12 +67,13 @@ struct FeedView: View {
                     }
                 }
 
-                // Alltid en väg till fler team — man kan vara med i hur många som helst.
-                if !myTeams.isEmpty {
+                // Alltid en väg till fler team och grupper — man kan vara med i
+                // hur många som helst.
+                if hasGroups {
                     bigCard(
                         icon: "plus.circle.fill",
-                        title: "Fler team",
-                        subtitle: "Skapa ett nytt team eller gå med med kod"
+                        title: "Fler team & grupper",
+                        subtitle: "Skapa ett team, gå med med kod, eller gå med i en stadsgrupp"
                     ) {
                         JoinOrCreateTeamView()
                     }
@@ -155,10 +169,18 @@ struct FeedView: View {
 
     // MARK: - Data
 
+    private func communitySubtitle(_ community: Community) -> String {
+        let count = communityCounts[community.id] ?? 0
+        return "\(count) \(count == 1 ? "medlem" : "medlemmar") · Öppen stadsgrupp"
+    }
+
     private func load() async {
         guard let uid = authService.currentUserID else { return }
         isLoading = true
         myTeams = await TeamsRepository.shared.myTeams(uid: uid)
+        let memberships = await CommunitiesRepository.shared.myMemberships(uid: uid)
+        myCommunities = Community.all.filter { memberships.contains($0.id) }
+        communityCounts = await CommunitiesRepository.shared.memberCounts()
         pendingTeamInvites = await TeamsRepository.shared.pendingInvites(for: uid).count
         let meetups = await TeamsRepository.shared.upcomingMeetups(uid: uid)
         upcomingMeetups = meetups.filter { $0.date >= Calendar.current.startOfDay(for: .now) }.count

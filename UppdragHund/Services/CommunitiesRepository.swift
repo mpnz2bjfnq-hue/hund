@@ -31,7 +31,9 @@ final class CommunitiesRepository {
         let snapshot = try? await db.collection("communities").getDocuments()
         var counts: [String: Int] = [:]
         for document in snapshot?.documents ?? [] {
-            counts[document.documentID] = document.data()["memberCount"] as? Int ?? 0
+            // Golva vid 0: en räknare kan tillfälligt vara negativ om den drivit
+            // i otakt, tills funktionen räknat om den. Visa aldrig "-1 medlemmar".
+            counts[document.documentID] = max(0, document.data()["memberCount"] as? Int ?? 0)
         }
         return counts
     }
