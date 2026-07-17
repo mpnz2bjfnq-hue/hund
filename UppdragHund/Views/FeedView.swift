@@ -6,8 +6,22 @@
 //  (Ersatte det tidigare inläggsflödet — inlägg finns kvar på profiler
 //  och teamsidor, men appens fokus är hunden, inte ett socialt flöde.)
 //
+//  Sidan är modulär: användaren väljer själv vilka delar som visas, via
+//  reglaget i toppbaren. Valen sparas per enhet (det är en visnings-
+//  preferens, inte kontodata) och delas med anpassningsvyn genom samma
+//  AppStorage-nycklar.
+//
 
 import SwiftUI
+
+/// AppStorage-nycklar för vilka Socialt-sektioner som visas. Delade mellan
+/// FeedView och CustomizeFeedView så de hålls i synk automatiskt.
+enum SocialSection {
+    static let teams = "social.showTeams"
+    static let discover = "social.showDiscover"
+    static let meetups = "social.showMeetups"
+    static let forum = "social.showForum"
+}
 
 struct FeedView: View {
     @State private var authService = AuthService.shared
@@ -17,23 +31,27 @@ struct FeedView: View {
     @State private var pendingTeamInvites = 0
     @State private var upcomingMeetups = 0
     @State private var isLoading = true
+    @State private var isPresentingCustomize = false
+
+    @AppStorage(SocialSection.teams) private var showTeams = true
+    @AppStorage(SocialSection.discover) private var showDiscover = true
+    @AppStorage(SocialSection.meetups) private var showMeetups = true
+    @AppStorage(SocialSection.forum) private var showForum = true
 
     private var hasGroups: Bool { !myTeams.isEmpty || !myCommunities.isEmpty }
+
+    /// Visas någon sektion alls? Om inte, visa en hjälprad i stället för en
+    /// tom sida.
+    private var hasVisibleContent: Bool {
+        (showTeams && hasGroups) || showDiscover || showMeetups || showForum
+    }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: Theme.Spacing.m) {
 
-                // ===== Team & grupper =====
-                if !hasGroups {
-                    bigCard(
-                        icon: "person.3.fill",
-                        title: "Team",
-                        subtitle: "Skapa eller gå med i ett team och träna tillsammans"
-                    ) {
-                        JoinOrCreateTeamView()
-                    }
-                } else {
+                // ===== Dina team & grupper =====
+                if showTeams {
                     ForEach(myTeams) { team in
                         bigCard(
                             icon: "person.3.fill",
@@ -55,24 +73,22 @@ struct FeedView: View {
                     }
                 }
 
-                if pendingTeamInvites > 0 {
-                    bigCard(
-                        icon: "envelope.badge",
-                        title: "Team-inbjudan",
-                        subtitle: pendingTeamInvites == 1
-                            ? "Du har 1 väntande inbjudan"
-                            : "Du har \(pendingTeamInvites) väntande inbjudningar"
-                    ) {
-                        JoinOrCreateTeamView()
+                // ===== Gå med i nytt team eller grupp =====
+                if showDiscover {
+                    if pendingTeamInvites > 0 {
+                        bigCard(
+                            icon: "envelope.badge",
+                            title: "Team-inbjudan",
+                            subtitle: pendingTeamInvites == 1
+                                ? "Du har 1 väntande inbjudan"
+                                : "Du har \(pendingTeamInvites) väntande inbjudningar"
+                        ) {
+                            JoinOrCreateTeamView()
+                        }
                     }
-                }
-
-                // Alltid en väg till fler team och grupper — man kan vara med i
-                // hur många som helst.
-                if hasGroups {
                     bigCard(
                         icon: "plus.circle.fill",
-                        title: "Fler team & grupper",
+                        title: hasGroups ? "Fler team & grupper" : "Team & grupper",
                         subtitle: "Skapa ett team, gå med med kod, eller gå med i en stadsgrupp"
                     ) {
                         JoinOrCreateTeamView()
@@ -80,25 +96,33 @@ struct FeedView: View {
                 }
 
                 // ===== Träffar =====
-                bigCard(
-                    icon: "calendar",
-                    title: "Träffar",
-                    subtitle: upcomingMeetups > 0
-                        ? (upcomingMeetups == 1
-                            ? "1 kommande träff"
-                            : "\(upcomingMeetups) kommande träffar")
-                        : "Planera hundträffar med vänner och team"
-                ) {
-                    MeetupsListView()
+                if showMeetups {
+                    bigCard(
+                        icon: "calendar",
+                        title: "Träffar",
+                        subtitle: upcomingMeetups > 0
+                            ? (upcomingMeetups == 1
+                                ? "1 kommande träff"
+                                : "\(upcomingMeetups) kommande träffar")
+                            : "Planera hundträffar med vänner och team"
+                    ) {
+                        MeetupsListView()
+                    }
                 }
 
                 // ===== Forum =====
-                bigCard(
-                    icon: "bubble.left.and.bubble.right.fill",
-                    title: "Forum",
-                    subtitle: "Ställ frågor och diskutera hundträning med andra"
-                ) {
-                    ForumView()
+                if showForum {
+                    bigCard(
+                        icon: "bubble.left.and.bubble.right.fill",
+                        title: "Forum",
+                        subtitle: "Ställ frågor och diskutera hundträning med andra"
+                    ) {
+                        ForumView()
+                    }
+                }
+
+                if !hasVisibleContent {
+                    hiddenEverythingHint
                 }
             }
             .padding(Theme.Spacing.l)
@@ -110,9 +134,39 @@ struct FeedView: View {
             ToolbarItem(placement: .principal) {
                 BrandPrincipal(title: "Socialt")
             }
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    isPresentingCustomize = true
+                } label: {
+                    Image(systemName: "slider.horizontal.3")
+                }
+                .accessibilityLabel("Anpassa Socialt")
+            }
+        }
+        .sheet(isPresented: $isPresentingCustomize) {
+            CustomizeFeedView()
         }
         .refreshable { await load() }
         .onAppear { Task { await load() } }
+    }
+
+    private var hiddenEverythingHint: some View {
+        VStack(spacing: Theme.Spacing.m) {
+            Image(systemName: "slider.horizontal.3")
+                .font(.largeTitle)
+                .foregroundStyle(Theme.Colors.textSecondary)
+            Text("Allt är dolt just nu")
+                .font(Theme.Typography.sectionTitle)
+                .foregroundStyle(Theme.Colors.textPrimary)
+            Text("Välj vad du vill se på Socialt.")
+                .font(Theme.Typography.caption)
+                .foregroundStyle(Theme.Colors.textSecondary)
+            Button("Anpassa Socialt") { isPresentingCustomize = true }
+                .buttonStyle(.borderedProminent)
+                .tint(Theme.Colors.brand)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, Theme.Spacing.xxl)
     }
 
     // MARK: - Kort
@@ -185,5 +239,51 @@ struct FeedView: View {
         let meetups = await TeamsRepository.shared.upcomingMeetups(uid: uid)
         upcomingMeetups = meetups.filter { $0.date >= Calendar.current.startOfDay(for: .now) }.count
         isLoading = false
+    }
+}
+
+// MARK: - Anpassa Socialt
+
+/// Låter användaren välja vilka delar av Socialt som visas. Egna AppStorage-
+/// bindningar mot samma nycklar som FeedView, så ändringar slår igenom direkt.
+struct CustomizeFeedView: View {
+    @Environment(\.dismiss) private var dismiss
+
+    @AppStorage(SocialSection.teams) private var showTeams = true
+    @AppStorage(SocialSection.discover) private var showDiscover = true
+    @AppStorage(SocialSection.meetups) private var showMeetups = true
+    @AppStorage(SocialSection.forum) private var showForum = true
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    Toggle(isOn: $showTeams) {
+                        Label("Dina team & grupper", systemImage: "person.3.fill")
+                    }
+                    Toggle(isOn: $showDiscover) {
+                        Label("Gå med i nytt team", systemImage: "plus.circle.fill")
+                    }
+                    Toggle(isOn: $showMeetups) {
+                        Label("Träffar", systemImage: "calendar")
+                    }
+                    Toggle(isOn: $showForum) {
+                        Label("Forum", systemImage: "bubble.left.and.bubble.right.fill")
+                    }
+                } header: {
+                    Text("Visa på Socialt")
+                } footer: {
+                    Text("Välj hur mycket du vill se. Det du stänger av försvinner från Socialt-sidan, men allt finns kvar — slå bara på det igen här.")
+                }
+            }
+            .tint(Theme.Colors.brand)
+            .navigationTitle("Anpassa Socialt")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Klar") { dismiss() }
+                }
+            }
+        }
     }
 }
