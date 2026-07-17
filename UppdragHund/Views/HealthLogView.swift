@@ -76,7 +76,10 @@ struct HealthLogView: View {
             ExportPDFView(dog: dog)
         }
         .sheet(item: $selectedInjury) { injury in
-            InjuryDetailView(event: injury)
+            InjuryDetailView(
+                event: injury,
+                canEdit: access.canModify(entryCreatedByUid: injury.createdByUid)
+            )
         }
     }
 
@@ -181,12 +184,26 @@ private struct HealthEventRow: View {
 /// anteckning. Öppnas genom att trycka på en skada i loggen.
 private struct InjuryDetailView: View {
     let event: HealthEvent
-    @Environment(\.dismiss) private var dismiss
+    var canEdit: Bool = false
 
-    private var status: HealingStatus { event.injuryStatus ?? .active }
+    @Environment(\.dismiss) private var dismiss
+    @State private var status: HealingStatus
+
+    init(event: HealthEvent, canEdit: Bool = false) {
+        self.event = event
+        self.canEdit = canEdit
+        _status = State(initialValue: event.injuryStatus ?? .active)
+    }
 
     private var statusColor: Color {
         status == .healed ? Theme.Colors.verified : Theme.Colors.warning
+    }
+
+    private func setStatus(_ new: HealingStatus) {
+        guard canEdit, new != status else { return }
+        status = new
+        event.injuryStatus = new
+        SyncCoordinator.shared.entryTouched(event, dog: event.dog)
     }
 
     var body: some View {
@@ -256,25 +273,45 @@ private struct InjuryDetailView: View {
     private var healingTrack: some View {
         let steps: [HealingStatus] = [.active, .healing, .healed]
         let currentIndex = steps.firstIndex(of: status) ?? 0
-        return HStack(spacing: 6) {
-            ForEach(Array(steps.enumerated()), id: \.element) { index, step in
-                let reached = index <= currentIndex
-                VStack(spacing: 5) {
-                    Circle()
-                        .fill(reached ? statusColor : Color.clear)
-                        .overlay(Circle().strokeBorder(reached ? statusColor : Theme.Colors.textSecondary.opacity(0.4), lineWidth: 1.5))
-                        .frame(width: 18, height: 18)
-                    Text(step.displayName)
-                        .font(.caption)
-                        .foregroundStyle(index == currentIndex ? Theme.Colors.textPrimary : Theme.Colors.textSecondary)
+        return VStack(spacing: Theme.Spacing.s) {
+            HStack(spacing: 6) {
+                ForEach(Array(steps.enumerated()), id: \.element) { index, step in
+                    let reached = index <= currentIndex
+                    Button {
+                        setStatus(step)
+                    } label: {
+                        VStack(spacing: 5) {
+                            Circle()
+                                .fill(reached ? statusColor : Color.clear)
+                                .overlay(Circle().strokeBorder(reached ? statusColor : Theme.Colors.textSecondary.opacity(0.4), lineWidth: 1.5))
+                                .frame(width: 20, height: 20)
+                                .overlay {
+                                    if index == currentIndex {
+                                        Circle().strokeBorder(statusColor.opacity(0.35), lineWidth: 3).frame(width: 28, height: 28)
+                                    }
+                                }
+                            Text(step.displayName)
+                                .font(.caption)
+                                .foregroundStyle(index == currentIndex ? Theme.Colors.textPrimary : Theme.Colors.textSecondary)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(!canEdit)
+
+                    if index < steps.count - 1 {
+                        Rectangle()
+                            .fill(index < currentIndex ? statusColor : Theme.Colors.textSecondary.opacity(0.3))
+                            .frame(height: 2)
+                            .offset(y: -9)
+                    }
                 }
-                .frame(maxWidth: .infinity)
-                if index < steps.count - 1 {
-                    Rectangle()
-                        .fill(index < currentIndex ? statusColor : Theme.Colors.textSecondary.opacity(0.3))
-                        .frame(height: 2)
-                        .offset(y: -9)
-                }
+            }
+            if canEdit {
+                Text("Tryck på ett steg för att uppdatera läkningen.")
+                    .font(.caption2)
+                    .foregroundStyle(Theme.Colors.textSecondary)
             }
         }
         .cardStyle()
