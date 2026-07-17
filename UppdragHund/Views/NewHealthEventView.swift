@@ -17,7 +17,7 @@ struct NewHealthEventView: View {
     @State private var date = Date.now
     @State private var note = ""
     @State private var bodyLocation: BodyLocation = .frontLeftLeg
-    @State private var injuryBodyView: BodyView = .left
+    @State private var injuryBodyView: BodyView = .side
     @State private var injuryPoint: CGPoint?
     @State private var injuryStatus: HealingStatus = .active
     @State private var weightText = ""

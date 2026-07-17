@@ -125,7 +125,7 @@ struct DogBodyMap: View {
 
 #Preview {
     struct Harness: View {
-        @State private var view: BodyView = .left
+        @State private var view: BodyView = .side
         @State private var point: CGPoint? = CGPoint(x: 0.32, y: 0.62)
         var body: some View {
             ScrollView {

@@ -68,32 +68,35 @@ enum BodyLocation: String, Codable, CaseIterable, Identifiable {
     }
 }
 
-/// Vy på kroppskartan som en skada markeras i. Rå-strängen lagras på
-/// HealthEvent; asset-namnet pekar på schäfer-bilderna i asset-katalogen.
+/// Vy på kroppskartan som en skada markeras i. Två vyer räcker och
+/// kompletterar varandra: sidan visar var på kroppen, ovanifrån skiljer
+/// vänster/höger. Rå-strängen lagras på HealthEvent.
 enum BodyView: String, Codable, CaseIterable, Identifiable {
-    case left, right, front, back, top, bottom
+    case side, top
 
     var id: String { rawValue }
 
     var displayName: String {
         switch self {
-        case .left:   "Vänster"
-        case .right:  "Höger"
-        case .front:  "Framifrån"
-        case .back:   "Bakifrån"
-        case .top:    "Ovanifrån"
-        case .bottom: "Undersida"
+        case .side: "Sida"
+        case .top:  "Ovanifrån"
         }
     }
 
     var assetName: String {
         switch self {
-        case .left:   "bodymap_vanster"
-        case .right:  "bodymap_hoger"
-        case .front:  "bodymap_fram"
-        case .back:   "bodymap_bak"
-        case .top:    "bodymap_ovan"
-        case .bottom: "bodymap_under"
+        case .side: "bodymap_vanster"
+        case .top:  "bodymap_ovan"
+        }
+    }
+
+    /// Avkodar en lagrad rå-sträng, inklusive äldre vy-namn.
+    static func decode(_ raw: String) -> BodyView? {
+        if let v = BodyView(rawValue: raw) { return v }
+        switch raw {
+        case "left", "right", "front", "back": return .side
+        case "bottom": return .top
+        default: return nil
         }
     }
 }
@@ -138,7 +141,7 @@ final class HealthEvent {
 
     /// Skadans vy på kroppskartan, om satt.
     var injuryView: BodyView? {
-        get { injuryViewRaw.flatMap(BodyView.init(rawValue:)) }
+        get { injuryViewRaw.flatMap(BodyView.decode) }
         set { injuryViewRaw = newValue?.rawValue }
     }
 
