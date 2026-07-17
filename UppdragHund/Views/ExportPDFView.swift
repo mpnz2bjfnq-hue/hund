@@ -13,9 +13,15 @@ struct ExportPDFView: View {
     @State private var endDate = Date.now
     @State private var includeHealth = true
     @State private var includeHeat = true
-    @State private var pdfURL: URL?
-    @State private var isSharePresented = false
+    @State private var sharePayload: SharePayload?
     @State private var showingExportError = false
+
+    /// Identifiable-omslag så delnings-sheeten alltid har sin URL när den
+    /// presenteras (undviker tom sheet vid optional+bool-tajming).
+    private struct SharePayload: Identifiable {
+        let id = UUID()
+        let url: URL
+    }
 
     init(dog: Dog) {
         self.dog = dog
@@ -47,10 +53,8 @@ struct ExportPDFView: View {
                     .disabled(!isValid)
             }
         }
-        .sheet(isPresented: $isSharePresented) {
-            if let pdfURL {
-                ShareSheet(activityItems: [pdfURL])
-            }
+        .sheet(item: $sharePayload) { payload in
+            ShareSheet(activityItems: [payload.url])
         }
         .alert("Export misslyckades", isPresented: $showingExportError) {
             Button("OK", role: .cancel) {}
@@ -89,10 +93,8 @@ struct ExportPDFView: View {
 
         do {
             try data.write(to: tempURL)
-            pdfURL = tempURL
-            isSharePresented = true
+            sharePayload = SharePayload(url: tempURL)
         } catch {
-            pdfURL = nil
             showingExportError = true
         }
     }

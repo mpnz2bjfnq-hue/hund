@@ -73,7 +73,9 @@ struct HealthLogView: View {
             NewHealthEventView(dog: dog)
         }
         .sheet(isPresented: $isPresentingExport) {
-            ExportPDFView(dog: dog)
+            NavigationStack {
+                ExportPDFView(dog: dog)
+            }
         }
         .sheet(item: $selectedInjury) { injury in
             InjuryDetailView(
