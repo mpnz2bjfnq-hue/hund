@@ -297,12 +297,15 @@ service cloud.firestore {
                             && (meetupTeam().get('teamType', '') == 'social'
                                 || request.auth.uid == meetupTeam().ownerUid
                                 || request.auth.uid in meetupTeam().get('consultantUids', []))));
-      // Ägaren ändrar allt; inbjudna och stadens medlemmar svarar bara (going/declined).
+      // Ägaren ändrar allt; inbjudna och stadens medlemmar svarar (going/
+      // declined) och får skriva sitt EGET namn i invitedNames — inte någon
+      // annans, och inga andra fält.
       allow update: if request.auth != null
                     && (request.auth.uid == resource.data.ownerUid
                         || ((request.auth.uid in resource.data.invitedUids
                              || isCommunityMember(resource.data))
-                            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['goingUids', 'declinedUids'])));
+                            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['goingUids', 'declinedUids', 'invitedNames'])
+                            && request.resource.data.invitedNames.diff(resource.data.invitedNames).affectedKeys().hasOnly([request.auth.uid])));
       allow delete: if request.auth != null && request.auth.uid == resource.data.ownerUid;
     }
 

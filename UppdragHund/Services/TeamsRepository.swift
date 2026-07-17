@@ -316,10 +316,14 @@ final class TeamsRepository {
             .sorted { $0.date < $1.date }
     }
 
-    func setRSVP(meetupID: String, uid: String, going: Bool) async throws {
+    /// Svara på en träff. Namnet skrivs in i invitedNames så deltagarlistan kan
+    /// visa den som svarar — särskilt viktigt för stadsträffar, där den som
+    /// anmäler sig inte var inbjuden i förväg och alltså inte redan finns där.
+    func setRSVP(meetupID: String, uid: String, name: String, going: Bool) async throws {
         try await db.collection("meetups").document(meetupID).updateData([
             "goingUids": going ? FieldValue.arrayUnion([uid]) : FieldValue.arrayRemove([uid]),
-            "declinedUids": going ? FieldValue.arrayRemove([uid]) : FieldValue.arrayUnion([uid])
+            "declinedUids": going ? FieldValue.arrayRemove([uid]) : FieldValue.arrayUnion([uid]),
+            "invitedNames.\(uid)": name
         ])
     }
 

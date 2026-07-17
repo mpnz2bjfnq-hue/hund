@@ -346,9 +346,14 @@ struct MeetupDetailView: View {
 
     @Environment(\.dismiss) private var dismiss
     @State private var authService = AuthService.shared
+    @State private var currentUser = CurrentUserStore.shared
     @State private var isWorking = false
     @State private var confirmDelete = false
     @State private var isPresentingEdit = false
+    /// Stadsträff: är jag medlem i staden (och får därmed svara)?
+    @State private var isCommunityMember = false
+    @State private var confirmReport = false
+    @State private var reportMessage: String?
     /// Teamuppgifter som är kopplade till den här träffen.
     @State private var linkedTasks: [TeamTask] = []
 
@@ -357,6 +362,13 @@ struct MeetupDetailView: View {
     private var myRSVP: MeetupRSVP {
         guard let myUid else { return .pending }
         return meetup.rsvp(for: myUid)
+    }
+
+    /// Får jag svara på träffen? Inbjudna (team-/vänträff) eller medlemmar i
+    /// stadsgruppen (stadsträff).
+    private var canRSVP: Bool {
+        guard let myUid, !isOwner else { return false }
+        return meetup.invitedUids.contains(myUid) || isCommunityMember
     }
 
     private var coordinate: CLLocationCoordinate2D? {
@@ -387,7 +399,7 @@ struct MeetupDetailView: View {
                         linkedTasksCard
                     }
 
-                    if !isOwner, let myUid, meetup.invitedUids.contains(myUid) {
+                    if canRSVP {
                         rsvpButtons
                     }
 
@@ -415,6 +427,25 @@ struct MeetupDetailView: View {
                             Button("Ställ in", role: .destructive) { deleteMeetup() }
                             Button("Avbryt", role: .cancel) {}
                         }
+                    } else if myUid != nil {
+                        Button(role: .destructive) {
+                            confirmReport = true
+                        } label: {
+                            Label("Rapportera träff", systemImage: "flag")
+                                .frame(maxWidth: .infinity, minHeight: 44)
+                        }
+                        .buttonStyle(.bordered)
+                        .tint(Theme.Colors.textSecondary)
+                        .confirmationDialog(
+                            "Rapportera träffen?",
+                            isPresented: $confirmReport,
+                            titleVisibility: .visible
+                        ) {
+                            Button("Rapportera", role: .destructive) { report() }
+                            Button("Avbryt", role: .cancel) {}
+                        } message: {
+                            Text("Träffen granskas av en moderator. Tack för att du hjälper till att hålla grupperna trygga.")
+                        }
                     }
                 }
                 .padding(Theme.Spacing.l)
@@ -439,8 +470,23 @@ struct MeetupDetailView: View {
                     onChanged()
                 }
             }
+            .alert(
+                "Tack för din anmälan",
+                isPresented: Binding(get: { reportMessage != nil }, set: { if !$0 { reportMessage = nil } })
+            ) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(reportMessage ?? "")
+            }
             .task { await loadLinkedTasks() }
+            .task { await loadMembership() }
         }
+    }
+
+    /// Stadsträff: kolla om jag är medlem i staden, så jag får svara.
+    private func loadMembership() async {
+        guard let uid = myUid, let communityId = meetup.communityId else { return }
+        isCommunityMember = await CommunitiesRepository.shared.isMember(communityID: communityId, uid: uid)
     }
 
     private var header: some View {
@@ -677,9 +723,10 @@ struct MeetupDetailView: View {
 
     private func rsvp(going: Bool) {
         guard let uid = myUid, let id = meetup.id else { return }
+        let myName = currentUser.profile?.displayName ?? "Hundägare"
         isWorking = true
         Task {
-            try? await TeamsRepository.shared.setRSVP(meetupID: id, uid: uid, going: going)
+            try? await TeamsRepository.shared.setRSVP(meetupID: id, uid: uid, name: myName, going: going)
             meetup.goingUids.removeAll { $0 == uid }
             meetup.declinedUids.removeAll { $0 == uid }
             if going {
@@ -687,8 +734,27 @@ struct MeetupDetailView: View {
             } else {
                 meetup.declinedUids.append(uid)
             }
+            // Så deltagarlistan visar mitt namn direkt, utan omladdning.
+            meetup.invitedNames[uid] = myName
             isWorking = false
             onChanged()
+        }
+    }
+
+    private func report() {
+        guard let uid = myUid, let id = meetup.id else { return }
+        Task {
+            try? await ModerationService.shared.report(
+                contentType: "meetup",
+                contentID: id,
+                contentText: "\(meetup.title) · \(meetup.locationName)",
+                authorUid: meetup.ownerUid,
+                teamId: meetup.teamId,
+                postID: id,
+                postAuthorUid: meetup.ownerUid,
+                reporterUid: uid
+            )
+            reportMessage = "Träffen är rapporterad och granskas."
         }
     }
 
