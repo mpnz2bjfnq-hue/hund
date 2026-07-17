@@ -201,7 +201,7 @@
 					};
 				};
 			};
-			buildConfigurationList = FA5D82CE3005699C0004E39E /* Build configuration list for PBXProject "UppdragHund" */;
+			buildConfigurationList = FA5D82CE3005699C0004E39E /* Build configuration list for PBXProject "Canine360" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -569,7 +569,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		FA5D82CE3005699C0004E39E /* Build configuration list for PBXProject "UppdragHund" */ = {
+		FA5D82CE3005699C0004E39E /* Build configuration list for PBXProject "Canine360" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				FA5D82F23005699F0004E39E /* Debug */,
