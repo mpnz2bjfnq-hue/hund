@@ -308,7 +308,10 @@ struct HemView: View {
         ) else { return nil }
         let days = calendar.dateComponents([.day], from: now, to: calendar.startOfDay(for: next)).day ?? 99
         guard days <= 30 else { return nil }
-        let turning = (calendar.dateComponents([.year], from: dog.birthDate, to: next).year ?? 0)
+        // Räkna på årtalen, inte helår mellan datum: birthDate har en klockdel,
+        // och fram till en födelsedag vid midnatt blir det strax under ett helt
+        // år, vilket annars ger ett år för lite (0 i stället för 1).
+        let turning = calendar.component(.year, from: next) - calendar.component(.year, from: dog.birthDate)
         if days == 0 { return "🎂 Grattis \(dog.name) – \(turning) år idag!" }
         return "🎂 \(dog.name) fyller \(turning) år om \(days) \(days == 1 ? "dag" : "dagar")"
     }
@@ -624,15 +627,14 @@ private struct TodayCarousel: View {
     let cards: [TodayCard]
 
     @State private var index = 0
-    @State private var autoRotate = true
-    /// Sant medan ett programmatiskt byte pågår, så att manuella svep kan
-    /// skiljas från autorotationen i onChange.
-    @State private var isAutoAdvancing = false
 
     var body: some View {
         VStack(spacing: Theme.Spacing.s) {
             TabView(selection: $index) {
-                ForEach(Array(cards.enumerated()), id: \.element.id) { offset, card in
+                // Identitet per position, inte per UUID: korten räknas om vid
+                // varje omritning, och nya UUID:n skulle annars bygga om
+                // TabView och störa rotationen.
+                ForEach(Array(cards.enumerated()), id: \.offset) { offset, card in
                     cardView(card).tag(offset)
                 }
             }
@@ -651,19 +653,13 @@ private struct TodayCarousel: View {
         }
         .task(id: cards.count) {
             guard cards.count > 1 else { return }
-            while !Task.isCancelled && autoRotate {
+            while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(6))
-                if Task.isCancelled || !autoRotate { break }
-                isAutoAdvancing = true
+                if Task.isCancelled { break }
                 withAnimation(.easeInOut(duration: 0.4)) {
-                    index = (index + 1) % cards.count
+                    index = (index + 1) % max(cards.count, 1)
                 }
-                isAutoAdvancing = false
             }
-        }
-        .onChange(of: index) { _, _ in
-            // Manuellt svep → sluta rotera automatiskt.
-            if !isAutoAdvancing { autoRotate = false }
         }
         .onChange(of: cards.count) { _, newCount in
             if index >= newCount { index = 0 }
