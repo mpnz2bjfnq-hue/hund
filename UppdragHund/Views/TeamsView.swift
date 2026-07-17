@@ -80,37 +80,9 @@ struct JoinOrCreateTeamView: View {
                 }
             }
 
-            if !teams.isEmpty {
-                Section("Dina team") {
-                    ForEach(teams) { team in
-                        NavigationLink {
-                            TeamPageView(team: team, onChanged: { Task { await load() } })
-                        } label: {
-                            HStack(spacing: Theme.Spacing.m) {
-                                if let photoData = team.photoData, let uiImage = UIImage(data: photoData) {
-                                    Image(uiImage: uiImage)
-                                        .resizable()
-                                        .scaledToFill()
-                                        .frame(width: 34, height: 34)
-                                        .clipShape(Circle())
-                                } else {
-                                    Image(systemName: "person.3.fill")
-                                        .foregroundStyle(Theme.Colors.brand)
-                                        .frame(width: 34, height: 34)
-                                        .background(Theme.Colors.brand.opacity(0.12), in: Circle())
-                                }
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(team.name)
-                                        .foregroundStyle(Theme.Colors.textPrimary)
-                                    Text("\(team.memberCount) medlemmar")
-                                        .font(.caption)
-                                        .foregroundStyle(Theme.Colors.textSecondary)
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+            // Ingen "Dina team"-lista här: Socialt-fliken listar dem redan som
+            // stora kort ovanför, på alla vägar hit. Den här sidan handlar om
+            // att komma in i ett nytt team.
 
             Section {
                 Button {
@@ -123,11 +95,13 @@ struct JoinOrCreateTeamView: View {
                 } label: {
                     Label("Skapa team", systemImage: "plus")
                 }
+            } header: {
+                Text("Eget team")
             } footer: {
-                Text(teams.isEmpty && invites.isEmpty
-                     ? "Har du fått en kod av din hundinstruktör? Välj Gå med med kod. Eller skapa ett eget team och bjud in dina vänner."
-                     : "")
+                Text("Har du fått en kod av din hundinstruktör? Välj Gå med med kod. Eller skapa ett eget team och bjud in dina vänner.")
             }
+
+            CommunitiesSection()
         }
         .navigationTitle("Team")
         .navigationBarTitleDisplayMode(.inline)

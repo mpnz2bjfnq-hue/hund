@@ -222,6 +222,22 @@ service cloud.firestore {
                       || request.auth.uid in teamData().get('consultantUids', []));
     }
 
+    // Öppna stadsgrupper. Städerna själva är en statisk lista i appen, inte
+    // dokument här — så det finns inget community-dokument att äga eller radera.
+    // Bara medlemskapen lever i Firestore, ett dokument per medlem.
+    match /communities/{communityId}/members/{memberUid} {
+      // Öppna grupper: alla inloggade får se medlemslistan och antalet.
+      allow read: if request.auth != null;
+      // Man skapar/tar bara bort sitt EGET medlemskap (dok-id = uid), och
+      // dokumentets uid måste vara ens egen — ingen kan gå med åt någon annan.
+      allow create: if request.auth != null
+                    && request.auth.uid == memberUid
+                    && request.resource.data.uid == memberUid;
+      allow delete: if (request.auth != null && request.auth.uid == memberUid) || isAdmin();
+      // Medlemskap ändras inte — man går med eller lämnar.
+      allow update: if false;
+    }
+
     match /teamInvites/{inviteId} {
       allow read: if request.auth != null
                   && (request.auth.uid == resource.data.toUid
