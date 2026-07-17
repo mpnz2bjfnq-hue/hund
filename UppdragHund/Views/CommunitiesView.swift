@@ -4,6 +4,7 @@
 //
 //  Öppna stadsgrupper som alla kan gå med i — visas under "Fler team".
 //  Till skillnad från team krävs ingen inbjudan; man går med direkt.
+//  Raderna leder till stadens sida (CommunityPageView) med träffarna.
 //
 
 import SwiftUI
@@ -12,23 +13,25 @@ import SwiftUI
 /// (JoinOrCreateTeamView), inte visas fristående.
 struct CommunitiesSection: View {
     @State private var authService = AuthService.shared
-    @State private var currentUser = CurrentUserStore.shared
 
     @State private var counts: [String: Int] = [:]
     @State private var joined: Set<String> = []
-    @State private var busy: Set<String> = []
     @State private var isLoading = true
 
     var body: some View {
         Section {
             ForEach(Community.all) { community in
-                CommunityRow(
-                    community: community,
-                    memberCount: counts[community.id],
-                    isMember: joined.contains(community.id),
-                    isBusy: busy.contains(community.id),
-                    onToggle: { toggle(community) }
-                )
+                NavigationLink {
+                    CommunityPageView(community: community)
+                } label: {
+                    CommunityRow(
+                        community: community,
+                        // En stad utan räknardokument (ingen medlem än) saknas i
+                        // counts — visa 0 när laddningen är klar, inte "Laddar…".
+                        memberCount: isLoading ? nil : (counts[community.id] ?? 0),
+                        isMember: joined.contains(community.id)
+                    )
+                }
             }
         } header: {
             Text("Öppna grupper")
@@ -46,53 +49,12 @@ struct CommunitiesSection: View {
         joined = await loadedJoined
         isLoading = false
     }
-
-    private func toggle(_ community: Community) {
-        guard let uid = authService.currentUserID, !busy.contains(community.id) else { return }
-        let wasMember = joined.contains(community.id)
-
-        busy.insert(community.id)
-        // Optimistisk uppdatering — raden svarar direkt, rullas tillbaka vid fel.
-        if wasMember {
-            joined.remove(community.id)
-            counts[community.id] = max(0, (counts[community.id] ?? 1) - 1)
-        } else {
-            joined.insert(community.id)
-            counts[community.id] = (counts[community.id] ?? 0) + 1
-        }
-
-        Task {
-            do {
-                if wasMember {
-                    try await CommunitiesRepository.shared.leave(communityID: community.id, uid: uid)
-                } else {
-                    try await CommunitiesRepository.shared.join(
-                        communityID: community.id,
-                        uid: uid,
-                        displayName: currentUser.profile?.displayName ?? "Hundägare"
-                    )
-                }
-            } catch {
-                // Rulla tillbaka den optimistiska ändringen.
-                if wasMember {
-                    joined.insert(community.id)
-                    counts[community.id] = (counts[community.id] ?? 0) + 1
-                } else {
-                    joined.remove(community.id)
-                    counts[community.id] = max(0, (counts[community.id] ?? 1) - 1)
-                }
-            }
-            busy.remove(community.id)
-        }
-    }
 }
 
 private struct CommunityRow: View {
     let community: Community
     let memberCount: Int?
     let isMember: Bool
-    let isBusy: Bool
-    let onToggle: () -> Void
 
     var body: some View {
         HStack(spacing: Theme.Spacing.m) {
@@ -111,22 +73,12 @@ private struct CommunityRow: View {
 
             Spacer(minLength: Theme.Spacing.s)
 
-            Button(action: onToggle) {
-                if isBusy {
-                    ProgressView()
-                } else if isMember {
-                    Label("Med", systemImage: "checkmark")
-                        .labelStyle(.titleAndIcon)
-                        .font(.caption.weight(.medium))
-                } else {
-                    Text("Gå med")
-                        .font(.caption.weight(.medium))
-                }
+            if isMember {
+                Label("Med", systemImage: "checkmark")
+                    .labelStyle(.titleAndIcon)
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(Theme.Colors.brand)
             }
-            .buttonStyle(.bordered)
-            .controlSize(.small)
-            .tint(isMember ? Theme.Colors.textSecondary : Theme.Colors.brand)
-            .disabled(isBusy)
         }
         .padding(.vertical, 2)
     }

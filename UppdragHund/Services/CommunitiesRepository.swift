@@ -71,4 +71,53 @@ final class CommunitiesRepository {
     func leave(communityID: String, uid: String) async throws {
         try await membersRef(communityID).document(uid).delete()
     }
+
+    // MARK: - Stadsträffar
+
+    /// Kommande öppna träffar i en stad. Filtrerar på communityId (enkelt
+    /// enfältsindex) och sorterar i klienten — inget sammansatt index behövs.
+    func upcomingMeetups(communityID: String) async -> [Meetup] {
+        let snapshot = try? await db.collection("meetups")
+            .whereField("communityId", isEqualTo: communityID)
+            .getDocuments()
+        let cutoff = Calendar.current.date(byAdding: .hour, value: -6, to: .now) ?? .now
+        return (snapshot?.documents.compactMap { try? $0.data(as: Meetup.self) } ?? [])
+            .filter { $0.date > cutoff }
+            .sorted { $0.date < $1.date }
+    }
+
+    /// Skapar en öppen stadsträff. Till skillnad från en team-/vänträff bjuds
+    /// ingen in i förväg — den är synlig för hela stadens medlemmar.
+    func createMeetup(
+        community: Community,
+        title: String,
+        locationName: String,
+        date: Date,
+        ownerUid: String,
+        ownerName: String,
+        latitude: Double? = nil,
+        longitude: Double? = nil,
+        maxSpots: Int? = nil
+    ) async throws {
+        let meetup = Meetup(
+            title: title,
+            locationName: locationName,
+            date: date,
+            ownerUid: ownerUid,
+            ownerName: ownerName,
+            teamId: nil,
+            teamName: nil,
+            communityId: community.id,
+            communityName: community.name,
+            invitedUids: [],
+            invitedNames: [ownerUid: ownerName],
+            goingUids: [ownerUid],
+            declinedUids: [],
+            createdAt: .now,
+            latitude: latitude,
+            longitude: longitude,
+            maxSpots: maxSpots
+        )
+        _ = try db.collection("meetups").addDocument(from: meetup)
+    }
 }

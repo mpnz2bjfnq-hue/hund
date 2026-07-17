@@ -127,6 +127,12 @@ struct Meetup: Codable, Identifiable, Equatable {
     var ownerName: String
     var teamId: String?
     var teamName: String?
+    /// Öppen stadsträff: hör till en community i stället för ett team. Då är
+    /// träffen synlig och RSVP-bar för alla stadens medlemmar, utan att var och
+    /// en behöver bjudas in (invitedUids skalar inte till en hel stad).
+    /// Optional så att träffar skapade före fältet fanns fortfarande avkodas.
+    var communityId: String?
+    var communityName: String?
     var invitedUids: [String]
     /// uid -> visningsnamn för alla inblandade (ägare + inbjudna).
     var invitedNames: [String: String]

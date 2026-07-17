@@ -272,23 +272,36 @@ service cloud.firestore {
       function meetupTeam() {
         return get(/databases/$(database)/documents/teams/$(request.resource.data.teamId)).data;
       }
+      // Är den inloggade medlem i stadsgruppen träffen hör till?
+      function isCommunityMember(data) {
+        return data.get('communityId', '') != ''
+               && exists(/databases/$(database)/documents/communities/$(data.communityId)/members/$(request.auth.uid));
+      }
+      // Stadsträffar är öppna att se för alla inloggade (upptäckt innan man går
+      // med); team-/vänträffar bara för ägare och inbjudna.
       allow read: if (request.auth != null
                       && (request.auth.uid == resource.data.ownerUid
-                          || request.auth.uid in resource.data.invitedUids))
+                          || request.auth.uid in resource.data.invitedUids
+                          || resource.data.get('communityId', '') != ''))
                   || isAdmin();
       // Team-träffar: i kurser/konsulentteam får bara ägare/konsulenter skapa;
-      // i vanliga grupper alla medlemmar. Träffar utan team är fria.
+      // i vanliga grupper alla medlemmar. Stadsträffar: alla stadens medlemmar.
+      // Träffar utan team eller community är fria.
       allow create: if request.auth != null
                     && request.auth.uid == request.resource.data.ownerUid
-                    && (request.resource.data.get('teamId', '') == ''
-                        || (request.auth.uid in meetupTeam().memberUids
+                    && ((request.resource.data.get('teamId', '') == ''
+                         && request.resource.data.get('communityId', '') == '')
+                        || isCommunityMember(request.resource.data)
+                        || (request.resource.data.get('teamId', '') != ''
+                            && request.auth.uid in meetupTeam().memberUids
                             && (meetupTeam().get('teamType', '') == 'social'
                                 || request.auth.uid == meetupTeam().ownerUid
                                 || request.auth.uid in meetupTeam().get('consultantUids', []))));
-      // Ägaren ändrar allt; inbjudna svarar bara (going/declined).
+      // Ägaren ändrar allt; inbjudna och stadens medlemmar svarar bara (going/declined).
       allow update: if request.auth != null
                     && (request.auth.uid == resource.data.ownerUid
-                        || (request.auth.uid in resource.data.invitedUids
+                        || ((request.auth.uid in resource.data.invitedUids
+                             || isCommunityMember(resource.data))
                             && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['goingUids', 'declinedUids'])));
       allow delete: if request.auth != null && request.auth.uid == resource.data.ownerUid;
     }
