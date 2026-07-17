@@ -266,7 +266,7 @@ struct HemView: View {
             let start = calendar.startOfDay(for: ongoing.startDate)
             let today = calendar.startOfDay(for: .now)
             let day = (calendar.dateComponents([.day], from: start, to: today).day ?? 0) + 1
-            return ("Dag \(day)", HeatPhase.forDayInCycle(day).displayName)
+            return ("Dag \(day)", HeatPhase.forDayInCycle(day).swedishCommon)
         }
         if let next = nextHeatDate, next > .now {
             let days = calendar.dateComponents(

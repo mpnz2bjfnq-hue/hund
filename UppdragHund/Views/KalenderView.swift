@@ -71,30 +71,46 @@ struct KalenderView: View {
                     MonthCalendarView(
                         displayedMonth: $displayedMonth,
                         heatPhase: heatPhase(for:),
+                        isFertile: isFertileDate,
                         isPredicted: isPredictedStartDate,
                         hasNote: hasDiaryEntry,
+                        hasHealthEvent: hasHealthEvent,
                         onSelectDay: { day in selectedDay = SelectedDay(date: day) }
                     )
                     .cardStyle()
 
-                    if dog.tracksHeat {
-                        HStack(spacing: 16) {
-                            HStack(spacing: 6) {
-                                Circle().fill(Theme.Colors.heat.opacity(HeatPhase.proestrus.fillOpacity)).frame(width: 10, height: 10)
-                                Text("Förlöp")
+                    VStack(alignment: .leading, spacing: 6) {
+                        if dog.tracksHeat {
+                            HStack(spacing: 14) {
+                                legendItem("Förlöp") {
+                                    Circle().fill(Theme.Colors.heat.opacity(HeatPhase.proestrus.fillOpacity))
+                                }
+                                legendItem("Höglöp") {
+                                    Circle().fill(Theme.Colors.heat.opacity(HeatPhase.estrus.fillOpacity))
+                                }
+                                legendItem("Efterlöp") {
+                                    Circle()
+                                        .fill(Theme.Colors.heat.opacity(HeatPhase.metestrus.fillOpacity))
+                                        .overlay(Circle().strokeBorder(Theme.Colors.heat.opacity(0.7), lineWidth: 1.5))
+                                }
                             }
-                            HStack(spacing: 6) {
-                                Circle().fill(Theme.Colors.heat.opacity(HeatPhase.estrus.fillOpacity)).frame(width: 10, height: 10)
-                                Text("Höglöp")
-                            }
-                            HStack(spacing: 6) {
-                                Circle().strokeBorder(Theme.Colors.heat, style: StrokeStyle(lineWidth: 1.5, dash: [3, 2])).frame(width: 10, height: 10)
-                                Text("Förväntat")
+                            HStack(spacing: 14) {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "heart.fill").font(.system(size: 9)).foregroundStyle(.pink)
+                                    Text("Mest fertil")
+                                }
+                                legendItem("Förväntat löp") {
+                                    Circle().strokeBorder(Theme.Colors.heat, style: StrokeStyle(lineWidth: 1.5, dash: [3, 2]))
+                                }
                             }
                         }
-                        .font(.caption)
-                        .foregroundStyle(Theme.Colors.textSecondary)
+                        HStack(spacing: 14) {
+                            legendItem("Dagbok", size: 5) { Circle().fill(Color.accentColor) }
+                            legendItem("Hälsologg", size: 5) { Circle().fill(Theme.Colors.verified) }
+                        }
                     }
+                    .font(.caption)
+                    .foregroundStyle(Theme.Colors.textSecondary)
                 }
 
                 if dog.tracksHeat {
@@ -230,6 +246,17 @@ struct KalenderView: View {
         }
     }
 
+    private func legendItem<S: View>(
+        _ label: String,
+        size: CGFloat = 10,
+        @ViewBuilder symbol: () -> S
+    ) -> some View {
+        HStack(spacing: 6) {
+            symbol().frame(width: size, height: size)
+            Text(label)
+        }
+    }
+
     private func heatPhase(for date: Date) -> HeatPhase? {
         for cycle in dog.heatCycles {
             if let phase = HeatPhase.phase(on: date, in: cycle, calendar: calendar) {
@@ -239,12 +266,20 @@ struct KalenderView: View {
         return nil
     }
 
+    private func isFertileDate(_ date: Date) -> Bool {
+        dog.heatCycles.contains { HeatPhase.isFertile(on: date, in: $0, calendar: calendar) }
+    }
+
     private func ongoingHeatSummary(_ cycle: HeatCycle) -> String {
         let start = calendar.startOfDay(for: cycle.startDate)
         let today = calendar.startOfDay(for: .now)
         let day = (calendar.dateComponents([.day], from: start, to: today).day ?? 0) + 1
         let phase = HeatPhase.forDayInCycle(day)
-        return "Löp pågår – Dag \(day) · \(phase.displayName)"
+        var summary = "Löp pågår – Dag \(day) · \(phase.swedishCommon)"
+        if HeatPhase.isFertileDay(day) {
+            summary += " · Mest fertil 💗"
+        }
+        return summary
     }
 
     private func isPredictedStartDate(_ date: Date) -> Bool {
@@ -254,6 +289,10 @@ struct KalenderView: View {
 
     private func hasDiaryEntry(_ date: Date) -> Bool {
         dog.diaryEntries.contains { calendar.isDate($0.date, inSameDayAs: date) }
+    }
+
+    private func hasHealthEvent(_ date: Date) -> Bool {
+        dog.healthEvents.contains { calendar.isDate($0.date, inSameDayAs: date) }
     }
 }
 

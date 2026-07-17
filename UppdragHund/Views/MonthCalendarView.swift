@@ -8,8 +8,10 @@ import SwiftUI
 struct MonthCalendarView: View {
     @Binding var displayedMonth: Date
     var heatPhase: (Date) -> HeatPhase? = { _ in nil }
+    var isFertile: (Date) -> Bool = { _ in false }
     var isPredicted: (Date) -> Bool = { _ in false }
     var hasNote: (Date) -> Bool = { _ in false }
+    var hasHealthEvent: (Date) -> Bool = { _ in false }
     var onSelectDay: (Date) -> Void = { _ in }
 
     private let calendar = Calendar.current
@@ -96,8 +98,10 @@ struct MonthCalendarView: View {
     @ViewBuilder
     private func dayCell(for date: Date) -> some View {
         let phase = heatPhase(date)
+        let fertile = isFertile(date)
         let predicted = isPredicted(date)
         let noted = hasNote(date)
+        let health = hasHealthEvent(date)
         let isToday = calendar.isDateInToday(date)
 
         Button {
@@ -113,6 +117,13 @@ struct MonthCalendarView: View {
                         Circle().fill(Theme.Colors.heat.opacity(phase?.fillOpacity ?? 0))
                     )
                     .overlay(
+                        // Efterlöp: tunn hel ring så fasen inte förväxlas med förlöp.
+                        Circle().strokeBorder(
+                            phase?.showsRing == true ? Theme.Colors.heat.opacity(0.7) : .clear,
+                            lineWidth: 1.5
+                        )
+                    )
+                    .overlay(
                         Circle().strokeBorder(
                             predicted ? Theme.Colors.heat : .clear,
                             style: StrokeStyle(lineWidth: 1.5, dash: [3, 2])
@@ -121,25 +132,47 @@ struct MonthCalendarView: View {
                     .overlay(
                         Circle().stroke(isToday ? Color.accentColor : .clear, lineWidth: 1.5)
                     )
+                    .overlay(alignment: .topTrailing) {
+                        // Mest fertila fönstret (riktvärde dag 11–14).
+                        if fertile {
+                            Image(systemName: "heart.fill")
+                                .font(.system(size: 8))
+                                .foregroundStyle(.pink)
+                                .offset(x: 3, y: -2)
+                        }
+                    }
 
-                Circle()
-                    .fill(noted ? Color.accentColor : .clear)
-                    .frame(width: 4, height: 4)
+                HStack(spacing: 3) {
+                    Circle()
+                        .fill(noted ? Color.accentColor : .clear)
+                        .frame(width: 4, height: 4)
+                    Circle()
+                        .fill(health ? Theme.Colors.verified : .clear)
+                        .frame(width: 4, height: 4)
+                }
             }
             .frame(maxWidth: .infinity)
             .frame(height: 44)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(accessibilityLabel(for: date, phase: phase, predicted: predicted, noted: noted, isToday: isToday))
+        .accessibilityLabel(accessibilityLabel(
+            for: date, phase: phase, fertile: fertile,
+            predicted: predicted, noted: noted, health: health, isToday: isToday
+        ))
     }
 
-    private func accessibilityLabel(for date: Date, phase: HeatPhase?, predicted: Bool, noted: Bool, isToday: Bool) -> String {
+    private func accessibilityLabel(
+        for date: Date, phase: HeatPhase?, fertile: Bool,
+        predicted: Bool, noted: Bool, health: Bool, isToday: Bool
+    ) -> String {
         var parts = [date.formatted(date: .complete, time: .omitted)]
         if isToday { parts.append("Idag") }
-        if let phase { parts.append("Löp – \(phase.displayName)") }
+        if let phase { parts.append("Löp – \(phase.swedishCommon)") }
+        if fertile { parts.append("Mest fertil period") }
         if predicted { parts.append("Förväntat löp") }
-        if noted { parts.append("Har loggning") }
+        if noted { parts.append("Har dagboksinlägg") }
+        if health { parts.append("Har hälsologg") }
         return parts.joined(separator: ", ")
     }
 
