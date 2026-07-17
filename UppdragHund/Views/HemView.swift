@@ -194,9 +194,9 @@ struct HemView: View {
 
     // MARK: - Idag
 
-    /// Dagens agenda: det som faktiskt behöver uppmärksamhet idag, samlat på
-    /// ett ställe. Lokala, direkta signaler i det här steget (motion, löp,
-    /// skada); träffar och team-uppgifter tillkommer.
+    /// Dagens agenda som en roterande kortkarusell: byter mellan agenda-korten
+    /// (motion, löp, träff, uppgifter) och ambient-kort (hälsning, tips,
+    /// milstolpe) så Hem känns levande även en lugn dag.
     private var todaySection: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.m) {
             HStack(alignment: .firstTextBaseline) {
@@ -209,127 +209,123 @@ struct HemView: View {
                     .foregroundStyle(Theme.Colors.textSecondary)
             }
 
-            VStack(spacing: 0) {
-                agendaLink(destination: HundtraningView(dog: dog)) {
-                    agendaRow(
-                        icon: "figure.walk",
-                        text: motionAgendaText,
-                        tint: Theme.Colors.brand,
-                        attention: todaysTrainingMinutes == 0
-                    )
-                }
-
-                if let heat = heatAgenda {
-                    Divider().overlay(Theme.Colors.textSecondary.opacity(0.2))
-                    agendaLink(destination: KalenderView(dog: dog)) {
-                        agendaRow(
-                            icon: "drop.fill",
-                            text: heat.text,
-                            tint: Theme.Colors.heat,
-                            attention: heat.attention
-                        )
-                    }
-                }
-
-                if let injury = recentInjury {
-                    Divider().overlay(Theme.Colors.textSecondary.opacity(0.2))
-                    agendaLink(destination: HealthLogView(dog: dog)) {
-                        agendaRow(
-                            icon: "bandage.fill",
-                            text: injury,
-                            tint: Theme.Colors.warning,
-                            attention: true
-                        )
-                    }
-                }
-
-                ForEach(todayMeetups) { meetup in
-                    Divider().overlay(Theme.Colors.textSecondary.opacity(0.2))
-                    agendaLink(destination: MeetupsListView()) {
-                        agendaRow(
-                            icon: "calendar",
-                            text: "Träff idag: \(meetup.title) kl \(meetup.date.formatted(date: .omitted, time: .shortened))",
-                            tint: Theme.Colors.brand,
-                            attention: true
-                        )
-                    }
-                }
-
-                if todayMeetups.isEmpty, let next = nextMeetup {
-                    Divider().overlay(Theme.Colors.textSecondary.opacity(0.2))
-                    agendaLink(destination: MeetupsListView()) {
-                        agendaRow(
-                            icon: "calendar",
-                            text: "Nästa träff: \(next.title), \(next.date.formatted(.dateTime.weekday(.abbreviated).day().month()))",
-                            tint: Theme.Colors.brand,
-                            attention: false
-                        )
-                    }
-                }
-
-                ForEach(dueTasksByTeam) { due in
-                    Divider().overlay(Theme.Colors.textSecondary.opacity(0.2))
-                    agendaLink(destination: TeamPageView(team: due.team, startOnTasks: true)) {
-                        agendaRow(
-                            icon: "checklist",
-                            text: "\(due.team.name): \(due.count) \(due.count == 1 ? "uppgift" : "uppgifter") att bocka av",
-                            tint: Theme.Colors.brand,
-                            attention: true
-                        )
-                    }
-                }
-
-                if allGood {
-                    Divider().overlay(Theme.Colors.textSecondary.opacity(0.2))
-                    agendaRow(
-                        icon: "checkmark.seal.fill",
-                        text: "Allt ser bra ut idag 🐾",
-                        tint: Theme.Colors.verified,
-                        attention: false,
-                        showsChevron: false
-                    )
-                    .padding(.vertical, Theme.Spacing.xs)
-                }
-            }
-            .cardStyle()
+            TodayCarousel(cards: todayCards)
         }
     }
 
-    private func agendaLink<Destination: View, Label: View>(
-        destination: Destination,
-        @ViewBuilder label: () -> Label
-    ) -> some View {
-        NavigationLink { destination } label: { label() }
-            .buttonStyle(.plain)
+    /// Korten som karusellen roterar mellan. Ordning: hälsning → det som kräver
+    /// åtgärd → lugna/ambient kort.
+    private var todayCards: [TodayCard] {
+        var cards: [TodayCard] = [
+            TodayCard(
+                icon: greeting.icon, text: greeting.text,
+                tint: Theme.Colors.brand, attention: false, destination: nil
+            ),
+            TodayCard(
+                icon: "figure.walk", text: motionAgendaText,
+                tint: Theme.Colors.brand, attention: todaysTrainingMinutes == 0,
+                destination: AnyView(HundtraningView(dog: dog))
+            ),
+        ]
+
+        if let heat = heatAgenda {
+            cards.append(TodayCard(
+                icon: "drop.fill", text: heat.text,
+                tint: Theme.Colors.heat, attention: heat.attention,
+                destination: AnyView(KalenderView(dog: dog))
+            ))
+        }
+        if let injury = recentInjury {
+            cards.append(TodayCard(
+                icon: "bandage.fill", text: injury,
+                tint: Theme.Colors.warning, attention: true,
+                destination: AnyView(HealthLogView(dog: dog))
+            ))
+        }
+        for meetup in todayMeetups {
+            cards.append(TodayCard(
+                icon: "calendar",
+                text: "Träff idag: \(meetup.title) kl \(meetup.date.formatted(date: .omitted, time: .shortened))",
+                tint: Theme.Colors.brand, attention: true,
+                destination: AnyView(MeetupsListView())
+            ))
+        }
+        if todayMeetups.isEmpty, let next = nextMeetup {
+            cards.append(TodayCard(
+                icon: "calendar",
+                text: "Nästa träff: \(next.title), \(next.date.formatted(.dateTime.weekday(.abbreviated).day().month()))",
+                tint: Theme.Colors.brand, attention: false,
+                destination: AnyView(MeetupsListView())
+            ))
+        }
+        for due in dueTasksByTeam {
+            cards.append(TodayCard(
+                icon: "checklist",
+                text: "\(due.team.name): \(due.count) \(due.count == 1 ? "uppgift" : "uppgifter") att bocka av",
+                tint: Theme.Colors.brand, attention: true,
+                destination: AnyView(TeamPageView(team: due.team, startOnTasks: true))
+            ))
+        }
+
+        if allGood {
+            cards.append(TodayCard(
+                icon: "checkmark.seal.fill", text: "Allt ser bra ut idag 🐾",
+                tint: Theme.Colors.verified, attention: false, destination: nil
+            ))
+        }
+        if let milestone = birthdayMilestone {
+            cards.append(TodayCard(
+                icon: "gift.fill", text: milestone,
+                tint: Theme.Colors.verified, attention: false, destination: nil
+            ))
+        }
+        cards.append(TodayCard(
+            icon: "lightbulb.fill", text: dailyTip,
+            tint: Theme.Colors.verified, attention: false, destination: nil
+        ))
+        return cards
     }
 
-    private func agendaRow(
-        icon: String,
-        text: String,
-        tint: Color,
-        attention: Bool,
-        showsChevron: Bool = true
-    ) -> some View {
-        HStack(spacing: Theme.Spacing.m) {
-            Image(systemName: icon)
-                .foregroundStyle(tint)
-                .frame(width: 28)
-            Text(text)
-                .font(Theme.Typography.body.weight(attention ? .medium : .regular))
-                .foregroundStyle(Theme.Colors.textPrimary)
-                .multilineTextAlignment(.leading)
-                .fixedSize(horizontal: false, vertical: true)
-            Spacer(minLength: Theme.Spacing.s)
-            if attention {
-                Circle().fill(tint).frame(width: 7, height: 7)
-            }
-            if showsChevron {
-                Image(systemName: "chevron.right")
-                    .font(.footnote.weight(.semibold))
-                    .foregroundStyle(Theme.Colors.textSecondary)
-            }
+    // MARK: Idag – ambient
+
+    private var greeting: (icon: String, text: String) {
+        let hour = calendar.component(.hour, from: .now)
+        switch hour {
+        case 5..<10:  return ("sunrise.fill", "God morgon! Redo för dagen med \(dog.name)?")
+        case 10..<17: return ("sun.max.fill", "God eftermiddag med \(dog.name) 🐾")
+        case 17..<22: return ("sunset.fill", "God kväll! Hur har dagen med \(dog.name) varit?")
+        default:      return ("moon.stars.fill", "God natt – vila så ni orkar imorgon 🐾")
         }
-        .padding(.vertical, Theme.Spacing.s)
+    }
+
+    /// Milstolpe om födelsedagen är nära (inom 30 dagar).
+    private var birthdayMilestone: String? {
+        let now = calendar.startOfDay(for: .now)
+        guard let next = calendar.nextDate(
+            after: now.addingTimeInterval(-1),
+            matching: calendar.dateComponents([.month, .day], from: dog.birthDate),
+            matchingPolicy: .nextTime
+        ) else { return nil }
+        let days = calendar.dateComponents([.day], from: now, to: calendar.startOfDay(for: next)).day ?? 99
+        guard days <= 30 else { return nil }
+        let turning = (calendar.dateComponents([.year], from: dog.birthDate, to: next).year ?? 0)
+        if days == 0 { return "🎂 Grattis \(dog.name) – \(turning) år idag!" }
+        return "🎂 \(dog.name) fyller \(turning) år om \(days) \(days == 1 ? "dag" : "dagar")"
+    }
+
+    /// Dagens tips – varierar per dag så det inte står stilla.
+    private var dailyTip: String {
+        let tips = [
+            "Tips: variera promenadrutten – nya dofter tröttar hjärnan mer än extra minuter.",
+            "Tips: kolla tassarna efter promenaden, särskilt mellan trampdynorna.",
+            "Tips: korta träningspass flera gånger om dagen slår ett långt.",
+            "Tips: färskt vatten alltid framme – särskilt varma dagar.",
+            "Tips: väg din hund regelbundet, små förändringar syns tidigast på vågen.",
+            "Tips: borsta tänderna eller ge tuggben – tandhälsa påverkar hela hunden.",
+            "Tips: låt hunden nosa klart ibland, det är mental motion."
+        ]
+        let dayOfYear = calendar.ordinality(of: .day, in: .year, for: .now) ?? 1
+        return tips[dayOfYear % tips.count]
     }
 
     // MARK: Idag – data
@@ -606,6 +602,108 @@ private struct TileAppearModifier: ViewModifier {
 private extension View {
     func tileAppear(_ index: Int, shown: Bool) -> some View {
         modifier(TileAppearModifier(index: index, shown: shown))
+    }
+}
+
+// MARK: - Idag-karusell
+
+/// Ett kort i Idag-karusellen. `destination` = nil betyder ambient kort som
+/// inte är tryckbart (hälsning, tips, milstolpe).
+private struct TodayCard: Identifiable {
+    let id = UUID()
+    let icon: String
+    let text: String
+    let tint: Color
+    let attention: Bool
+    let destination: AnyView?
+}
+
+/// Roterar mellan Idag-korten. Auto-växlar var 6:e sekund; sveper användaren
+/// själv stannar autorotationen (hen har tagit över).
+private struct TodayCarousel: View {
+    let cards: [TodayCard]
+
+    @State private var index = 0
+    @State private var autoRotate = true
+    /// Sant medan ett programmatiskt byte pågår, så att manuella svep kan
+    /// skiljas från autorotationen i onChange.
+    @State private var isAutoAdvancing = false
+
+    var body: some View {
+        VStack(spacing: Theme.Spacing.s) {
+            TabView(selection: $index) {
+                ForEach(Array(cards.enumerated()), id: \.element.id) { offset, card in
+                    cardView(card).tag(offset)
+                }
+            }
+            .tabViewStyle(.page(indexDisplayMode: .never))
+            .frame(height: 96)
+
+            if cards.count > 1 {
+                HStack(spacing: 6) {
+                    ForEach(cards.indices, id: \.self) { i in
+                        Circle()
+                            .fill(i == index ? Theme.Colors.brand : Theme.Colors.textSecondary.opacity(0.3))
+                            .frame(width: 6, height: 6)
+                    }
+                }
+            }
+        }
+        .task(id: cards.count) {
+            guard cards.count > 1 else { return }
+            while !Task.isCancelled && autoRotate {
+                try? await Task.sleep(for: .seconds(6))
+                if Task.isCancelled || !autoRotate { break }
+                isAutoAdvancing = true
+                withAnimation(.easeInOut(duration: 0.4)) {
+                    index = (index + 1) % cards.count
+                }
+                isAutoAdvancing = false
+            }
+        }
+        .onChange(of: index) { _, _ in
+            // Manuellt svep → sluta rotera automatiskt.
+            if !isAutoAdvancing { autoRotate = false }
+        }
+        .onChange(of: cards.count) { _, newCount in
+            if index >= newCount { index = 0 }
+        }
+    }
+
+    @ViewBuilder
+    private func cardView(_ card: TodayCard) -> some View {
+        if let destination = card.destination {
+            NavigationLink { destination } label: { cardContent(card) }
+                .buttonStyle(.plain)
+        } else {
+            cardContent(card)
+        }
+    }
+
+    private func cardContent(_ card: TodayCard) -> some View {
+        HStack(spacing: Theme.Spacing.m) {
+            Image(systemName: card.icon)
+                .font(.title2)
+                .foregroundStyle(card.tint)
+                .frame(width: 40)
+            Text(card.text)
+                .font(Theme.Typography.body.weight(card.attention ? .medium : .regular))
+                .foregroundStyle(Theme.Colors.textPrimary)
+                .multilineTextAlignment(.leading)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: Theme.Spacing.s)
+            if card.attention {
+                Circle().fill(card.tint).frame(width: 7, height: 7)
+            }
+            if card.destination != nil {
+                Image(systemName: "chevron.right")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(Theme.Colors.textSecondary)
+            }
+        }
+        .padding(Theme.Spacing.l)
+        .frame(maxWidth: .infinity, minHeight: 72, alignment: .leading)
+        .cardStyle()
     }
 }
 
