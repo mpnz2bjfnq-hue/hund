@@ -16,10 +16,22 @@ struct HemView: View {
     @AppStorage(HomeShortcutStore.storageKey) private var shortcutsRaw = HomeShortcutStore.defaultRaw
     @AppStorage(HomeBlockStore.storageKey) private var blocksRaw = HomeBlockStore.defaultRaw
     @AppStorage("home.todayInserted") private var todayInserted = false
+    @State private var authService = AuthService.shared
     @State private var isEditingShortcuts = false
     @State private var isEditingHome = false
 
     @State private var tilesAppeared = false
+
+    // Idag-blockets async-delar (träffar och team-uppgifter).
+    @State private var todayMeetups: [Meetup] = []
+    @State private var nextMeetup: Meetup?
+    @State private var dueTasksByTeam: [DueTasks] = []
+
+    private struct DueTasks: Identifiable {
+        let team: Team
+        let count: Int
+        var id: String { team.id ?? team.name }
+    }
 
     private var shortcuts: [HomeShortcut] { HomeShortcutStore.decode(shortcutsRaw) }
     private var blocks: [HomeBlock] { HomeBlockStore.decode(blocksRaw) }
@@ -59,6 +71,7 @@ struct HemView: View {
             .animation(.spring(duration: 0.4), value: blocks)
         }
         .task { migrateTodayBlock() }
+        .task { await loadTodayActivity() }
         .sheet(isPresented: $isEditingShortcuts) {
             EditShortcutsView()
         }
@@ -230,6 +243,42 @@ struct HemView: View {
                     }
                 }
 
+                ForEach(todayMeetups) { meetup in
+                    Divider().overlay(Theme.Colors.textSecondary.opacity(0.2))
+                    agendaLink(destination: MeetupsListView()) {
+                        agendaRow(
+                            icon: "calendar",
+                            text: "Träff idag: \(meetup.title) kl \(meetup.date.formatted(date: .omitted, time: .shortened))",
+                            tint: Theme.Colors.brand,
+                            attention: true
+                        )
+                    }
+                }
+
+                if todayMeetups.isEmpty, let next = nextMeetup {
+                    Divider().overlay(Theme.Colors.textSecondary.opacity(0.2))
+                    agendaLink(destination: MeetupsListView()) {
+                        agendaRow(
+                            icon: "calendar",
+                            text: "Nästa träff: \(next.title), \(next.date.formatted(.dateTime.weekday(.abbreviated).day().month()))",
+                            tint: Theme.Colors.brand,
+                            attention: false
+                        )
+                    }
+                }
+
+                ForEach(dueTasksByTeam) { due in
+                    Divider().overlay(Theme.Colors.textSecondary.opacity(0.2))
+                    agendaLink(destination: TeamPageView(team: due.team, startOnTasks: true)) {
+                        agendaRow(
+                            icon: "checklist",
+                            text: "\(due.team.name): \(due.count) \(due.count == 1 ? "uppgift" : "uppgifter") att bocka av",
+                            tint: Theme.Colors.brand,
+                            attention: true
+                        )
+                    }
+                }
+
                 if allGood {
                     Divider().overlay(Theme.Colors.textSecondary.opacity(0.2))
                     agendaRow(
@@ -323,7 +372,41 @@ struct HemView: View {
     }
 
     private var allGood: Bool {
-        todaysTrainingMinutes > 0 && heatAgenda?.attention != true && recentInjury == nil
+        todaysTrainingMinutes > 0
+            && heatAgenda?.attention != true
+            && recentInjury == nil
+            && todayMeetups.isEmpty
+            && nextMeetup == nil
+            && dueTasksByTeam.isEmpty
+    }
+
+    /// Laddar dagens lokala aktivitet: träffar idag/snart och team-uppgifter
+    /// som förfaller. Körs som en egen task så den inte blockerar resten av Hem.
+    private func loadTodayActivity() async {
+        guard let uid = authService.currentUserID else { return }
+        let meetups = await TeamsRepository.shared.upcomingMeetups(uid: uid)
+        todayMeetups = meetups.filter { calendar.isDateInToday($0.date) }
+        if todayMeetups.isEmpty {
+            let weekEnd = calendar.date(byAdding: .day, value: 7, to: .now) ?? .now
+            nextMeetup = meetups
+                .filter { $0.date > .now && $0.date <= weekEnd }
+                .min { $0.date < $1.date }
+        } else {
+            nextMeetup = nil
+        }
+
+        // Uppgifter som förfaller idag eller är försenade, som jag inte bockat av.
+        let endOfToday = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: .now)) ?? .now
+        var due: [DueTasks] = []
+        for team in await TeamsRepository.shared.myTeams(uid: uid) where team.kind.hasTasks {
+            guard let teamID = team.id else { continue }
+            let mine = await TeamsRepository.shared.tasks(teamID: teamID).filter { task in
+                guard !task.isCompleted(by: uid), let dueDate = task.dueDate else { return false }
+                return dueDate < endOfToday
+            }
+            if !mine.isEmpty { due.append(DueTasks(team: team, count: mine.count)) }
+        }
+        dueTasksByTeam = due
     }
 
     /// Lägger in Idag-blocket en gång för användare som sparat sin blocklista

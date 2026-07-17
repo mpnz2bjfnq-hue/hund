@@ -14,8 +14,9 @@ struct TeamPageView: View {
     @State private var team: Team
     var onChanged: () -> Void = {}
 
-    init(team: Team, onChanged: @escaping () -> Void = {}) {
+    init(team: Team, startOnTasks: Bool = false, onChanged: @escaping () -> Void = {}) {
         _team = State(initialValue: team)
+        _segment = State(initialValue: startOnTasks ? .tasks : .posts)
         self.onChanged = onChanged
     }
 
