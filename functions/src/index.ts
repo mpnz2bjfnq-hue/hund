@@ -640,3 +640,33 @@ export const onFriendRequest = onDocumentCreated(
     });
   }
 );
+
+/**
+ * Medlemsräknare för öppna stadsgrupper.
+ *
+ * Medlemsdokumenten (communities/{id}/members/{uid}) är privata — bara
+ * ägaren själv får läsa sitt eget, så namnen syns inte för andra. Därför
+ * kan klienten inte räkna dem med count() (det kräver läsrätt på dokumenten).
+ * I stället håller de här triggarna en publik räknare på communities/{id},
+ * som appen läser. FieldValue.increment är atomiskt, så samtidiga med-/
+ * urgångar krockar inte.
+ */
+export const onCommunityMemberJoined = onDocumentCreated(
+  { document: "communities/{communityId}/members/{memberUid}", region: REGION },
+  async (event) => {
+    await db.doc(`communities/${event.params.communityId}`).set(
+      { memberCount: FieldValue.increment(1) },
+      { merge: true }
+    );
+  }
+);
+
+export const onCommunityMemberLeft = onDocumentDeleted(
+  { document: "communities/{communityId}/members/{memberUid}", region: REGION },
+  async (event) => {
+    await db.doc(`communities/${event.params.communityId}`).set(
+      { memberCount: FieldValue.increment(-1) },
+      { merge: true }
+    );
+  }
+);

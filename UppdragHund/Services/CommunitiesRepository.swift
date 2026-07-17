@@ -23,21 +23,15 @@ final class CommunitiesRepository {
         db.collection("communities").document(communityID).collection("members")
     }
 
-    /// Medlemsantal per stad, för alla städer på en gång. Läser en aggregerad
-    /// räknare (count()) i stället för medlemsdokumenten — kostnaden blir en
-    /// liten fast avgift per stad oavsett hur många medlemmar staden har.
+    /// Medlemsantal per stad. Läser den publika räknaren på varje community-
+    /// dokument (memberCount), som hålls av en Cloud Function. Medlems-
+    /// dokumenten själva är privata och går inte att räkna från klienten.
+    /// En stad utan dokument (ingen har gått med än) räknas som 0.
     func memberCounts() async -> [String: Int] {
+        let snapshot = try? await db.collection("communities").getDocuments()
         var counts: [String: Int] = [:]
-        await withTaskGroup(of: (String, Int).self) { group in
-            for community in Community.all {
-                group.addTask { [membersRef] in
-                    let snapshot = try? await membersRef(community.id).count.getAggregation(source: .server)
-                    return (community.id, snapshot?.count.intValue ?? 0)
-                }
-            }
-            for await (id, count) in group {
-                counts[id] = count
-            }
+        for document in snapshot?.documents ?? [] {
+            counts[document.documentID] = document.data()["memberCount"] as? Int ?? 0
         }
         return counts
     }
@@ -76,15 +70,5 @@ final class CommunitiesRepository {
 
     func leave(communityID: String, uid: String) async throws {
         try await membersRef(communityID).document(uid).delete()
-    }
-
-    /// Medlemmarna i en stad, för medlemslistan. Begränsad sida — en stadsgrupp
-    /// kan ha tusentals medlemmar, så vi hämtar aldrig alla på en gång.
-    func members(communityID: String, limit: Int = 50) async -> [CommunityMember] {
-        let snapshot = try? await membersRef(communityID)
-            .order(by: "joinedAt", descending: true)
-            .limit(to: limit)
-            .getDocuments()
-        return snapshot?.documents.compactMap { try? $0.data(as: CommunityMember.self) } ?? []
     }
 }

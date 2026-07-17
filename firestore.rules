@@ -222,12 +222,23 @@ service cloud.firestore {
                       || request.auth.uid in teamData().get('consultantUids', []));
     }
 
-    // Öppna stadsgrupper. Städerna själva är en statisk lista i appen, inte
-    // dokument här — så det finns inget community-dokument att äga eller radera.
-    // Bara medlemskapen lever i Firestore, ett dokument per medlem.
-    match /communities/{communityId}/members/{memberUid} {
-      // Öppna grupper: alla inloggade får se medlemslistan och antalet.
+    // Öppna stadsgrupper. Städerna själva är en statisk lista i appen; det
+    // enda som lever här är en publik medlemsräknare per stad plus de privata
+    // medlemskapen.
+    match /communities/{communityId} {
+      // Bara räknaren (memberCount) — publik för alla inloggade. Skrivs bara
+      // av Cloud Function-triggern (admin-SDK går förbi reglerna); klienten
+      // rör den aldrig.
       allow read: if request.auth != null;
+      allow write: if false;
+    }
+
+    match /communities/{communityId}/members/{memberUid} {
+      // Namnen är privata: man får bara läsa sitt EGET medlemskap (för att veta
+      // om man är med). Ingen kan lista medlemmarna eller läsa någon annans —
+      // därför räknas medlemmarna via räknaren ovan, inte via count() här.
+      allow get: if request.auth != null && (request.auth.uid == memberUid || isAdmin());
+      allow list: if isAdmin();
       // Man skapar/tar bara bort sitt EGET medlemskap (dok-id = uid), och
       // dokumentets uid måste vara ens egen — ingen kan gå med åt någon annan.
       allow create: if request.auth != null
