@@ -18,7 +18,7 @@
                BlueprintIdentifier = "FA5D82D23005699C0004E39E"
                BuildableName = "UppdragHund.app"
                BlueprintName = "UppdragHund"
-               ReferencedContainer = "container:UppdragHund.xcodeproj">
+               ReferencedContainer = "container:Canine360.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -38,7 +38,7 @@
                BlueprintIdentifier = "FA5D82DF3005699F0004E39E"
                BuildableName = "UppdragHundTests.xctest"
                BlueprintName = "UppdragHundTests"
-               ReferencedContainer = "container:UppdragHund.xcodeproj">
+               ReferencedContainer = "container:Canine360.xcodeproj">
             </BuildableReference>
          </TestableReference>
          <TestableReference
@@ -49,7 +49,7 @@
                BlueprintIdentifier = "FA5D82E93005699F0004E39E"
                BuildableName = "UppdragHundUITests.xctest"
                BlueprintName = "UppdragHundUITests"
-               ReferencedContainer = "container:UppdragHund.xcodeproj">
+               ReferencedContainer = "container:Canine360.xcodeproj">
             </BuildableReference>
          </TestableReference>
       </Testables>
@@ -72,7 +72,7 @@
             BlueprintIdentifier = "FA5D82D23005699C0004E39E"
             BuildableName = "UppdragHund.app"
             BlueprintName = "UppdragHund"
-            ReferencedContainer = "container:UppdragHund.xcodeproj">
+            ReferencedContainer = "container:Canine360.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
@@ -89,7 +89,7 @@
             BlueprintIdentifier = "FA5D82D23005699C0004E39E"
             BuildableName = "UppdragHund.app"
             BlueprintName = "UppdragHund"
-            ReferencedContainer = "container:UppdragHund.xcodeproj">
+            ReferencedContainer = "container:Canine360.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>
