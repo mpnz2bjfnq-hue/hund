@@ -15,6 +15,7 @@ struct HemView: View {
 
     @AppStorage(HomeShortcutStore.storageKey) private var shortcutsRaw = HomeShortcutStore.defaultRaw
     @AppStorage(HomeBlockStore.storageKey) private var blocksRaw = HomeBlockStore.defaultRaw
+    @AppStorage("home.todayInserted") private var todayInserted = false
     @State private var isEditingShortcuts = false
     @State private var isEditingHome = false
 
@@ -47,6 +48,7 @@ struct HemView: View {
                     ForEach(blocks) { block in
                         switch block {
                         case .dog:       dogCard
+                        case .today:     todaySection
                         case .shortcuts: shortcutsSection
                         case .overview:  oversiktSection
                         }
@@ -56,6 +58,7 @@ struct HemView: View {
             .padding(Theme.Spacing.l)
             .animation(.spring(duration: 0.4), value: blocks)
         }
+        .task { migrateTodayBlock() }
         .sheet(isPresented: $isEditingShortcuts) {
             EditShortcutsView()
         }
@@ -174,6 +177,169 @@ struct HemView: View {
                 .minimumScaleFactor(0.8)
         }
         .frame(maxWidth: .infinity)
+    }
+
+    // MARK: - Idag
+
+    /// Dagens agenda: det som faktiskt behöver uppmärksamhet idag, samlat på
+    /// ett ställe. Lokala, direkta signaler i det här steget (motion, löp,
+    /// skada); träffar och team-uppgifter tillkommer.
+    private var todaySection: some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.m) {
+            HStack(alignment: .firstTextBaseline) {
+                Text("Idag")
+                    .font(Theme.Typography.sectionTitle)
+                    .foregroundStyle(Theme.Colors.textPrimary)
+                Spacer()
+                Text(Date.now.formatted(.dateTime.weekday(.wide).day().month(.wide)))
+                    .font(Theme.Typography.caption)
+                    .foregroundStyle(Theme.Colors.textSecondary)
+            }
+
+            VStack(spacing: 0) {
+                agendaLink(destination: HundtraningView(dog: dog)) {
+                    agendaRow(
+                        icon: "figure.walk",
+                        text: motionAgendaText,
+                        tint: Theme.Colors.brand,
+                        attention: todaysTrainingMinutes == 0
+                    )
+                }
+
+                if let heat = heatAgenda {
+                    Divider().overlay(Theme.Colors.textSecondary.opacity(0.2))
+                    agendaLink(destination: KalenderView(dog: dog)) {
+                        agendaRow(
+                            icon: "drop.fill",
+                            text: heat.text,
+                            tint: Theme.Colors.heat,
+                            attention: heat.attention
+                        )
+                    }
+                }
+
+                if let injury = recentInjury {
+                    Divider().overlay(Theme.Colors.textSecondary.opacity(0.2))
+                    agendaLink(destination: HealthLogView(dog: dog)) {
+                        agendaRow(
+                            icon: "bandage.fill",
+                            text: injury,
+                            tint: Theme.Colors.warning,
+                            attention: true
+                        )
+                    }
+                }
+
+                if allGood {
+                    Divider().overlay(Theme.Colors.textSecondary.opacity(0.2))
+                    agendaRow(
+                        icon: "checkmark.seal.fill",
+                        text: "Allt ser bra ut idag 🐾",
+                        tint: Theme.Colors.verified,
+                        attention: false,
+                        showsChevron: false
+                    )
+                    .padding(.vertical, Theme.Spacing.xs)
+                }
+            }
+            .cardStyle()
+        }
+    }
+
+    private func agendaLink<Destination: View, Label: View>(
+        destination: Destination,
+        @ViewBuilder label: () -> Label
+    ) -> some View {
+        NavigationLink { destination } label: { label() }
+            .buttonStyle(.plain)
+    }
+
+    private func agendaRow(
+        icon: String,
+        text: String,
+        tint: Color,
+        attention: Bool,
+        showsChevron: Bool = true
+    ) -> some View {
+        HStack(spacing: Theme.Spacing.m) {
+            Image(systemName: icon)
+                .foregroundStyle(tint)
+                .frame(width: 28)
+            Text(text)
+                .font(Theme.Typography.body.weight(attention ? .medium : .regular))
+                .foregroundStyle(Theme.Colors.textPrimary)
+                .multilineTextAlignment(.leading)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: Theme.Spacing.s)
+            if attention {
+                Circle().fill(tint).frame(width: 7, height: 7)
+            }
+            if showsChevron {
+                Image(systemName: "chevron.right")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(Theme.Colors.textSecondary)
+            }
+        }
+        .padding(.vertical, Theme.Spacing.s)
+    }
+
+    // MARK: Idag – data
+
+    private var todaysTrainingMinutes: Int {
+        dog.trainingSessions
+            .filter { calendar.isDateInToday($0.date) }
+            .compactMap(\.durationMinutes)
+            .reduce(0, +)
+    }
+
+    private var motionAgendaText: String {
+        todaysTrainingMinutes > 0
+            ? "\(todaysTrainingMinutes) min motion loggad idag"
+            : "Ingen promenad loggad än — dags för en runda med \(dog.name)?"
+    }
+
+    /// Löp-signal idag: fas + ev. progesteron-nudge. nil om ingen tik/löp.
+    private var heatAgenda: (text: String, attention: Bool)? {
+        guard dog.sex == .female,
+              let ongoing = dog.heatCycles.first(where: { $0.isOngoing }) else { return nil }
+        let day = HeatPhase.elapsedDays(in: ongoing, calendar: calendar)
+        if let hint = HeatGuide.todayHint(forDay: day) {
+            return (hint, true)
+        }
+        guard !HeatPhase.isOverdue(day: day) else {
+            return ("Löp pågår – dag \(day). Avsluta det i Kalender om det är över.", true)
+        }
+        return ("Löp pågår – dag \(day) · \(HeatPhase.forDayInCycle(day).swedishCommon)", false)
+    }
+
+    /// Skada loggad de senaste 14 dagarna, annars nil.
+    private var recentInjury: String? {
+        let cutoff = calendar.date(byAdding: .day, value: -14, to: .now) ?? .now
+        return dog.healthEvents
+            .filter { $0.type == .injury && $0.date >= cutoff }
+            .sorted { $0.date > $1.date }
+            .first
+            .map { "Skada: \($0.title)" }
+    }
+
+    private var allGood: Bool {
+        todaysTrainingMinutes > 0 && heatAgenda?.attention != true && recentInjury == nil
+    }
+
+    /// Lägger in Idag-blocket en gång för användare som sparat sin blocklista
+    /// innan blocket fanns. Respekterar valet därefter — döljer man det stannar
+    /// det dolt.
+    private func migrateTodayBlock() {
+        guard !todayInserted else { return }
+        todayInserted = true
+        var current = HomeBlockStore.decode(blocksRaw)
+        guard !current.contains(.today) else { return }
+        if let dogIndex = current.firstIndex(of: .dog) {
+            current.insert(.today, at: current.index(after: dogIndex))
+        } else {
+            current.insert(.today, at: 0)
+        }
+        blocksRaw = HomeBlockStore.encode(current)
     }
 
     // MARK: - Översikt
