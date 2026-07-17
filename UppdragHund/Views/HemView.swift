@@ -263,9 +263,12 @@ struct HemView: View {
     private var heatTileData: (value: String, subtitle: String?) {
         guard dog.sex == .female else { return ("–", nil) }
         if let ongoing = dog.heatCycles.first(where: { $0.isOngoing }) {
-            let start = calendar.startOfDay(for: ongoing.startDate)
-            let today = calendar.startOfDay(for: .now)
-            let day = (calendar.dateComponents([.day], from: start, to: today).day ?? 0) + 1
+            let day = HeatPhase.elapsedDays(in: ongoing, calendar: calendar)
+            // Förbi taket är löpet nästan alltid glömt — påstå ingen fas, be om
+            // att det avslutas i stället.
+            guard !HeatPhase.isOverdue(day: day) else {
+                return ("Dag \(day)", "Avsluta löpet?")
+            }
             return ("Dag \(day)", HeatPhase.forDayInCycle(day).swedishCommon)
         }
         if let next = nextHeatDate, next > .now {

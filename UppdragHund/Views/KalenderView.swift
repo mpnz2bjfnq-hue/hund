@@ -204,6 +204,10 @@ struct KalenderView: View {
                     .font(.headline)
                     .foregroundStyle(Theme.Colors.heat)
 
+                if HeatPhase.isOverdue(day: dayInOngoing(ongoingCycle)) {
+                    overdueNotice(ongoingCycle)
+                }
+
                 if access.canModify(entryCreatedByUid: ongoingCycle.createdByUid) {
                     Button("Avsluta löp") {
                         cyclePendingEnd = ongoingCycle
@@ -222,6 +226,28 @@ struct KalenderView: View {
             .buttonStyle(.borderedProminent)
             .tint(.green)
         }
+    }
+
+    /// Ett löp som ligger kvar förbi taket är nästan alltid glömt. Säg det rakt
+    /// ut — annars slutar prognosen tyst att fungera, eftersom nästa förväntade
+    /// löp bara räknas fram ur avslutade cykler.
+    private func overdueNotice(_ cycle: HeatCycle) -> some View {
+        let days = HeatPhase.elapsedDays(in: cycle, calendar: calendar)
+        return HStack(alignment: .top, spacing: Theme.Spacing.s) {
+            Image(systemName: "questionmark.circle.fill")
+                .font(.caption)
+                .foregroundStyle(Theme.Colors.warning)
+            Text("Löpet har varit registrerat i \(days) dagar. Är det avslutat? Kalendern slutar färga efter dag \(HeatPhase.maxOngoingDays), och nästa löp kan inte förutsägas förrän det här är avslutat.")
+                .font(.footnote)
+                .foregroundStyle(Theme.Colors.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(Theme.Spacing.m)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            Theme.Colors.warning.opacity(0.12),
+            in: RoundedRectangle(cornerRadius: Theme.Radius.small, style: .continuous)
+        )
     }
 
     @ViewBuilder
@@ -276,17 +302,18 @@ struct KalenderView: View {
         dog.heatCycles.contains { HeatPhase.isTestDay(on: date, in: $0, calendar: calendar) }
     }
 
-    /// Dag i löpet (1 = startdagen) räknat till idag.
+    /// Dag i löpet (1 = startdagen) räknat till idag, utan tak.
     private func dayInOngoing(_ cycle: HeatCycle) -> Int {
-        let start = calendar.startOfDay(for: cycle.startDate)
-        let today = calendar.startOfDay(for: .now)
-        return (calendar.dateComponents([.day], from: start, to: today).day ?? 0) + 1
+        HeatPhase.elapsedDays(in: cycle, calendar: calendar)
     }
 
     private func ongoingHeatSummary(_ cycle: HeatCycle) -> String {
         let day = dayInOngoing(cycle)
-        let phase = HeatPhase.forDayInCycle(day)
-        return "Löp pågår – Dag \(day) · \(phase.swedishCommon)"
+        // Förbi taket vet vi inte längre var i löpet tiken är — påstå ingen fas.
+        guard !HeatPhase.isOverdue(day: day) else {
+            return "Löp registrerat – Dag \(day)"
+        }
+        return "Löp pågår – Dag \(day) · \(HeatPhase.forDayInCycle(day).swedishCommon)"
     }
 
     private func isPredictedStartDate(_ date: Date) -> Bool {
