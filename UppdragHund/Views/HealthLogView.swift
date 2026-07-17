@@ -131,7 +131,16 @@ private struct HealthEventRow: View {
 
     private var detailText: String {
         var parts = [event.type.displayName, event.date.formatted(date: .abbreviated, time: .omitted)]
-        if let bodyLocation = event.bodyLocation {
+        if event.type == .injury {
+            if let injuryView = event.injuryView {
+                parts.append(injuryView.displayName)
+            } else if let bodyLocation = event.bodyLocation {
+                parts.append(bodyLocation.displayName)
+            }
+            if let status = event.injuryStatus {
+                parts.append(status.displayName)
+            }
+        } else if let bodyLocation = event.bodyLocation {
             parts.append(bodyLocation.displayName)
         }
         if let weight = event.weightKg {

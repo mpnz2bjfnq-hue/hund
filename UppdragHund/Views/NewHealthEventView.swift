@@ -17,6 +17,9 @@ struct NewHealthEventView: View {
     @State private var date = Date.now
     @State private var note = ""
     @State private var bodyLocation: BodyLocation = .frontLeftLeg
+    @State private var injuryBodyView: BodyView = .left
+    @State private var injuryPoint: CGPoint?
+    @State private var injuryStatus: HealingStatus = .active
     @State private var weightText = ""
     @State private var temperatureText = ""
 
@@ -68,12 +71,25 @@ struct NewHealthEventView: View {
                             .keyboardType(.decimalPad)
                     }
 
-                    if type == .injury {
-                        Picker("Kroppsplats", selection: $bodyLocation) {
-                            ForEach(BodyLocation.allCases) { location in
-                                Text(location.displayName).tag(location)
+                }
+
+                if type == .injury {
+                    Section("Var sitter skadan?") {
+                        DogBodyMap(
+                            view: $injuryBodyView,
+                            point: $injuryPoint,
+                            isEditable: true,
+                            markerColor: Theme.Colors.warning
+                        )
+                        .listRowInsets(EdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8))
+                    }
+                    Section("Läkning") {
+                        Picker("Status", selection: $injuryStatus) {
+                            ForEach(HealingStatus.allCases) { status in
+                                Text(status.displayName).tag(status)
                             }
                         }
+                        .pickerStyle(.segmented)
                     }
                 }
 
@@ -101,11 +117,16 @@ struct NewHealthEventView: View {
             title: title.trimmingCharacters(in: .whitespacesAndNewlines),
             date: date,
             note: note.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : note,
-            bodyLocation: type == .injury ? bodyLocation : nil,
+            bodyLocation: nil,
             weightKg: type == .weighing ? parsedWeight : nil,
             temperatureCelsius: type == .temperature ? parsedTemperature : nil,
             dog: dog
         )
+        if type == .injury {
+            event.injuryView = injuryBodyView
+            event.injuryPoint = injuryPoint
+            event.injuryStatus = injuryStatus
+        }
         modelContext.insert(event)
         SyncCoordinator.shared.entryTouched(event, dog: dog)
         dismiss()

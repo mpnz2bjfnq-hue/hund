@@ -4,6 +4,7 @@
 //
 
 import Foundation
+import CoreGraphics
 import SwiftData
 
 enum HealthEventType: String, Codable, CaseIterable, Identifiable {
@@ -67,6 +68,51 @@ enum BodyLocation: String, Codable, CaseIterable, Identifiable {
     }
 }
 
+/// Vy på kroppskartan som en skada markeras i. Rå-strängen lagras på
+/// HealthEvent; asset-namnet pekar på schäfer-bilderna i asset-katalogen.
+enum BodyView: String, Codable, CaseIterable, Identifiable {
+    case left, right, front, back, top, bottom
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .left:   "Vänster"
+        case .right:  "Höger"
+        case .front:  "Framifrån"
+        case .back:   "Bakifrån"
+        case .top:    "Ovanifrån"
+        case .bottom: "Undersida"
+        }
+    }
+
+    var assetName: String {
+        switch self {
+        case .left:   "bodymap_vanster"
+        case .right:  "bodymap_hoger"
+        case .front:  "bodymap_fram"
+        case .back:   "bodymap_bak"
+        case .top:    "bodymap_ovan"
+        case .bottom: "bodymap_under"
+        }
+    }
+}
+
+/// Läk-status för en skada.
+enum HealingStatus: String, Codable, CaseIterable, Identifiable {
+    case active, healing, healed
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .active:  "Aktiv"
+        case .healing: "Läker"
+        case .healed:  "Läkt"
+        }
+    }
+}
+
 @Model
 final class HealthEvent {
     var remoteID: UUID?
@@ -82,7 +128,37 @@ final class HealthEvent {
     var bodyLocation: BodyLocation?
     var weightKg: Double?
     var temperatureCelsius: Double?
+    // Skada på kroppskartan: vilken vy och var (normaliserat 0–1), plus
+    // läk-status. Optional så äldre poster och andra typer avkodas oförändrat.
+    var injuryViewRaw: String?
+    var injuryX: Double?
+    var injuryY: Double?
+    var injuryStatusRaw: String?
     var dog: Dog?
+
+    /// Skadans vy på kroppskartan, om satt.
+    var injuryView: BodyView? {
+        get { injuryViewRaw.flatMap(BodyView.init(rawValue:)) }
+        set { injuryViewRaw = newValue?.rawValue }
+    }
+
+    /// Skadans läk-status, om satt.
+    var injuryStatus: HealingStatus? {
+        get { injuryStatusRaw.flatMap(HealingStatus.init(rawValue:)) }
+        set { injuryStatusRaw = newValue?.rawValue }
+    }
+
+    /// Markörens normaliserade position (0–1) i vyn, om satt.
+    var injuryPoint: CGPoint? {
+        get {
+            guard let x = injuryX, let y = injuryY else { return nil }
+            return CGPoint(x: x, y: y)
+        }
+        set {
+            injuryX = newValue.map { Double($0.x) }
+            injuryY = newValue.map { Double($0.y) }
+        }
+    }
 
     init(
         type: HealthEventType,
