@@ -2,7 +2,7 @@
   "name": "uppdraghund-functions",
   "description": "Cloud Functions för push-notiser (nya inlägg, delade hundar, vänförfrågningar)",
   "engines": {
-    "node": "20"
+    "node": "22"
   },
   "main": "lib/index.js",
   "scripts": {
