@@ -360,14 +360,21 @@ struct HemView: View {
         return ("Löp pågår – dag \(day) · \(HeatPhase.forDayInCycle(day).swedishCommon)", false)
     }
 
-    /// Skada loggad de senaste 14 dagarna, annars nil.
+    /// Skador som inte markerats som läkta. En läkt skada räknas inte längre
+    /// som aktiv och faller därför bort från Hem. nil-status (äldre skada)
+    /// räknas som aktiv.
+    private var activeInjuries: [HealthEvent] {
+        dog.healthEvents
+            .filter { $0.type == .injury && $0.injuryStatus != .healed }
+            .sorted { $0.date > $1.date }
+    }
+
+    /// Aktiv skada loggad de senaste 14 dagarna, annars nil.
     private var recentInjury: String? {
         let cutoff = calendar.date(byAdding: .day, value: -14, to: .now) ?? .now
-        return dog.healthEvents
-            .filter { $0.type == .injury && $0.date >= cutoff }
-            .sorted { $0.date > $1.date }
-            .first
-            .map { "Skada: \($0.title)" }
+        guard let injury = activeInjuries.first(where: { $0.date >= cutoff }) else { return nil }
+        let status = injury.injuryStatus.map { " · \($0.displayName.lowercased())" } ?? ""
+        return "Skada: \(injury.title)\(status)"
     }
 
     private var allGood: Bool {
@@ -489,12 +496,11 @@ struct HemView: View {
     }
 
     private var healthTile: some View {
-        let injuries = dog.healthEvents
-            .filter { $0.type == .injury }
-            .sorted { $0.date > $1.date }
+        let injuries = activeInjuries
         let value = injuries.first?.title ?? "Allt bra"
         return StatTile(
             icon: "heart.text.square.fill", category: "Hälsa", value: value,
+            subtitle: injuries.first?.injuryStatus?.displayName,
             tint: injuries.isEmpty ? Theme.Colors.brand : Theme.Colors.warning
         )
     }
