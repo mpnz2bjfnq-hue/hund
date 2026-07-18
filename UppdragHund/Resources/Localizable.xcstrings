@@ -1,0 +1,333 @@
+{
+  "sourceLanguage" : "sv",
+  "strings" : {
+    "Alla block är dolda. Tryck här för att anpassa hem." : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "All blocks are hidden. Tap here to customize Home." } } }
+    },
+    "Anpassa hem" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Customize Home" } } }
+    },
+    "Anpassa hem med ⊞ där uppe 👆" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Customize Home with ⊞ up there 👆" } } }
+    },
+    "Hem" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Home" } } }
+    },
+    "Socialt" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Social" } } }
+    },
+    "Kalender" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Calendar" } } }
+    },
+    "Min profil" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "My profile" } } }
+    },
+    "Ingen hund inlagd än" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "No dog added yet" } } }
+    },
+    "Du kan använda flödet, team och träffar utan hund. Lägg till en hund när du vill för att logga hälsa, löp och träning — eller be en vän dela sin hund med dig." : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "You can use the feed, teams and meetups without a dog. Add a dog whenever you like to log health, heat and training — or ask a friend to share their dog with you." } } }
+    },
+    "Lägg till hund" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Add dog" } } }
+    },
+    "Genvägar" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Shortcuts" } } }
+    },
+    "Fler genvägar finns 👉" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "More shortcuts available 👉" } } }
+    },
+    "Ändra" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Edit" } } }
+    },
+    "Lägg till genvägar" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Add shortcuts" } } }
+    },
+    "Ändra genvägar" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Edit shortcuts" } } }
+    },
+    "Valda genvägar visas på Hem. Tryck för att lägga till eller ta bort." : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Selected shortcuts appear on Home. Tap to add or remove." } } }
+    },
+    "Klar" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Done" } } }
+    },
+    "Dra i handtagen för att ändra ordning. Bocka av ett block för att dölja det på Hem." : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Drag the handles to reorder. Uncheck a block to hide it on Home." } } }
+    },
+    "Idag" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Today" } } }
+    },
+    "Idag, %@" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Today, %@" } } }
+    },
+    "Träff idag: %@ kl %@" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Meetup today: %1$@ at %2$@" } } }
+    },
+    "Nästa träff: %@, %@" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Next meetup: %1$@, %2$@" } } }
+    },
+    "%@: 1 uppgift att bocka av" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "%@: 1 task to check off" } } }
+    },
+    "%@: %lld uppgifter att bocka av" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "%1$@: %2$lld tasks to check off" } } }
+    },
+    "Allt ser bra ut idag 🐾" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Everything looks good today 🐾" } } }
+    },
+    "God morgon! Redo för dagen med %@?" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Good morning! Ready for the day with %@?" } } }
+    },
+    "God eftermiddag med %@ 🐾" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Good afternoon with %@ 🐾" } } }
+    },
+    "God kväll! Hur har dagen med %@ varit?" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Good evening! How was your day with %@?" } } }
+    },
+    "God natt – vila så ni orkar imorgon 🐾" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Good night – rest up for tomorrow 🐾" } } }
+    },
+    "🎂 Grattis %@ – %lld år idag!" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "🎂 Happy birthday %1$@ – turning %2$lld today!" } } }
+    },
+    "🎂 %@ fyller %lld år imorgon" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "🎂 %1$@ turns %2$lld tomorrow" } } }
+    },
+    "🎂 %@ fyller %lld år om %lld dagar" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "🎂 %1$@ turns %2$lld in %3$lld days" } } }
+    },
+    "Tips: variera promenadrutten – nya dofter tröttar hjärnan mer än extra minuter." : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Tip: vary your walking route – new scents tire the brain more than extra minutes." } } }
+    },
+    "Tips: kolla tassarna efter promenaden, särskilt mellan trampdynorna." : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Tip: check the paws after the walk, especially between the pads." } } }
+    },
+    "Tips: korta träningspass flera gånger om dagen slår ett långt." : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Tip: several short training sessions a day beat one long one." } } }
+    },
+    "Tips: färskt vatten alltid framme – särskilt varma dagar." : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Tip: always keep fresh water out – especially on warm days." } } }
+    },
+    "Tips: väg din hund regelbundet, små förändringar syns tidigast på vågen." : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Tip: weigh your dog regularly – small changes show up on the scale first." } } }
+    },
+    "Tips: borsta tänderna eller ge tuggben – tandhälsa påverkar hela hunden." : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Tip: brush the teeth or give a chew – dental health affects the whole dog." } } }
+    },
+    "Tips: låt hunden nosa klart ibland, det är mental motion." : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Tip: let your dog finish sniffing sometimes – it's mental exercise." } } }
+    },
+    "%lld min motion loggad idag" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "%lld min of exercise logged today" } } }
+    },
+    "Ingen promenad loggad än — dags för en runda med %@?" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "No walk logged yet — time for a stroll with %@?" } } }
+    },
+    "Löp pågår – dag %lld. Avsluta det i Kalender om det är över." : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Heat in progress – day %lld. End it in Calendar if it's over." } } }
+    },
+    "Löp pågår – dag %lld · %@" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Heat in progress – day %1$lld · %2$@" } } }
+    },
+    "Löp pågår – dag %lld" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Heat in progress – day %lld" } } }
+    },
+    "Förväntat löp" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Expected heat" } } }
+    },
+    "Skada: %@%@" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Injury: %1$@%2$@" } } }
+    },
+    "Översikt" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Overview" } } }
+    },
+    "Vikt" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Weight" } } }
+    },
+    "Logga vikt" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Log weight" } } }
+    },
+    "Väg in %@ under Hälsa" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Weigh %@ under Health" } } }
+    },
+    "Motion" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Exercise" } } }
+    },
+    "Dags för en promenad? 🐾" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Time for a walk? 🐾" } } }
+    },
+    "Hälsa" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Health" } } }
+    },
+    "Allt bra" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "All good" } } }
+    },
+    "Löp" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Heat" } } }
+    },
+    "Dag %lld" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Day %lld" } } }
+    },
+    "Avsluta löpet?" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "End the heat?" } } }
+    },
+    "%lld dagar" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "%lld days" } } }
+    },
+    "till nästa löp" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "until next heat" } } }
+    },
+    "Ingen prognos än" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "No forecast yet" } } }
+    },
+    "Registrera löp i Kalender" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Log a heat in Calendar" } } }
+    },
+    "Född %@ · %@" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Born %1$@ · %2$@" } } }
+    },
+    "Hundkort" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Dog card" } } }
+    },
+    "Aktiv hund med namn, ras och ålder" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Active dog with name, breed and age" } } }
+    },
+    "Dagens att-göra för din hund" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Today's to-dos for your dog" } } }
+    },
+    "Snabbknappar till dina favoritdelar" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Quick buttons to your favorite sections" } } }
+    },
+    "Vikt, motion, hälsa och löp" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Weight, exercise, health and heat" } } }
+    },
+    "Statistik" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Statistics" } } }
+    },
+    "Träning" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Training" } } }
+    },
+    "Foder" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Food" } } }
+    },
+    "Hundprofil" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Dog profile" } } }
+    },
+    "Exportera PDF" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Export PDF" } } }
+    },
+    "Påminnelser" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Reminders" } } }
+    },
+    "Dagbok" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Diary" } } }
+    },
+    "Tik" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Female" } } }
+    },
+    "Hane" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Male" } } }
+    },
+    "Veterinärbesök" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Vet visit" } } }
+    },
+    "Vaccination" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Vaccination" } } }
+    },
+    "Insemination" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Insemination" } } }
+    },
+    "Vägning" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Weighing" } } }
+    },
+    "Temperatur" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Temperature" } } }
+    },
+    "Medicin" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Medication" } } }
+    },
+    "Skada" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Injury" } } }
+    },
+    "Anteckning" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Note" } } }
+    },
+    "Aktiv" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Active" } } }
+    },
+    "Läker" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Healing" } } }
+    },
+    "Läkt" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Healed" } } }
+    },
+    "Proöstrus" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Proestrus" } } }
+    },
+    "Östrus" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Estrus" } } }
+    },
+    "Metöstrus" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Metestrus" } } }
+    },
+    "Förlöp" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Early heat" } } }
+    },
+    "Höglöp" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Standing heat" } } }
+    },
+    "Efterlöp" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Late heat" } } }
+    },
+    "Planerar du parning? Boka progesteronprov — det tas runt dygn %lld." : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Planning a mating? Book a progesterone test — it's taken around day %lld." } } }
+    },
+    "Rekommenderad provdag. Progesteronprov idag fångar LH-toppen hos de flesta tikar." : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Recommended test day. A progesterone test today catches the LH surge in most females." } } }
+    },
+    "Provdagen (dygn %lld) har passerat. Kontakta veterinär om parning planeras — proverna kan behöva tas tätare nu." : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "The test day (day %lld) has passed. Contact your vet if a mating is planned — tests may need to be taken more frequently now." } } }
+    },
+    "1 år" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "1 year" } } }
+    },
+    "%lld år" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "%lld years" } } }
+    },
+    "%lld år %lld mån" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "%1$lld yr %2$lld mo" } } }
+    },
+    "1 månad" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "1 month" } } }
+    },
+    "%lld månader" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "%lld months" } } }
+    },
+    "1 vecka" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "1 week" } } }
+    },
+    "%lld veckor" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "%lld weeks" } } }
+    },
+    "Nyfödd" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Newborn" } } }
+    },
+    "Hälsologg" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Health log" } } }
+    },
+    "Löpcykler" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Heat cycles" } } }
+    },
+    "Foderdagbok" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Food diary" } } }
+    },
+    "Läsa" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "View" } } }
+    },
+    "Läsa och logga" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "View and log" } } }
+    }
+  },
+  "version" : "1.0"
+}

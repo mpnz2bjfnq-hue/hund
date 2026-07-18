@@ -10,13 +10,14 @@
 import SwiftUI
 
 struct HintBubble: View {
-    let text: String
+    // LocalizedStringKey så att tipstexterna blir lokaliserbara nycklar.
+    let text: LocalizedStringKey
     private let storageKey: String
 
     @AppStorage private var dismissed: Bool
     @State private var pulse = false
 
-    init(_ text: String, key: String) {
+    init(_ text: LocalizedStringKey, key: String) {
         self.text = text
         self.storageKey = key
         _dismissed = AppStorage(wrappedValue: false, key)

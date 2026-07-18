@@ -21,14 +21,14 @@ enum HealthEventType: String, Codable, CaseIterable, Identifiable {
 
     var displayName: String {
         switch self {
-        case .vetVisit: "Veterinärbesök"
-        case .vaccination: "Vaccination"
-        case .insemination: "Insemination"
-        case .weighing: "Vägning"
-        case .temperature: "Temperatur"
-        case .medication: "Medicin"
-        case .injury: "Skada"
-        case .note: "Anteckning"
+        case .vetVisit: String(localized: "Veterinärbesök")
+        case .vaccination: String(localized: "Vaccination")
+        case .insemination: String(localized: "Insemination")
+        case .weighing: String(localized: "Vägning")
+        case .temperature: String(localized: "Temperatur")
+        case .medication: String(localized: "Medicin")
+        case .injury: String(localized: "Skada")
+        case .note: String(localized: "Anteckning")
         }
     }
 
@@ -109,9 +109,9 @@ enum HealingStatus: String, Codable, CaseIterable, Identifiable {
 
     var displayName: String {
         switch self {
-        case .active:  "Aktiv"
-        case .healing: "Läker"
-        case .healed:  "Läkt"
+        case .active:  String(localized: "Aktiv")
+        case .healing: String(localized: "Läker")
+        case .healed:  String(localized: "Läkt")
         }
     }
 }

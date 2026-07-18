@@ -52,7 +52,7 @@ enum WidgetDataService {
                     let day = HeatPhase.elapsedDays(in: ongoing, calendar: .current)
                     items.append(WidgetSnapshot.Item(
                         date: now,
-                        title: "Löp pågår – dag \(day)",
+                        title: String(localized: "Löp pågår – dag \(day)"),
                         subtitle: HeatPhase.isOverdue(day: day) ? nil : HeatPhase.forDayInCycle(day).swedishCommon,
                         kind: .heat
                     ))
@@ -63,7 +63,7 @@ enum WidgetDataService {
                         .nextExpectedStartDate, next > now {
                         items.append(WidgetSnapshot.Item(
                             date: next,
-                            title: "Förväntat löp",
+                            title: String(localized: "Förväntat löp"),
                             subtitle: nil,
                             kind: .heat
                         ))

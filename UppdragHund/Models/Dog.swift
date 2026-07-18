@@ -14,8 +14,8 @@ enum DogSex: String, Codable, CaseIterable, Identifiable {
 
     var displayName: String {
         switch self {
-        case .female: "Tik"
-        case .male: "Hane"
+        case .female: String(localized: "Tik")
+        case .male: String(localized: "Hane")
         }
     }
 }

@@ -15,19 +15,19 @@ enum HomeBlock: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .dog:       "Hundkort"
-        case .today:     "Idag"
-        case .shortcuts: "Genvägar"
-        case .overview:  "Översikt"
+        case .dog:       String(localized: "Hundkort")
+        case .today:     String(localized: "Idag")
+        case .shortcuts: String(localized: "Genvägar")
+        case .overview:  String(localized: "Översikt")
         }
     }
 
     var subtitle: String {
         switch self {
-        case .dog:       "Aktiv hund med namn, ras och ålder"
-        case .today:     "Dagens att-göra för din hund"
-        case .shortcuts: "Snabbknappar till dina favoritdelar"
-        case .overview:  "Vikt, motion, hälsa och löp"
+        case .dog:       String(localized: "Aktiv hund med namn, ras och ålder")
+        case .today:     String(localized: "Dagens att-göra för din hund")
+        case .shortcuts: String(localized: "Snabbknappar till dina favoritdelar")
+        case .overview:  String(localized: "Vikt, motion, hälsa och löp")
         }
     }
 

@@ -55,18 +55,18 @@ enum HeatPhase: Equatable {
     /// Klinisk term.
     var displayName: String {
         switch self {
-        case .proestrus: "Proöstrus"
-        case .estrus: "Östrus"
-        case .metestrus: "Metöstrus"
+        case .proestrus: String(localized: "Proöstrus")
+        case .estrus: String(localized: "Östrus")
+        case .metestrus: String(localized: "Metöstrus")
         }
     }
 
-    /// Vardaglig svensk term.
+    /// Vardaglig term.
     var swedishCommon: String {
         switch self {
-        case .proestrus: "Förlöp"
-        case .estrus: "Höglöp"
-        case .metestrus: "Efterlöp"
+        case .proestrus: String(localized: "Förlöp")
+        case .estrus: String(localized: "Höglöp")
+        case .metestrus: String(localized: "Efterlöp")
         }
     }
 
@@ -302,13 +302,13 @@ enum HeatGuide {
     /// Kort rad som visas för dagens läge i ett pågående löp.
     static func todayHint(forDay day: Int) -> String? {
         if HeatPhase.isBookingDay(day) {
-            return "Planerar du parning? Boka progesteronprov — det tas runt dygn \(HeatPhase.progesteroneTestDay)."
+            return String(localized: "Planerar du parning? Boka progesteronprov — det tas runt dygn \(HeatPhase.progesteroneTestDay).")
         }
         if HeatPhase.isTestDay(day) {
-            return "Rekommenderad provdag. Progesteronprov idag fångar LH-toppen hos de flesta tikar."
+            return String(localized: "Rekommenderad provdag. Progesteronprov idag fångar LH-toppen hos de flesta tikar.")
         }
         if day > HeatPhase.progesteroneTestDay && day <= 15 {
-            return "Provdagen (dygn \(HeatPhase.progesteroneTestDay)) har passerat. Kontakta veterinär om parning planeras — proverna kan behöva tas tätare nu."
+            return String(localized: "Provdagen (dygn \(HeatPhase.progesteroneTestDay)) har passerat. Kontakta veterinär om parning planeras — proverna kan behöva tas tätare nu.")
         }
         return nil
     }

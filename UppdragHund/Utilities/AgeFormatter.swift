@@ -14,19 +14,21 @@ enum AgeFormatter {
         let days = max(components.day ?? 0, 0)
 
         if years >= 1 {
-            guard months > 0 else { return years == 1 ? "1 år" : "\(years) år" }
-            return "\(years) år \(months) mån"
+            guard months > 0 else {
+                return years == 1 ? String(localized: "1 år") : String(localized: "\(years) år")
+            }
+            return String(localized: "\(years) år \(months) mån")
         }
 
         if months >= 1 {
-            return months == 1 ? "1 månad" : "\(months) månader"
+            return months == 1 ? String(localized: "1 månad") : String(localized: "\(months) månader")
         }
 
         let weeks = days / 7
         if weeks >= 1 {
-            return weeks == 1 ? "1 vecka" : "\(weeks) veckor"
+            return weeks == 1 ? String(localized: "1 vecka") : String(localized: "\(weeks) veckor")
         }
 
-        return "Nyfödd"
+        return String(localized: "Nyfödd")
     }
 }

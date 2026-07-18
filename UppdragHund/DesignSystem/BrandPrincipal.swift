@@ -9,7 +9,9 @@
 import SwiftUI
 
 struct BrandPrincipal: View {
-    let title: String
+    // LocalizedStringKey så att alla anropsplatsers literaler blir
+    // lokaliserbara nycklar utan ändringar där.
+    let title: LocalizedStringKey
 
     var body: some View {
         VStack(spacing: 1) {
@@ -26,7 +28,7 @@ struct BrandPrincipal: View {
                 .foregroundStyle(Theme.Colors.textSecondary)
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Canine360, \(title)")
+        .accessibilityLabel(Text(title))
     }
 }
 

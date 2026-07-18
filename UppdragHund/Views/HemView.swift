@@ -245,7 +245,7 @@ struct HemView: View {
         for meetup in todayMeetups {
             cards.append(TodayCard(
                 icon: "calendar",
-                text: "Träff idag: \(meetup.title) kl \(meetup.date.formatted(date: .omitted, time: .shortened))",
+                text: String(localized: "Träff idag: \(meetup.title) kl \(meetup.date.formatted(date: .omitted, time: .shortened))"),
                 tint: Theme.Colors.brand, attention: true,
                 destination: AnyView(MeetupsListView())
             ))
@@ -253,7 +253,7 @@ struct HemView: View {
         if todayMeetups.isEmpty, let next = nextMeetup {
             cards.append(TodayCard(
                 icon: "calendar",
-                text: "Nästa träff: \(next.title), \(next.date.formatted(.dateTime.weekday(.abbreviated).day().month()))",
+                text: String(localized: "Nästa träff: \(next.title), \(next.date.formatted(.dateTime.weekday(.abbreviated).day().month()))"),
                 tint: Theme.Colors.brand, attention: false,
                 destination: AnyView(MeetupsListView())
             ))
@@ -261,7 +261,9 @@ struct HemView: View {
         for due in dueTasksByTeam {
             cards.append(TodayCard(
                 icon: "checklist",
-                text: "\(due.team.name): \(due.count) \(due.count == 1 ? "uppgift" : "uppgifter") att bocka av",
+                text: due.count == 1
+                    ? String(localized: "\(due.team.name): 1 uppgift att bocka av")
+                    : String(localized: "\(due.team.name): \(due.count) uppgifter att bocka av"),
                 tint: Theme.Colors.brand, attention: true,
                 destination: AnyView(TeamPageView(team: due.team, startOnTasks: true))
             ))
@@ -269,7 +271,7 @@ struct HemView: View {
 
         if allGood {
             cards.append(TodayCard(
-                icon: "checkmark.seal.fill", text: "Allt ser bra ut idag 🐾",
+                icon: "checkmark.seal.fill", text: String(localized: "Allt ser bra ut idag 🐾"),
                 tint: Theme.Colors.verified, attention: false, destination: nil
             ))
         }
@@ -291,10 +293,10 @@ struct HemView: View {
     private var greeting: (icon: String, text: String) {
         let hour = calendar.component(.hour, from: .now)
         switch hour {
-        case 5..<10:  return ("sunrise.fill", "God morgon! Redo för dagen med \(dog.name)?")
-        case 10..<17: return ("sun.max.fill", "God eftermiddag med \(dog.name) 🐾")
-        case 17..<22: return ("sunset.fill", "God kväll! Hur har dagen med \(dog.name) varit?")
-        default:      return ("moon.stars.fill", "God natt – vila så ni orkar imorgon 🐾")
+        case 5..<10:  return ("sunrise.fill", String(localized: "God morgon! Redo för dagen med \(dog.name)?"))
+        case 10..<17: return ("sun.max.fill", String(localized: "God eftermiddag med \(dog.name) 🐾"))
+        case 17..<22: return ("sunset.fill", String(localized: "God kväll! Hur har dagen med \(dog.name) varit?"))
+        default:      return ("moon.stars.fill", String(localized: "God natt – vila så ni orkar imorgon 🐾"))
         }
     }
 
@@ -312,20 +314,22 @@ struct HemView: View {
         // och fram till en födelsedag vid midnatt blir det strax under ett helt
         // år, vilket annars ger ett år för lite (0 i stället för 1).
         let turning = calendar.component(.year, from: next) - calendar.component(.year, from: dog.birthDate)
-        if days == 0 { return "🎂 Grattis \(dog.name) – \(turning) år idag!" }
-        return "🎂 \(dog.name) fyller \(turning) år om \(days) \(days == 1 ? "dag" : "dagar")"
+        if days == 0 { return String(localized: "🎂 Grattis \(dog.name) – \(turning) år idag!") }
+        return days == 1
+            ? String(localized: "🎂 \(dog.name) fyller \(turning) år imorgon")
+            : String(localized: "🎂 \(dog.name) fyller \(turning) år om \(days) dagar")
     }
 
     /// Dagens tips – varierar per dag så det inte står stilla.
     private var dailyTip: String {
         let tips = [
-            "Tips: variera promenadrutten – nya dofter tröttar hjärnan mer än extra minuter.",
-            "Tips: kolla tassarna efter promenaden, särskilt mellan trampdynorna.",
-            "Tips: korta träningspass flera gånger om dagen slår ett långt.",
-            "Tips: färskt vatten alltid framme – särskilt varma dagar.",
-            "Tips: väg din hund regelbundet, små förändringar syns tidigast på vågen.",
-            "Tips: borsta tänderna eller ge tuggben – tandhälsa påverkar hela hunden.",
-            "Tips: låt hunden nosa klart ibland, det är mental motion."
+            String(localized: "Tips: variera promenadrutten – nya dofter tröttar hjärnan mer än extra minuter."),
+            String(localized: "Tips: kolla tassarna efter promenaden, särskilt mellan trampdynorna."),
+            String(localized: "Tips: korta träningspass flera gånger om dagen slår ett långt."),
+            String(localized: "Tips: färskt vatten alltid framme – särskilt varma dagar."),
+            String(localized: "Tips: väg din hund regelbundet, små förändringar syns tidigast på vågen."),
+            String(localized: "Tips: borsta tänderna eller ge tuggben – tandhälsa påverkar hela hunden."),
+            String(localized: "Tips: låt hunden nosa klart ibland, det är mental motion.")
         ]
         let dayOfYear = calendar.ordinality(of: .day, in: .year, for: .now) ?? 1
         return tips[dayOfYear % tips.count]
@@ -342,8 +346,8 @@ struct HemView: View {
 
     private var motionAgendaText: String {
         todaysTrainingMinutes > 0
-            ? "\(todaysTrainingMinutes) min motion loggad idag"
-            : "Ingen promenad loggad än — dags för en runda med \(dog.name)?"
+            ? String(localized: "\(todaysTrainingMinutes) min motion loggad idag")
+            : String(localized: "Ingen promenad loggad än — dags för en runda med \(dog.name)?")
     }
 
     /// Löp-signal idag: fas + ev. progesteron-nudge. nil om ingen tik/löp.
@@ -355,9 +359,9 @@ struct HemView: View {
             return (hint, true)
         }
         guard !HeatPhase.isOverdue(day: day) else {
-            return ("Löp pågår – dag \(day). Avsluta det i Kalender om det är över.", true)
+            return (String(localized: "Löp pågår – dag \(day). Avsluta det i Kalender om det är över."), true)
         }
-        return ("Löp pågår – dag \(day) · \(HeatPhase.forDayInCycle(day).swedishCommon)", false)
+        return (String(localized: "Löp pågår – dag \(day) · \(HeatPhase.forDayInCycle(day).swedishCommon)"), false)
     }
 
     /// Skador som inte markerats som läkta. En läkt skada räknas inte längre
@@ -374,7 +378,7 @@ struct HemView: View {
         let cutoff = calendar.date(byAdding: .day, value: -14, to: .now) ?? .now
         guard let injury = activeInjuries.first(where: { $0.date >= cutoff }) else { return nil }
         let status = injury.injuryStatus.map { " · \($0.displayName.lowercased())" } ?? ""
-        return "Skada: \(injury.title)\(status)"
+        return String(localized: "Skada: \(injury.title)\(status)")
     }
 
     private var allGood: Bool {
@@ -474,10 +478,10 @@ struct HemView: View {
             }
         }
         return StatTile(
-            icon: "scalemass.fill", category: "Vikt",
-            value: latest.map { String(format: "%.1f kg", $0) } ?? "Logga vikt",
+            icon: "scalemass.fill", category: String(localized: "Vikt"),
+            value: latest.map { String(format: "%.1f kg", $0) } ?? String(localized: "Logga vikt"),
             delta: delta, deltaPositive: deltaPositive,
-            subtitle: latest == nil ? "Väg in \(dog.name) under Hälsa" : nil,
+            subtitle: latest == nil ? String(localized: "Väg in \(dog.name) under Hälsa") : nil,
             tint: Theme.Colors.brand
         )
     }
@@ -488,18 +492,18 @@ struct HemView: View {
             .compactMap(\.durationMinutes)
             .reduce(0, +)
         return StatTile(
-            icon: "figure.walk", category: "Motion",
+            icon: "figure.walk", category: String(localized: "Motion"),
             value: todaysMinutes > 0 ? "\(todaysMinutes) min" : "0 min",
-            subtitle: todaysMinutes > 0 ? nil : "Dags för en promenad? 🐾",
+            subtitle: todaysMinutes > 0 ? nil : String(localized: "Dags för en promenad? 🐾"),
             tint: Theme.Colors.brand
         )
     }
 
     private var healthTile: some View {
         let injuries = activeInjuries
-        let value = injuries.first?.title ?? "Allt bra"
+        let value = injuries.first?.title ?? String(localized: "Allt bra")
         return StatTile(
-            icon: "heart.text.square.fill", category: "Hälsa", value: value,
+            icon: "heart.text.square.fill", category: String(localized: "Hälsa"), value: value,
             subtitle: injuries.first?.injuryStatus?.displayName,
             tint: injuries.isEmpty ? Theme.Colors.brand : Theme.Colors.warning
         )
@@ -508,7 +512,7 @@ struct HemView: View {
     private var heatTile: some View {
         let data = heatTileData
         return StatTile(
-            icon: "drop.fill", category: "Löp", value: data.value,
+            icon: "drop.fill", category: String(localized: "Löp"), value: data.value,
             subtitle: data.subtitle, tint: Theme.Colors.heat,
             pulse: dog.heatCycles.contains { $0.isOngoing }
         )
@@ -521,9 +525,9 @@ struct HemView: View {
             // Förbi taket är löpet nästan alltid glömt — påstå ingen fas, be om
             // att det avslutas i stället.
             guard !HeatPhase.isOverdue(day: day) else {
-                return ("Dag \(day)", "Avsluta löpet?")
+                return (String(localized: "Dag \(day)"), String(localized: "Avsluta löpet?"))
             }
-            return ("Dag \(day)", HeatPhase.forDayInCycle(day).swedishCommon)
+            return (String(localized: "Dag \(day)"), HeatPhase.forDayInCycle(day).swedishCommon)
         }
         if let next = nextHeatDate, next > .now {
             let days = calendar.dateComponents(
@@ -531,9 +535,9 @@ struct HemView: View {
                 from: calendar.startOfDay(for: .now),
                 to: calendar.startOfDay(for: next)
             ).day ?? 0
-            return ("\(days) dagar", "till nästa löp")
+            return (String(localized: "\(days) dagar"), String(localized: "till nästa löp"))
         }
-        return ("Ingen prognos än", "Registrera löp i Kalender")
+        return (String(localized: "Ingen prognos än"), String(localized: "Registrera löp i Kalender"))
     }
 
     // MARK: - Löp-prediktion (samma källa som Kalender)

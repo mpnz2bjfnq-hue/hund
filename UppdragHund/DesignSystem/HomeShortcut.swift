@@ -16,14 +16,14 @@ enum HomeShortcut: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .health:   "Hälsa"
-        case .stats:    "Statistik"
-        case .training: "Träning"
-        case .food:     "Foder"
-        case .profile:  "Hundprofil"
-        case .export:   "Exportera PDF"
-        case .reminders: "Påminnelser"
-        case .diary:    "Dagbok"
+        case .health:   String(localized: "Hälsa")
+        case .stats:    String(localized: "Statistik")
+        case .training: String(localized: "Träning")
+        case .food:     String(localized: "Foder")
+        case .profile:  String(localized: "Hundprofil")
+        case .export:   String(localized: "Exportera PDF")
+        case .reminders: String(localized: "Påminnelser")
+        case .diary:    String(localized: "Dagbok")
         }
     }
 

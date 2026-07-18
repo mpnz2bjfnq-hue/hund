@@ -287,9 +287,10 @@
 				};
 			};
 			buildConfigurationList = FA5D82CE3005699C0004E39E /* Build configuration list for PBXProject "Canine360" */;
-			developmentRegion = en;
+			developmentRegion = sv;
 			hasScannedForEncodings = 0;
 			knownRegions = (
+				sv,
 				en,
 				Base,
 			);

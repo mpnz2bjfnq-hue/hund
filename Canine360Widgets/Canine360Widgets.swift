@@ -87,9 +87,9 @@ struct SnapshotEntry: TimelineEntry {
             breed: "Schäfer",
             photoData: nil,
             upcoming: [
-                .init(date: now.addingTimeInterval(3600 * 26), title: "Veterinärbesök", subtitle: "Vaccination", kind: .health),
-                .init(date: now.addingTimeInterval(3600 * 24 * 3), title: "Hundträff i parken", subtitle: "Stadsparken", kind: .meetup),
-                .init(date: now.addingTimeInterval(3600 * 24 * 12), title: "Förväntat löp", subtitle: nil, kind: .heat),
+                .init(date: now.addingTimeInterval(3600 * 26), title: String(localized: "Veterinärbesök"), subtitle: String(localized: "Vaccination"), kind: .health),
+                .init(date: now.addingTimeInterval(3600 * 24 * 3), title: String(localized: "Hundträff i parken"), subtitle: String(localized: "Stadsparken"), kind: .meetup),
+                .init(date: now.addingTimeInterval(3600 * 24 * 12), title: String(localized: "Förväntat löp"), subtitle: nil, kind: .heat),
             ],
             canLogModules: ["health", "meals", "training", "diary"]
         ), hasSnapshot: true)
@@ -141,20 +141,20 @@ extension WidgetSnapshot.Item {
         }
     }
 
-    /// Kort svensk datumetikett: "Pågår", "Idag 14:00", "Imorgon", "Om 5 d".
+    /// Kort datumetikett: "Pågår", "Idag 14:00", "Imorgon", "Om 5 d".
     var dateLabel: String {
         let calendar = Calendar.current
-        if date <= .now { return "Pågår" }
+        if date <= .now { return String(localized: "Pågår") }
         if calendar.isDateInToday(date) {
-            return "Idag \(date.formatted(date: .omitted, time: .shortened))"
+            return String(localized: "Idag \(date.formatted(date: .omitted, time: .shortened))")
         }
-        if calendar.isDateInTomorrow(date) { return "Imorgon" }
+        if calendar.isDateInTomorrow(date) { return String(localized: "Imorgon") }
         let days = calendar.dateComponents(
             [.day],
             from: calendar.startOfDay(for: .now),
             to: calendar.startOfDay(for: date)
         ).day ?? 0
-        if days < 7 { return "Om \(days) d" }
+        if days < 7 { return String(localized: "Om \(days) d") }
         return date.formatted(.dateTime.day().month(.abbreviated))
     }
 }
@@ -362,14 +362,14 @@ struct KommandeView: View {
 
     private func circularDayLabel(for item: WidgetSnapshot.Item) -> String {
         let calendar = Calendar.current
-        if item.date <= .now { return "Nu" }
-        if calendar.isDateInToday(item.date) { return "Idag" }
+        if item.date <= .now { return String(localized: "Nu") }
+        if calendar.isDateInToday(item.date) { return String(localized: "Idag") }
         let days = calendar.dateComponents(
             [.day],
             from: calendar.startOfDay(for: .now),
             to: calendar.startOfDay(for: item.date)
         ).day ?? 0
-        return "\(days) d"
+        return String(localized: "\(days) d")
     }
 }
 
@@ -402,10 +402,10 @@ struct SnapploggaView: View {
     }
 
     private let actions: [Action] = [
-        Action(id: "halsa", title: "Hälsa", icon: "heart.text.square.fill", module: "health"),
-        Action(id: "foder", title: "Foder", icon: "fork.knife", module: "meals"),
-        Action(id: "traning", title: "Träning", icon: "figure.run", module: "training"),
-        Action(id: "dagbok", title: "Dagbok", icon: "book.fill", module: "diary"),
+        Action(id: "halsa", title: String(localized: "Hälsa"), icon: "heart.text.square.fill", module: "health"),
+        Action(id: "foder", title: String(localized: "Foder"), icon: "fork.knife", module: "meals"),
+        Action(id: "traning", title: String(localized: "Träning"), icon: "figure.run", module: "training"),
+        Action(id: "dagbok", title: String(localized: "Dagbok"), icon: "book.fill", module: "diary"),
     ]
 
     private var allowedActions: [Action] {
@@ -416,7 +416,7 @@ struct SnapploggaView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text(entry.dog.map { "Logga för \($0.name)" } ?? "Snapplogga")
+                Text(entry.dog.map { String(localized: "Logga för \($0.name)") } ?? String(localized: "Snapplogga"))
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(WidgetTheme.textSecondary)
                 Spacer()
@@ -426,7 +426,7 @@ struct SnapploggaView: View {
             }
             if allowedActions.isEmpty {
                 Spacer(minLength: 0)
-                Text("Du har läsbehörighet för \(entry.dog?.name ?? "hunden") — be ägaren om loggbehörighet för att snapplogga.")
+                Text("Du har läsbehörighet för \(entry.dog?.name ?? String(localized: "hunden")) — be ägaren om loggbehörighet för att snapplogga.")
                     .font(.caption)
                     .foregroundStyle(WidgetTheme.textSecondary)
                 Spacer(minLength: 0)

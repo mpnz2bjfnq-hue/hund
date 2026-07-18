@@ -18,11 +18,11 @@ enum SharedModule: String, Codable, CaseIterable, Identifiable {
 
     var displayName: String {
         switch self {
-        case .health: "Hälsologg"
-        case .heat: "Löpcykler"
-        case .diary: "Dagbok"
-        case .meals: "Foderdagbok"
-        case .training: "Träning"
+        case .health: String(localized: "Hälsologg")
+        case .heat: String(localized: "Löpcykler")
+        case .diary: String(localized: "Dagbok")
+        case .meals: String(localized: "Foderdagbok")
+        case .training: String(localized: "Träning")
         }
     }
 
@@ -56,8 +56,8 @@ enum SharePermission: String, Codable, CaseIterable, Identifiable {
 
     var displayName: String {
         switch self {
-        case .read: "Läsa"
-        case .readWrite: "Läsa och logga"
+        case .read: String(localized: "Läsa")
+        case .readWrite: String(localized: "Läsa och logga")
         }
     }
 }
