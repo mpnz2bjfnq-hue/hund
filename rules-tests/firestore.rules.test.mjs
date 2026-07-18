@@ -17,7 +17,7 @@ import {
   assertFails,
 } from "@firebase/rules-unit-testing";
 import {
-  doc, getDoc, getDocs, setDoc, deleteDoc, collection, query, where,
+  doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, collection, query, where, arrayUnion,
 } from "firebase/firestore";
 
 const OWNER = "owner-uid";
@@ -81,6 +81,11 @@ beforeEach(async () => {
     });
     await setDoc(doc(db, "users", OWNER), {
       displayName: "Alex", handle: "alex", createdAt: new Date(),
+    });
+    await setDoc(doc(db, "dogPlaces", "place1"), {
+      name: "Hundcaféet", category: "cafe", latitude: 59.3, longitude: 18.0,
+      createdByUid: OWNER, createdByName: "Alex", createdAt: new Date(),
+      recommendedBy: [],
     });
     await setDoc(doc(db, "deviceTokens", "token-owner"), {
       uid: OWNER, updatedAt: new Date(),
@@ -239,4 +244,57 @@ test("man kan inte sätta instructor-flaggan på sin egen profil", async () => {
   await assertFails(
     setDoc(doc(asUser(OWNER), "users", OWNER), { instructor: true }, { merge: true })
   );
+});
+
+// ===== dogPlaces: community-tips =====
+
+test("alla inloggade kan läsa och lägga till ställen", async () => {
+  await assertSucceeds(getDocs(collection(asUser(STRANGER), "dogPlaces")));
+  await assertSucceeds(
+    setDoc(doc(asUser(STRANGER), "dogPlaces", "new-place"), {
+      name: "Strandparken", category: "park", latitude: 59.1, longitude: 18.1,
+      createdByUid: STRANGER, createdByName: "Okänd", createdAt: new Date(),
+      recommendedBy: [],
+    })
+  );
+});
+
+test("man kan inte skapa ställe i någon annans namn", async () => {
+  await assertFails(
+    setDoc(doc(asUser(STRANGER), "dogPlaces", "forged"), {
+      name: "Fejk", category: "park", latitude: 0, longitude: 0,
+      createdByUid: OWNER, createdByName: "Alex", createdAt: new Date(),
+      recommendedBy: [],
+    })
+  );
+});
+
+test("vem som helst kan rekommendera (bara sitt eget uid)", async () => {
+  await assertSucceeds(
+    updateDoc(doc(asUser(FRIEND), "dogPlaces", "place1"), {
+      recommendedBy: arrayUnion(FRIEND),
+    })
+  );
+});
+
+test("man kan inte lägga in någon annans uid som rekommendation", async () => {
+  await assertFails(
+    updateDoc(doc(asUser(FRIEND), "dogPlaces", "place1"), {
+      recommendedBy: arrayUnion(STRANGER),
+    })
+  );
+});
+
+test("bara skaparen kan redigera ställets fält", async () => {
+  await assertFails(
+    updateDoc(doc(asUser(FRIEND), "dogPlaces", "place1"), { name: "Kapat" })
+  );
+  await assertSucceeds(
+    updateDoc(doc(asUser(OWNER), "dogPlaces", "place1"), { name: "Nytt namn" })
+  );
+});
+
+test("bara skaparen kan radera sitt ställe", async () => {
+  await assertFails(deleteDoc(doc(asUser(FRIEND), "dogPlaces", "place1")));
+  await assertSucceeds(deleteDoc(doc(asUser(OWNER), "dogPlaces", "place1")));
 });

@@ -88,6 +88,23 @@ service cloud.firestore {
       allow read, delete: if isAdmin();
     }
 
+    // Community-tipsade hundvänliga ställen: alla inloggade läser och
+    // lägger till. Ägaren redigerar/raderar sitt eget; vem som helst
+    // togglar bara SITT EGET uid i recommendedBy (tass-betyget).
+    match /dogPlaces/{placeId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+                    && request.resource.data.createdByUid == request.auth.uid
+                    && request.resource.data.recommendedBy is list;
+      allow update: if request.auth != null
+                    && (request.auth.uid == resource.data.createdByUid
+                        || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['recommendedBy'])
+                            && request.resource.data.recommendedBy.toSet().difference(resource.data.recommendedBy.toSet()).hasOnly([request.auth.uid])
+                            && resource.data.recommendedBy.toSet().difference(request.resource.data.recommendedBy.toSet()).hasOnly([request.auth.uid])));
+      allow delete: if request.auth != null
+                    && (request.auth.uid == resource.data.createdByUid || isAdmin());
+    }
+
     // Enhets-token-register. Dokument-ID:t är FCM-token — bara enheten som
     // har token känner till det, så innehav av ID:t är behörigheten.
     // INGEN list: annars kan en inloggad användare skörda alla tokens.

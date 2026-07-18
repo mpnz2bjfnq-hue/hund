@@ -1128,6 +1128,16 @@
         }
       }
     },
+    "Badplats": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Beach"
+          }
+        }
+      }
+    },
     "Bak höger ben": {
       "localizations": {
         "en": {
@@ -1354,6 +1364,16 @@
         }
       }
     },
+    "Butik": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shop"
+          }
+        }
+      }
+    },
     "Byt bild": {
       "localizations": {
         "en": {
@@ -1370,6 +1390,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Change cover"
+          }
+        }
+      }
+    },
+    "Café": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Café"
           }
         }
       }
@@ -2772,6 +2802,16 @@
         }
       }
     },
+    "Hotell": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hotel"
+          }
+        }
+      }
+    },
     "Humör": {
       "localizations": {
         "en": {
@@ -2943,6 +2983,7 @@
       }
     },
     "Hundvänligt café": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -3048,6 +3089,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Fetching friends…"
+          }
+        }
+      }
+    },
+    "Här": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Here"
           }
         }
       }
@@ -3368,6 +3419,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "No support tickets. 🎉"
+          }
+        }
+      }
+    },
+    "Inga tips än": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No tips yet"
           }
         }
       }
@@ -4194,6 +4255,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Sources"
+          }
+        }
+      }
+    },
+    "Känner du till ett hundvänligt ställe? Tryck på + och dela det med andra hundägare.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Know a dog-friendly place? Tap + and share it with other dog owners."
           }
         }
       }
@@ -5203,6 +5274,16 @@
         }
       }
     },
+    "Namn på stället": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Name of the place"
+          }
+        }
+      }
+    },
     "Namn/klinik": {
       "localizations": {
         "en": {
@@ -5655,6 +5736,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "The PDF couldn't be created. Try again."
+          }
+        }
+      }
+    },
+    "Park": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Park"
           }
         }
       }
@@ -6171,6 +6262,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Recommended test day. A progesterone test today catches the LH surge in most females."
+          }
+        }
+      }
+    },
+    "Restaurang": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restaurant"
           }
         }
       }
@@ -6792,6 +6893,16 @@
         }
       }
     },
+    "Stället granskas av en moderator. Tack för att du hjälper till.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The place will be reviewed by a moderator. Thanks for helping out."
+          }
+        }
+      }
+    },
     "Stäng": {
       "localizations": {
         "en": {
@@ -7028,6 +7139,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Delete the discussion?"
+          }
+        }
+      }
+    },
+    "Ta bort ditt tips?": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete your tip?"
           }
         }
       }
@@ -7308,6 +7429,26 @@
         }
       }
     },
+    "Tips (valfritt) — t.ex. vattenskål ute, hundgodis i disken": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tip (optional) — e.g. water bowl outside, dog treats at the counter"
+          }
+        }
+      }
+    },
+    "Tips 🐾": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tips 🐾"
+          }
+        }
+      }
+    },
     "Tips: borsta tänderna eller ge tuggben – tandhälsa påverkar hela hunden.": {
       "localizations": {
         "en": {
@@ -7374,6 +7515,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Tip: weigh your dog regularly – small changes show up on the scale first."
+          }
+        }
+      }
+    },
+    "Tipsa om ställe": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Suggest a place"
           }
         }
       }
@@ -7474,6 +7625,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Tap the map where the injury is."
+          }
+        }
+      }
+    },
+    "Tryck på kartan för att flytta nålen till rätt ställe.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tap the map to move the pin to the right spot."
           }
         }
       }
