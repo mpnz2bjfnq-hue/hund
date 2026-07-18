@@ -1424,6 +1424,16 @@
         }
       }
     },
+    "DISTANS": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "DISTANCE"
+          }
+        }
+      }
+    },
     "Dag": {
       "localizations": {
         "en": {
@@ -2466,6 +2476,36 @@
           "stringUnit": {
             "state": "translated",
             "value": "Expected heat"
+          }
+        }
+      }
+    },
+    "GPS BRA": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "GPS GOOD"
+          }
+        }
+      }
+    },
+    "GPS OK": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "GPS OK"
+          }
+        }
+      }
+    },
+    "GPS SVAG": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "GPS WEAK"
           }
         }
       }
@@ -6470,6 +6510,16 @@
         }
       }
     },
+    "SÖKER GPS": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ACQUIRING GPS"
+          }
+        }
+      }
+    },
     "Så funkar löpet": {
       "localizations": {
         "en": {
@@ -6516,6 +6566,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "E.g. \"🐾 German Shepherd owner from Örebro. Training IPO and obedience.\" Max %lld characters."
+          }
+        }
+      }
+    },
+    "TEMPO": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "PACE"
+          }
+        }
+      }
+    },
+    "TID": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TIME"
           }
         }
       }

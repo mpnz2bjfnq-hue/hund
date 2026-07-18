@@ -22,15 +22,14 @@ struct WalkTrackerView: View {
 
     private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
-    private var distanceText: String {
-        if tracker.meters >= 1000 {
-            return String(format: "%.2f km", tracker.meters / 1000)
+    /// GPS-signal i tre lägen utifrån senaste noggrannheten.
+    private var gpsSignal: (label: String, color: Color) {
+        guard let accuracy = tracker.currentAccuracy else {
+            return (String(localized: "SÖKER GPS"), .orange)
         }
-        return "\(Int(tracker.meters)) m"
-    }
-
-    private var timeText: String {
-        String(format: "%d:%02d", elapsed / 60, elapsed % 60)
+        if accuracy <= 10 { return (String(localized: "GPS BRA"), Theme.Colors.brand) }
+        if accuracy <= 20 { return (String(localized: "GPS OK"), .yellow) }
+        return (String(localized: "GPS SVAG"), .orange)
     }
 
     var body: some View {
@@ -43,18 +42,70 @@ struct WalkTrackerView: View {
                             .stroke(Theme.Colors.brand, lineWidth: 5)
                     }
                 }
-                .frame(height: 300)
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .frame(height: 260)
+                .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous)
+                        .strokeBorder(.white.opacity(0.08), lineWidth: 0.5)
+                )
+                .overlay(alignment: .topTrailing) {
+                    // GPS-signalindikator à la sportklockor.
+                    HStack(spacing: 5) {
+                        Circle()
+                            .fill(gpsSignal.color)
+                            .frame(width: 7, height: 7)
+                        Text(gpsSignal.label)
+                            .font(.system(size: 10, weight: .semibold))
+                            .tracking(1)
+                            .foregroundStyle(.white)
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(.black.opacity(0.55), in: Capsule())
+                    .padding(Theme.Spacing.m)
+                }
                 .padding(.horizontal)
 
-                HStack(alignment: .firstTextBaseline, spacing: Theme.Spacing.s) {
-                    Text(distanceText)
-                        .font(.system(size: 48, weight: .bold, design: .rounded))
-                        .foregroundStyle(Theme.Colors.textPrimary)
-                    Text(timeText)
-                        .font(.title3.monospacedDigit())
+                // Mätarpanel: distans stort i mitten, tid och tempo flankerar.
+                VStack(spacing: Theme.Spacing.s) {
+                    Text("DISTANS")
+                        .font(.system(size: 11, weight: .semibold))
+                        .tracking(1.5)
                         .foregroundStyle(Theme.Colors.textSecondary)
+                    HStack(alignment: .firstTextBaseline, spacing: 4) {
+                        Text(WalkFormatting.distance(tracker.meters))
+                            .font(.system(size: 64, weight: .bold, design: .rounded))
+                            .monospacedDigit()
+                            .foregroundStyle(Theme.Colors.brand)
+                            .contentTransition(.numericText())
+                            .animation(.spring(duration: 0.4), value: tracker.meters)
+                        Text(WalkFormatting.distanceUnit(tracker.meters))
+                            .font(.title3.weight(.semibold))
+                            .foregroundStyle(Theme.Colors.textSecondary)
+                    }
+
+                    HStack {
+                        walkMetric(
+                            label: String(localized: "TID"),
+                            value: WalkFormatting.elapsed(elapsed)
+                        )
+                        Rectangle()
+                            .fill(Theme.Colors.textSecondary.opacity(0.2))
+                            .frame(width: 1, height: 34)
+                        walkMetric(
+                            label: String(localized: "TEMPO"),
+                            value: WalkFormatting.pace(
+                                secondsPerKm: WalkFormatting.paceSecondsPerKm(meters: tracker.meters, elapsedSeconds: elapsed)
+                            ),
+                            unit: "/km"
+                        )
+                    }
+                    .padding(.top, Theme.Spacing.s)
                 }
+                .frame(maxWidth: .infinity)
+                .cardStyle(padding: Theme.Spacing.l)
+                .padding(.horizontal)
+
                 if tracker.permissionDenied {
                     Text("Platsåtkomst nekad. Slå på under Inställningar → Canine360 → Plats.")
                         .font(.caption)
@@ -63,6 +114,8 @@ struct WalkTrackerView: View {
                         .padding(.horizontal)
                 }
                 Spacer()
+
+                // Stor rund start/paus — sportklocke-känslan.
                 Button {
                     if tracker.isTracking {
                         tracker.stop()
@@ -81,19 +134,31 @@ struct WalkTrackerView: View {
                             )
                         }
                     }
+                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                 } label: {
-                    Label(
-                        tracker.isTracking ? "Pausa" : (started ? "Fortsätt" : "Starta promenad"),
-                        systemImage: tracker.isTracking ? "pause.fill" : "play.fill"
-                    )
-                    .frame(maxWidth: .infinity)
+                    ZStack {
+                        Circle()
+                            .fill(LinearGradient(
+                                colors: [Theme.Colors.brand, Theme.Colors.brand.opacity(0.75)],
+                                startPoint: .topLeading, endPoint: .bottomTrailing
+                            ))
+                            .frame(width: 78, height: 78)
+                            .shadow(color: Theme.Colors.brand.opacity(0.4), radius: 14, y: 5)
+                        Image(systemName: tracker.isTracking ? "pause.fill" : "play.fill")
+                            .font(.system(size: 28, weight: .bold))
+                            .foregroundStyle(.white)
+                            .contentTransition(.symbolEffect(.replace))
+                    }
                 }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
-                .tint(Theme.Colors.brand)
-                .padding(.horizontal)
+                .buttonStyle(CardPressStyle())
+                .accessibilityLabel(tracker.isTracking ? "Pausa" : (started ? "Fortsätt" : "Starta promenad"))
+
+                Text(tracker.isTracking ? "Pausa" : (started ? "Fortsätt" : "Starta promenad"))
+                    .font(Theme.Typography.caption.weight(.medium))
+                    .foregroundStyle(Theme.Colors.textSecondary)
             }
             .padding(.bottom)
+            .background(Theme.screenSurface)
             .navigationTitle("Promenad")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -113,6 +178,27 @@ struct WalkTrackerView: View {
                 WalkLiveActivityController.shared.end(distanceMeters: tracker.meters, elapsedSeconds: elapsed)
             }
         }
+    }
+
+    private func walkMetric(label: String, value: String, unit: String? = nil) -> some View {
+        VStack(spacing: 2) {
+            Text(label)
+                .font(.system(size: 10, weight: .semibold))
+                .tracking(1.2)
+                .foregroundStyle(Theme.Colors.textSecondary)
+            HStack(alignment: .firstTextBaseline, spacing: 2) {
+                Text(value)
+                    .font(.title2.weight(.bold))
+                    .monospacedDigit()
+                    .foregroundStyle(Theme.Colors.textPrimary)
+                if let unit {
+                    Text(unit)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(Theme.Colors.textSecondary)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity)
     }
 
     private func save() {

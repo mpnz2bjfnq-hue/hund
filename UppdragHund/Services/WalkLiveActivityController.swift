@@ -29,7 +29,8 @@ final class WalkLiveActivityController {
             distanceMeters: 0,
             elapsedSeconds: elapsedSeconds,
             isPaused: false,
-            timerStart: Date.now.addingTimeInterval(-Double(elapsedSeconds))
+            timerStart: Date.now.addingTimeInterval(-Double(elapsedSeconds)),
+            paceSecondsPerKm: nil
         )
         activity = try? Activity.request(
             attributes: WalkActivityAttributes(dogName: dogName),
@@ -54,7 +55,8 @@ final class WalkLiveActivityController {
             distanceMeters: distanceMeters,
             elapsedSeconds: elapsedSeconds,
             isPaused: isPaused,
-            timerStart: Date.now.addingTimeInterval(-Double(elapsedSeconds))
+            timerStart: Date.now.addingTimeInterval(-Double(elapsedSeconds)),
+            paceSecondsPerKm: WalkFormatting.paceSecondsPerKm(meters: distanceMeters, elapsedSeconds: elapsedSeconds)
         )
         Task { await activity.update(.init(state: state, staleDate: nil)) }
     }
@@ -66,7 +68,8 @@ final class WalkLiveActivityController {
             distanceMeters: distanceMeters,
             elapsedSeconds: elapsedSeconds,
             isPaused: true,
-            timerStart: .now
+            timerStart: .now,
+            paceSecondsPerKm: WalkFormatting.paceSecondsPerKm(meters: distanceMeters, elapsedSeconds: elapsedSeconds)
         )
         Task {
             await activity.end(.init(state: finalState, staleDate: nil), dismissalPolicy: .immediate)

@@ -19,13 +19,15 @@ final class DistanceTracker: NSObject, CLLocationManagerDelegate {
     var permissionDenied = false
     /// Godkända GPS-punkter i ordning — ritas som rutt på kartan.
     var route: [CLLocationCoordinate2D] = []
+    /// Senaste GPS-noggrannheten i meter — för signalindikatorn i UI:t.
+    var currentAccuracy: Double?
 
     override init() {
         super.init()
         manager.delegate = self
         manager.desiredAccuracy = kCLLocationAccuracyBestForNavigation
         manager.activityType = .fitness
-        manager.distanceFilter = 3
+        manager.distanceFilter = 5
     }
 
     private var hasStarted = false
@@ -59,20 +61,42 @@ final class DistanceTracker: NSObject, CLLocationManagerDelegate {
 
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         for location in locations {
-            // Släng ifrån GPS-brus: bara rimligt noggranna punkter räknas.
-            guard location.horizontalAccuracy >= 0, location.horizontalAccuracy < 25 else { continue }
-            if let last = lastLocation {
-                let step = location.distance(from: last)
-                // Ignorera små hopp (< 1 m) för att inte räcka upp meter när man står still.
-                if step >= 1 {
-                    meters += step
+            // Färska punkter med rimlig noggrannhet — cachade/suddiga slängs.
+            guard location.timestamp.timeIntervalSinceNow > -5 else { continue }
+            guard location.horizontalAccuracy >= 0, location.horizontalAccuracy <= 20 else {
+                currentAccuracy = location.horizontalAccuracy >= 0 ? location.horizontalAccuracy : nil
+                continue
+            }
+            currentAccuracy = location.horizontalAccuracy
+
+            guard let last = lastLocation else {
+                // Första referenspunkten kräver skarp fix — annars startar
+                // rutten i en dålig gissning och "vandrar" därifrån.
+                if location.horizontalAccuracy <= 15 {
                     lastLocation = location
                     route.append(location.coordinate)
                 }
-            } else {
-                lastLocation = location
-                route.append(location.coordinate)
+                continue
             }
+
+            let step = location.distance(from: last)
+
+            // Stillastående-drift: GPS:en vandrar slumpmässigt inom sin
+            // osäkerhetsradie. Steg mindre än osäkerheten är brus, inte rörelse.
+            let minimumStep = max(5, location.horizontalAccuracy)
+            guard step >= minimumStep else { continue }
+
+            // Teleporteringar (tunnlar, cellbyten): orimlig fart → flytta
+            // referensen utan att räkna sträckan.
+            let dt = location.timestamp.timeIntervalSince(last.timestamp)
+            if dt > 0, step / dt > 10 {
+                lastLocation = location
+                continue
+            }
+
+            meters += step
+            lastLocation = location
+            route.append(location.coordinate)
         }
     }
 

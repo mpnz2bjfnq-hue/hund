@@ -12,6 +12,17 @@
         }
       }
     },
+    "/km": {},
+    "DISTANS": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "DISTANCE"
+          }
+        }
+      }
+    },
     "Dagbok": {
       "localizations": {
         "en": {
@@ -248,6 +259,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "City Park"
+          }
+        }
+      }
+    },
+    "TEMPO": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "PACE"
+          }
+        }
+      }
+    },
+    "TID": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TIME"
           }
         }
       }
