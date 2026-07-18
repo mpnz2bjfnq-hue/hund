@@ -88,10 +88,17 @@ service cloud.firestore {
       allow read, delete: if isAdmin();
     }
 
-    // Enhets-token-register: bara den som kan sin egen token (enheten själv)
-    // kan skriva/radera posten. Servern städar gamla kontokopplingar.
+    // Enhets-token-register. Dokument-ID:t är FCM-token — bara enheten som
+    // har token känner till det, så innehav av ID:t är behörigheten.
+    // INGEN list: annars kan en inloggad användare skörda alla tokens.
+    // En post får bara knytas till det egna kontot; servern (admin-SDK,
+    // onDeviceTokenClaimed) städar gamla kontokopplingar.
     match /deviceTokens/{token} {
-      allow read, write: if request.auth != null;
+      allow get: if request.auth != null;
+      allow list: if false;
+      allow create, update: if request.auth != null
+                            && request.resource.data.uid == request.auth.uid;
+      allow delete: if request.auth != null;
     }
 
     // Supportärenden: användaren skapar och ser sina egna; admin hanterar alla.

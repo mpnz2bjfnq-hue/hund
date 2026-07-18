@@ -15,6 +15,7 @@ struct UppdragHundApp: App {
     private let container: ModelContainer
 
     init() {
+        Canine360AppCheckFactory.activate()
         FirebaseApp.configure()
         do {
             container = try ModelContainer(
