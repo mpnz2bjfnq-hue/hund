@@ -23,110 +23,201 @@ struct AuthGateView: View {
     @State private var infoMessage: String?
     @State private var isWorking = false
 
-    var body: some View {
-        ScrollView {
-            VStack(spacing: 24) {
-                VStack(spacing: 12) {
-                    Image("Canine360Logo")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(maxWidth: 200)
-                        .accessibilityLabel("Canine360")
-                    Text("Skapa ett konto för att komma igång med Canine360.")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal)
-                }
-                .padding(.top, 40)
+    @FocusState private var focusedField: Field?
+    private enum Field { case name, email, password }
 
-                Picker("Läge", selection: $mode) {
-                    ForEach(Mode.allCases, id: \.self) { mode in
-                        Text(mode.rawValue).tag(mode)
-                    }
+    var body: some View {
+        ZStack {
+            Theme.screenSurface
+
+            ScrollView {
+                VStack(spacing: Theme.Spacing.xl) {
+                    hero
+                    modePicker
+                    formCard
+                    dividerRow
+                    appleButton
+                    Spacer(minLength: Theme.Spacing.l)
                 }
-                .pickerStyle(.segmented)
+                .padding(Theme.Spacing.l)
+            }
+            .scrollDismissesKeyboard(.interactively)
+        }
+        .preferredColorScheme(.dark)
+    }
+
+    // MARK: - Hero
+
+    private var hero: some View {
+        VStack(spacing: Theme.Spacing.m) {
+            Image("Canine360Logo")
+                .resizable()
+                .scaledToFit()
+                .frame(maxWidth: 190)
+                .shadow(color: Theme.Colors.brand.opacity(0.35), radius: 24, y: 8)
+                .accessibilityLabel("Canine360")
+            Text("Håll koll på din hunds hälsa, löp, träning och vardag — och dela med vänner.")
+                .font(Theme.Typography.caption)
+                .foregroundStyle(Theme.Colors.textSecondary)
+                .multilineTextAlignment(.center)
                 .padding(.horizontal)
-                .onChange(of: mode) {
+        }
+        .padding(.top, Theme.Spacing.xxl)
+    }
+
+    // MARK: - Lägesväljare (glaspiller)
+
+    private var modePicker: some View {
+        HStack(spacing: 0) {
+            ForEach(Mode.allCases, id: \.self) { item in
+                Button {
+                    withAnimation(.spring(duration: 0.3)) { mode = item }
                     errorMessage = nil
                     infoMessage = nil
-                }
-
-                VStack(spacing: 12) {
-                    if mode == .signUp {
-                        TextField("Namn", text: $name)
-                            .textContentType(.name)
-                            .textFieldStyle(.roundedBorder)
-                    }
-                    TextField("E-post", text: $email)
-                        .textContentType(.emailAddress)
-                        .keyboardType(.emailAddress)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                        .textFieldStyle(.roundedBorder)
-                    SecureField("Lösenord", text: $password)
-                        .textContentType(mode == .signUp ? .newPassword : .password)
-                        .textFieldStyle(.roundedBorder)
-
-                    if let errorMessage {
-                        Text(errorMessage)
-                            .font(.caption)
-                            .foregroundStyle(.red)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                    if let infoMessage {
-                        Text(infoMessage)
-                            .font(.caption)
-                            .foregroundStyle(.green)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-
-                    Button {
-                        submit()
-                    } label: {
-                        if isWorking {
-                            ProgressView()
-                                .frame(maxWidth: .infinity)
-                        } else {
-                            Text(mode == .signUp ? "Skapa konto" : "Logga in")
-                                .frame(maxWidth: .infinity)
+                } label: {
+                    Text(item.rawValue)
+                        .font(Theme.Typography.caption.weight(.semibold))
+                        .foregroundStyle(mode == item ? .white : Theme.Colors.textSecondary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .background {
+                            if mode == item {
+                                Capsule()
+                                    .fill(Theme.Colors.brand)
+                                    .matchedGeometryEffect(id: "modePill", in: pillNamespace)
+                            }
                         }
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.large)
-                    .disabled(isWorking)
-
-                    if mode == .signIn {
-                        Button("Glömt lösenord?") {
-                            resetPassword()
-                        }
-                        .font(.footnote)
-                        .disabled(isWorking)
-                    }
                 }
-                .padding(.horizontal)
-
-                HStack {
-                    VStack { Divider() }
-                    Text("eller").font(.caption).foregroundStyle(.secondary)
-                    VStack { Divider() }
-                }
-                .padding(.horizontal)
-
-                SignInWithAppleButton(.signIn) { request in
-                    AuthService.shared.prepareSignInRequest(request)
-                } onCompletion: { result in
-                    handleApple(result)
-                }
-                .signInWithAppleButtonStyle(.black)
-                .frame(height: 50)
-                .padding(.horizontal)
-                .disabled(isWorking)
-
-                Spacer(minLength: 20)
+                .buttonStyle(.plain)
             }
         }
-        .scrollDismissesKeyboard(.interactively)
+        .padding(4)
+        .background(.ultraThinMaterial, in: Capsule())
+        .overlay(Capsule().strokeBorder(.white.opacity(0.08), lineWidth: 0.5))
+    }
+
+    @Namespace private var pillNamespace
+
+    // MARK: - Formulär
+
+    private var formCard: some View {
+        VStack(spacing: Theme.Spacing.m) {
+            if mode == .signUp {
+                authField(icon: "person", placeholder: "Namn", text: $name)
+                    .textContentType(.name)
+                    .focused($focusedField, equals: .name)
+                    .submitLabel(.next)
+                    .onSubmit { focusedField = .email }
+            }
+            authField(icon: "envelope", placeholder: "E-post", text: $email)
+                .textContentType(.emailAddress)
+                .keyboardType(.emailAddress)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .focused($focusedField, equals: .email)
+                .submitLabel(.next)
+                .onSubmit { focusedField = .password }
+            authField(icon: "lock", placeholder: "Lösenord", text: $password, secure: true)
+                .textContentType(mode == .signUp ? .newPassword : .password)
+                .focused($focusedField, equals: .password)
+                .submitLabel(.go)
+                .onSubmit { submit() }
+
+            if let errorMessage {
+                messageRow(errorMessage, icon: "exclamationmark.triangle.fill", color: Theme.Colors.warning)
+            }
+            if let infoMessage {
+                messageRow(infoMessage, icon: "checkmark.circle.fill", color: Theme.Colors.brand)
+            }
+
+            Button {
+                submit()
+            } label: {
+                Group {
+                    if isWorking {
+                        ProgressView().tint(.white)
+                    } else {
+                        Text(mode == .signUp ? "Skapa konto" : "Logga in")
+                            .font(.body.weight(.semibold))
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 4)
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+            .tint(Theme.Colors.brand)
+            .disabled(isWorking)
+            .padding(.top, 2)
+
+            if mode == .signIn {
+                Button("Glömt lösenord?") { resetPassword() }
+                    .font(.footnote)
+                    .tint(Theme.Colors.brand)
+                    .disabled(isWorking)
+            }
+        }
+        .cardStyle()
+    }
+
+    /// Tonat inmatningsfält med ikon — matchar appens glas/kort-stil.
+    private func authField(icon: String, placeholder: String, text: Binding<String>, secure: Bool = false) -> some View {
+        HStack(spacing: Theme.Spacing.m) {
+            Image(systemName: icon)
+                .font(.subheadline)
+                .foregroundStyle(Theme.Colors.textSecondary)
+                .frame(width: 20)
+            Group {
+                if secure {
+                    SecureField(placeholder, text: text)
+                } else {
+                    TextField(placeholder, text: text)
+                }
+            }
+            .foregroundStyle(Theme.Colors.textPrimary)
+        }
+        .padding(.horizontal, Theme.Spacing.m)
+        .padding(.vertical, 14)
+        .background(
+            RoundedRectangle(cornerRadius: Theme.Radius.small, style: .continuous)
+                .fill(.white.opacity(0.06))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: Theme.Radius.small, style: .continuous)
+                .strokeBorder(.white.opacity(0.10), lineWidth: 0.5)
+        )
+    }
+
+    private func messageRow(_ text: String, icon: String, color: Color) -> some View {
+        HStack(alignment: .top, spacing: 6) {
+            Image(systemName: icon)
+            Text(text)
+            Spacer(minLength: 0)
+        }
+        .font(.caption)
+        .foregroundStyle(color)
+    }
+
+    private var dividerRow: some View {
+        HStack(spacing: Theme.Spacing.m) {
+            Rectangle().fill(.white.opacity(0.12)).frame(height: 0.5)
+            Text("eller")
+                .font(.caption)
+                .foregroundStyle(Theme.Colors.textSecondary)
+            Rectangle().fill(.white.opacity(0.12)).frame(height: 0.5)
+        }
+    }
+
+    private var appleButton: some View {
+        SignInWithAppleButton(.signIn) { request in
+            AuthService.shared.prepareSignInRequest(request)
+        } onCompletion: { result in
+            handleApple(result)
+        }
+        .signInWithAppleButtonStyle(.white)
+        .frame(height: 52)
+        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
+        .disabled(isWorking)
     }
 
     // MARK: - Actions

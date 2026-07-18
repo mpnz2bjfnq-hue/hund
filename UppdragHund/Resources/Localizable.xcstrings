@@ -1975,6 +1975,7 @@
       }
     },
     "E-post": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -2986,6 +2987,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Fetching friends…"
+          }
+        }
+      }
+    },
+    "Håll koll på din hunds hälsa, löp, träning och vardag — och dela med vänner.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keep track of your dog's health, heat, training and everyday life — and share with friends."
           }
         }
       }
@@ -4227,6 +4238,7 @@
       }
     },
     "Läge": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -4619,6 +4631,7 @@
       }
     },
     "Lösenord": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -5965,6 +5978,7 @@
       }
     },
     "Skapa ett konto för att komma igång med Canine360.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
