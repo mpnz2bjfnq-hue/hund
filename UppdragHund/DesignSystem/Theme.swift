@@ -91,3 +91,27 @@ extension View {
         modifier(CardStyle(padding: padding, radius: radius))
     }
 }
+
+// MARK: - Zoom-övergång (iOS 18+), tyst no-op på iOS 17
+
+/// Hundkortet växer upp till profilsidan (Apples zoom-transition). API:t
+/// finns först i iOS 18 — på iOS 17 blir det en vanlig push.
+extension View {
+    @ViewBuilder
+    func heroZoomSource(id: String, in namespace: Namespace.ID) -> some View {
+        if #available(iOS 18.0, *) {
+            matchedTransitionSource(id: id, in: namespace)
+        } else {
+            self
+        }
+    }
+
+    @ViewBuilder
+    func heroZoomDestination(id: String, in namespace: Namespace.ID) -> some View {
+        if #available(iOS 18.0, *) {
+            navigationTransition(.zoom(sourceID: id, in: namespace))
+        } else {
+            self
+        }
+    }
+}

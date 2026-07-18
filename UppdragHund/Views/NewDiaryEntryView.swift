@@ -63,7 +63,7 @@ struct NewDiaryEntryView: View {
                     Button("Avbryt") { dismiss() }
                 }
             }
-            .bottomActionButton("Spara") {
+            .bottomActionButton("Spara", celebratesSave: true) {
                 save()
             }
             .onChange(of: photoPickerItem) { _, newValue in

@@ -71,7 +71,7 @@ struct NewTrainingSessionView: View {
                     Button("Avbryt") { dismiss() }
                 }
             }
-            .bottomActionButton("Spara", disabled: !isValid) {
+            .bottomActionButton("Spara", disabled: !isValid, celebratesSave: true) {
                 save()
             }
         }

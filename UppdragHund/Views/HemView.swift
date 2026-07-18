@@ -7,6 +7,7 @@
 
 import SwiftUI
 import SwiftData
+import UIKit
 
 struct HemView: View {
     let dog: Dog
@@ -99,32 +100,75 @@ struct HemView: View {
 
     // MARK: - Aktiv-hund-kort
 
+    @Namespace private var heroNamespace
+
     private var dogCard: some View {
         NavigationLink {
             DogProfileDetailView(dog: dog)
+                .heroZoomDestination(id: "dogHero", in: heroNamespace)
         } label: {
-            HStack(spacing: Theme.Spacing.l) {
-                DogAvatar(photoData: dog.photoData, size: 68, isActive: true)
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(dog.name)
-                        .font(.title2.bold())
-                        .foregroundStyle(Theme.Colors.textPrimary)
-                    Text("\(dog.breed) · \(dog.sex.displayName)")
-                        .font(Theme.Typography.caption)
-                        .foregroundStyle(Theme.Colors.textSecondary)
-                    Text("Född \(dog.birthDate.formatted(date: .abbreviated, time: .omitted)) · \(AgeFormatter.describe(birthDate: dog.birthDate))")
-                        .font(Theme.Typography.footnote)
-                        .foregroundStyle(Theme.Colors.textSecondary)
-                }
-                Spacer(minLength: 0)
-                Image(systemName: "chevron.right")
-                    .font(.footnote.weight(.semibold))
-                    .foregroundStyle(Theme.Colors.textSecondary)
-            }
-            .cardStyle()
+            heroCard
+                .heroZoomSource(id: "dogHero", in: heroNamespace)
         }
         .buttonStyle(.plain)
+    }
+
+    /// Hero-kort: hundens foto som bakgrund med gradient och stort namn.
+    /// Utan foto: samma layout mot en mjuk brandtonad platta.
+    private var heroCard: some View {
+        ZStack(alignment: .bottomLeading) {
+            if let data = dog.photoData, let image = UIImage(data: data) {
+                Color.clear
+                    .overlay(
+                        Image(uiImage: image)
+                            .resizable()
+                            .scaledToFill()
+                    )
+            } else {
+                LinearGradient(
+                    colors: [Theme.Colors.brand.opacity(0.35), Theme.Colors.cardBackground],
+                    startPoint: .topLeading, endPoint: .bottomTrailing
+                )
+                .overlay(alignment: .topTrailing) {
+                    Image(systemName: "pawprint.fill")
+                        .font(.system(size: 72))
+                        .foregroundStyle(Theme.Colors.brand.opacity(0.25))
+                        .padding(Theme.Spacing.xl)
+                }
+            }
+
+            // Gradienten gör namnet läsbart mot vilket foto som helst.
+            LinearGradient(
+                colors: [.clear, .clear, .black.opacity(0.78)],
+                startPoint: .top, endPoint: .bottom
+            )
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(dog.name)
+                    .font(.system(size: 36, weight: .bold, design: .rounded))
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
+                Text("\(dog.breed) · \(dog.sex.displayName)")
+                    .font(Theme.Typography.caption.weight(.medium))
+                    .foregroundStyle(.white.opacity(0.85))
+                Text("Född \(dog.birthDate.formatted(date: .abbreviated, time: .omitted)) · \(AgeFormatter.describe(birthDate: dog.birthDate))")
+                    .font(Theme.Typography.footnote)
+                    .foregroundStyle(.white.opacity(0.7))
+            }
+            .padding(Theme.Spacing.l)
+        }
+        .frame(height: 220)
+        .frame(maxWidth: .infinity)
+        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.large, style: .continuous))
+        .overlay(alignment: .topTrailing) {
+            Image(systemName: "chevron.right")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(.white.opacity(0.7))
+                .padding(10)
+                .background(.black.opacity(0.25), in: Circle())
+                .padding(Theme.Spacing.m)
+        }
     }
 
     // MARK: - Genvägar
@@ -482,7 +526,7 @@ struct HemView: View {
             value: latest.map { String(format: "%.1f kg", $0) } ?? String(localized: "Logga vikt"),
             delta: delta, deltaPositive: deltaPositive,
             subtitle: latest == nil ? String(localized: "Väg in \(dog.name) under Hälsa") : nil,
-            tint: Theme.Colors.brand
+            tint: .blue
         )
     }
 
@@ -495,7 +539,7 @@ struct HemView: View {
             icon: "figure.walk", category: String(localized: "Motion"),
             value: todaysMinutes > 0 ? "\(todaysMinutes) min" : "0 min",
             subtitle: todaysMinutes > 0 ? nil : String(localized: "Dags för en promenad? 🐾"),
-            tint: Theme.Colors.brand
+            tint: .orange
         )
     }
 
@@ -513,7 +557,7 @@ struct HemView: View {
         let data = heatTileData
         return StatTile(
             icon: "drop.fill", category: String(localized: "Löp"), value: data.value,
-            subtitle: data.subtitle, tint: Theme.Colors.heat,
+            subtitle: data.subtitle, tint: .pink,
             pulse: dog.heatCycles.contains { $0.isOngoing }
         )
     }
@@ -593,7 +637,13 @@ private struct StatTile: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .cardStyle()
+        .padding(Theme.Spacing.l)
+        // Lätt kategori-toning i stället för enhetligt mörkgrått — ögat
+        // hittar rätt bricka direkt utan att färgen skriker.
+        .background(
+            RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous)
+                .fill(tint.opacity(0.13))
+        )
     }
 }
 
