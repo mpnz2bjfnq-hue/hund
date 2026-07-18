@@ -42,9 +42,9 @@ enum Theme {
     // MARK: - Hörnradie
 
     enum Radius {
-        static let small: CGFloat = 10
-        static let card: CGFloat = 16
-        static let large: CGFloat = 22
+        static let small: CGFloat = 12
+        static let card: CGFloat = 20
+        static let large: CGFloat = 26
         static let pill: CGFloat = 999
     }
 
@@ -76,9 +76,23 @@ private struct CardStyle: ViewModifier {
         content
             .padding(padding)
             .background(
-                Theme.Colors.cardBackground,
-                in: RoundedRectangle(cornerRadius: radius, style: .continuous)
+                // Subtil ljus-till-mörk-gradient i stället för platt fyllnad,
+                // plus hårfin kantlinje — ger djup utan att skrika.
+                RoundedRectangle(cornerRadius: radius, style: .continuous)
+                    .fill(Theme.Colors.cardBackground)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: radius, style: .continuous)
+                            .fill(LinearGradient(
+                                colors: [.white.opacity(0.06), .clear],
+                                startPoint: .top, endPoint: .bottom
+                            ))
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: radius, style: .continuous)
+                            .strokeBorder(.white.opacity(0.07), lineWidth: 0.5)
+                    )
             )
+            .shadow(color: .black.opacity(0.25), radius: 10, y: 4)
     }
 }
 

@@ -39,7 +39,8 @@ struct HemView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: Theme.Spacing.xl) {
+            // Mer luft mellan sektionerna — lugnare, mer premium rytm.
+            VStack(alignment: .leading, spacing: Theme.Spacing.xxl) {
                 if blocks.isEmpty {
                     Button {
                         isEditingHome = true
@@ -137,9 +138,15 @@ struct HemView: View {
                 }
             }
 
-            // Gradienten gör namnet läsbart mot vilket foto som helst.
+            // Gradienten gör namnet läsbart mot vilket foto som helst —
+            // börjar mjukt vid mitten och blir djupt mörk längst ned.
             LinearGradient(
-                colors: [.clear, .clear, .black.opacity(0.78)],
+                stops: [
+                    .init(color: .clear, location: 0),
+                    .init(color: .clear, location: 0.42),
+                    .init(color: .black.opacity(0.35), location: 0.68),
+                    .init(color: .black.opacity(0.92), location: 1),
+                ],
                 startPoint: .top, endPoint: .bottom
             )
 
@@ -161,6 +168,11 @@ struct HemView: View {
         .frame(height: 220)
         .frame(maxWidth: .infinity)
         .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.large, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: Theme.Radius.large, style: .continuous)
+                .strokeBorder(.white.opacity(0.08), lineWidth: 0.5)
+        )
+        .shadow(color: .black.opacity(0.35), radius: 14, y: 6)
         .overlay(alignment: .topTrailing) {
             Image(systemName: "chevron.right")
                 .font(.footnote.weight(.semibold))
@@ -638,12 +650,24 @@ private struct StatTile: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(Theme.Spacing.l)
-        // Lätt kategori-toning i stället för enhetligt mörkgrått — ögat
-        // hittar rätt bricka direkt utan att färgen skriker.
+        // Glas + lätt kategori-toning som tonar ut nedåt, med hårfin tintad
+        // kant — ögat hittar rätt bricka utan att färgen skriker.
         .background(
             RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous)
-                .fill(tint.opacity(0.13))
+                .fill(.ultraThinMaterial)
+                .overlay(
+                    RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous)
+                        .fill(LinearGradient(
+                            colors: [tint.opacity(0.24), tint.opacity(0.06)],
+                            startPoint: .topLeading, endPoint: .bottomTrailing
+                        ))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous)
+                        .strokeBorder(tint.opacity(0.22), lineWidth: 0.5)
+                )
         )
+        .shadow(color: .black.opacity(0.22), radius: 8, y: 3)
     }
 }
 
