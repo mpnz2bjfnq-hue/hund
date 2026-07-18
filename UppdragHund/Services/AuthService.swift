@@ -70,7 +70,7 @@ final class AuthService {
 
             try await FriendsRepository.shared.ensureProfile(
                 uid: authResult.user.uid,
-                displayName: displayName ?? authResult.user.displayName ?? "Hundägare",
+                displayName: displayName ?? authResult.user.displayName ?? String(localized: "Hundägare"),
                 email: credential.email ?? authResult.user.email
             )
         }
@@ -89,7 +89,7 @@ final class AuthService {
             try? await change.commitChanges()
             try await FriendsRepository.shared.ensureProfile(
                 uid: result.user.uid,
-                displayName: trimmedName.isEmpty ? "Hundägare" : trimmedName,
+                displayName: trimmedName.isEmpty ? String(localized: "Hundägare") : trimmedName,
                 email: trimmedEmail
             )
         } catch {
@@ -104,7 +104,7 @@ final class AuthService {
             // Säkerställ en profil även för konton skapade före profil-flödet fanns.
             try await FriendsRepository.shared.ensureProfile(
                 uid: result.user.uid,
-                displayName: result.user.displayName ?? "Hundägare",
+                displayName: result.user.displayName ?? String(localized: "Hundägare"),
                 email: result.user.email
             )
         } catch {
@@ -150,15 +150,15 @@ final class AuthService {
         let code = AuthErrorCode(rawValue: (error as NSError).code)
         let message: String
         switch code {
-        case .emailAlreadyInUse: message = "Det finns redan ett konto med den e-postadressen."
-        case .invalidEmail: message = "E-postadressen ser inte giltig ut."
-        case .weakPassword: message = "Lösenordet är för svagt (minst 6 tecken)."
-        case .wrongPassword, .invalidCredential: message = "Fel e-post eller lösenord."
-        case .userNotFound: message = "Inget konto hittades med den e-postadressen."
-        case .userDisabled: message = "Kontot är inaktiverat."
-        case .networkError: message = "Nätverksfel. Kontrollera din anslutning."
-        case .tooManyRequests: message = "För många försök. Vänta en stund och försök igen."
-        default: message = "Något gick fel. Försök igen."
+        case .emailAlreadyInUse: message = String(localized: "Det finns redan ett konto med den e-postadressen.")
+        case .invalidEmail: message = String(localized: "E-postadressen ser inte giltig ut.")
+        case .weakPassword: message = String(localized: "Lösenordet är för svagt (minst 6 tecken).")
+        case .wrongPassword, .invalidCredential: message = String(localized: "Fel e-post eller lösenord.")
+        case .userNotFound: message = String(localized: "Inget konto hittades med den e-postadressen.")
+        case .userDisabled: message = String(localized: "Kontot är inaktiverat.")
+        case .networkError: message = String(localized: "Nätverksfel. Kontrollera din anslutning.")
+        case .tooManyRequests: message = String(localized: "För många försök. Vänta en stund och försök igen.")
+        default: message = String(localized: "Något gick fel. Försök igen.")
         }
         return NSError(
             domain: "AuthService",
@@ -173,7 +173,7 @@ final class AuthService {
         case invalidToken
 
         var errorDescription: String? {
-            "Inloggningen misslyckades. Försök igen."
+            String(localized: "Inloggningen misslyckades. Försök igen.")
         }
     }
 

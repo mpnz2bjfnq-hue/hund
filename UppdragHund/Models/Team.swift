@@ -23,17 +23,17 @@ enum TeamKind: String, CaseIterable, Identifiable {
 
     var displayName: String {
         switch self {
-        case .consulting: "Konsulentverksamhet"
-        case .course: "Hundkurs"
-        case .social: "Vanlig grupp"
+        case .consulting: String(localized: "Konsulentverksamhet")
+        case .course: String(localized: "Hundkurs")
+        case .social: String(localized: "Vanlig grupp")
         }
     }
 
     var description: String {
         switch self {
-        case .consulting: "Coacha dina kunder med uppgifter, träningspass och träffar."
-        case .course: "Kursgrupp med uppgifter, hemläxor och inbjudningskod till deltagarna."
-        case .social: "Dela inlägg och planera träffar — t.ex. ett promenadgäng."
+        case .consulting: String(localized: "Coacha dina kunder med uppgifter, träningspass och träffar.")
+        case .course: String(localized: "Kursgrupp med uppgifter, hemläxor och inbjudningskod till deltagarna.")
+        case .social: String(localized: "Dela inlägg och planera träffar — t.ex. ett promenadgäng.")
         }
     }
 
@@ -160,7 +160,7 @@ struct Meetup: Codable, Identifiable, Equatable {
     /// "Tillfälle 3 av 8" för kursserier.
     var seriesLabel: String? {
         guard let seriesIndex, let seriesCount, seriesCount > 1 else { return nil }
-        return "Tillfälle \(seriesIndex) av \(seriesCount)"
+        return String(localized: "Tillfälle \(seriesIndex) av \(seriesCount)")
     }
 
     var isFull: Bool {

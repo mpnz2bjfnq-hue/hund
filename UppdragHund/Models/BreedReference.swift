@@ -22,7 +22,7 @@ struct BreedReference: Codable, Equatable {
 
 extension BreedReference {
     static let genericFallback = BreedReference(
-        breedName: "Okänd ras",
+        breedName: String(localized: "Okänd ras"),
         sizeCategory: .unknown,
         averageCycleIntervalDays: 195,
         averageCycleDurationDays: 19

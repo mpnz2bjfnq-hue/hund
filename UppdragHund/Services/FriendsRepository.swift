@@ -204,9 +204,9 @@ final class FriendsRepository {
 
         var errorDescription: String? {
             switch self {
-            case .userNotFound: "Ingen användare hittades med den koden."
-            case .cannotAddSelf: "Du kan inte lägga till dig själv som vän."
-            case .alreadyFriends: "Ni är redan vänner."
+            case .userNotFound: String(localized: "Ingen användare hittades med den koden.")
+            case .cannotAddSelf: String(localized: "Du kan inte lägga till dig själv som vän.")
+            case .alreadyFriends: String(localized: "Ni är redan vänner.")
             }
         }
     }

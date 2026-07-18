@@ -14,8 +14,8 @@ enum MealType: String, Codable, CaseIterable, Identifiable {
 
     var displayName: String {
         switch self {
-        case .meal: "Måltid"
-        case .snack: "Snack/Godis"
+        case .meal: String(localized: "Måltid")
+        case .snack: String(localized: "Snack/Godis")
         }
     }
 

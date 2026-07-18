@@ -42,7 +42,7 @@ final class SharedDogPuller {
     /// Fel sväljs tyst (offline etc.) — den lokala kopian blir kvar som den är.
     func pull(context: ModelContext) async {
         guard let uid = AuthService.shared.currentUserID else {
-            lastSyncMessage = "Inte inloggad."
+            lastSyncMessage = String(localized: "Inte inloggad.")
             lastSyncFailed = true
             return
         }
@@ -54,16 +54,16 @@ final class SharedDogPuller {
             let time = Date.now.formatted(date: .omitted, time: .shortened)
             if shareCount > snapshots.count {
                 // Delning finns men hunddokument saknas — ägarens uppladdning misslyckades.
-                lastSyncMessage = "\(shareCount) delning(ar) hittades men bara \(snapshots.count) hund(ar) kunde hämtas (\(time)). Be ägaren öppna appen så hunden laddas upp igen."
+                lastSyncMessage = String(localized: "\(shareCount) delning(ar) hittades men bara \(snapshots.count) hund(ar) kunde hämtas (\(time)). Be ägaren öppna appen så hunden laddas upp igen.")
                 lastSyncFailed = true
             } else {
                 lastSyncMessage = snapshots.isEmpty
-                    ? "Inga delningar hittades (\(time))."
-                    : "\(snapshots.count) delad(e) hund(ar) synkade \(time)."
+                    ? String(localized: "Inga delningar hittades (\(time)).")
+                    : String(localized: "\(snapshots.count) delad(e) hund(ar) synkade \(time).")
                 lastSyncFailed = false
             }
         } catch {
-            lastSyncMessage = "Synkfel: \(error.localizedDescription)"
+            lastSyncMessage = String(localized: "Synkfel: \(error.localizedDescription)")
             lastSyncFailed = true
         }
     }

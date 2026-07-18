@@ -46,18 +46,18 @@ enum PDFReportGenerator {
                 y += ceil(boundingRect.height) + spacingAfter
             }
 
-            drawText("Hälsorapport – \(dogName)", font: titleFont, spacingAfter: 4)
+            drawText(String(localized: "Hälsorapport – \(dogName)"), font: titleFont, spacingAfter: 4)
             drawText(
-                "\(dogBreed) · Genererad \(generatedAt.formatted(date: .abbreviated, time: .shortened))",
+                String(localized: "\(dogBreed) · Genererad \(generatedAt.formatted(date: .abbreviated, time: .shortened))"),
                 font: secondaryFont,
                 color: .darkGray,
                 spacingAfter: 16
             )
 
             if includeHealth {
-                drawText("Hälsologg", font: headerFont, spacingAfter: 6)
+                drawText(String(localized: "Hälsologg"), font: headerFont, spacingAfter: 6)
                 if healthEvents.isEmpty {
-                    drawText("Inga poster i valt intervall.", font: bodyFont, color: .darkGray, spacingAfter: 12)
+                    drawText(String(localized: "Inga poster i valt intervall."), font: bodyFont, color: .darkGray, spacingAfter: 12)
                 } else {
                     for event in healthEvents {
                         drawText(healthEventLine(event), font: bodyFont, spacingAfter: 3)
@@ -70,9 +70,9 @@ enum PDFReportGenerator {
             }
 
             if includeHeat {
-                drawText("Löphistorik", font: headerFont, spacingAfter: 6)
+                drawText(String(localized: "Löphistorik"), font: headerFont, spacingAfter: 6)
                 if heatCycleEntries.isEmpty {
-                    drawText("Inga löp i valt intervall.", font: bodyFont, color: .darkGray, spacingAfter: 12)
+                    drawText(String(localized: "Inga löp i valt intervall."), font: bodyFont, color: .darkGray, spacingAfter: 12)
                 } else {
                     for entry in heatCycleEntries {
                         drawText(heatCycleLine(entry), font: bodyFont, spacingAfter: 3)
@@ -97,13 +97,13 @@ enum PDFReportGenerator {
     }
 
     private static func heatCycleLine(_ entry: HeatCycleAnalyzer.HistoryEntry) -> String {
-        let endText = entry.cycle.endDate?.formatted(date: .abbreviated, time: .omitted) ?? "pågående"
+        let endText = entry.cycle.endDate?.formatted(date: .abbreviated, time: .omitted) ?? String(localized: "pågående")
         var line = "\(entry.cycle.startDate.formatted(date: .abbreviated, time: .omitted)) – \(endText)"
         if let duration = entry.cycle.durationInDays {
-            line += ", \(duration) dagar"
+            line += String(localized: ", \(duration) dagar")
         }
         if let interval = entry.intervalSincePreviousDays {
-            line += ", intervall \(interval) dagar"
+            line += String(localized: ", intervall \(interval) dagar")
         }
         return line
     }

@@ -53,8 +53,8 @@ enum NotificationService {
         guard shouldSchedule(predictedStartDate: fireDate) else { return }
 
         let content = UNMutableNotificationContent()
-        content.title = "Löp närmar sig"
-        content.body = "\(dog.name) förväntas börja löpa om \(daysBefore) dagar."
+        content.title = String(localized: "Löp närmar sig")
+        content.body = String(localized: "\(dog.name) förväntas börja löpa om \(daysBefore) dagar.")
         content.sound = .default
 
         let trigger = UNCalendarNotificationTrigger(
@@ -127,8 +127,8 @@ enum NotificationService {
         let center = UNUserNotificationCenter.current()
 
         let content = UNMutableNotificationContent()
-        content.title = "Dags att logga träning 🐾"
-        content.body = "Glöm inte att gå in och logga dagens träning och promenader."
+        content.title = String(localized: "Dags att logga träning 🐾")
+        content.body = String(localized: "Glöm inte att gå in och logga dagens träning och promenader.")
         content.sound = .default
 
         var comps = DateComponents()
@@ -211,7 +211,7 @@ enum NotificationService {
 
         let content = UNMutableNotificationContent()
         content.title = event.type.displayName
-        content.body = event.title.isEmpty ? "Påminnelse idag." : "\(event.title) idag."
+        content.body = event.title.isEmpty ? String(localized: "Påminnelse idag.") : String(localized: "\(event.title) idag.")
         content.sound = .default
 
         let trigger = UNCalendarNotificationTrigger(dateMatching: comps, repeats: false)
@@ -274,8 +274,8 @@ enum NotificationService {
             guard fireDate > .now else { continue }
 
             let content = UNMutableNotificationContent()
-            content.title = "Snart träff: \(meetup.title)"
-            content.body = "\(meetup.locationName) · kl \(meetup.date.formatted(date: .omitted, time: .shortened))"
+            content.title = String(localized: "Snart träff: \(meetup.title)")
+            content.body = String(localized: "\(meetup.locationName) · kl \(meetup.date.formatted(date: .omitted, time: .shortened))")
             content.sound = .default
 
             let components = Calendar.current.dateComponents(

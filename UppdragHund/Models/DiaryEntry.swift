@@ -27,11 +27,11 @@ enum DiaryMood: String, Codable, CaseIterable, Identifiable {
 
     var displayName: String {
         switch self {
-        case .great: "Mycket bra"
-        case .good: "Bra"
-        case .neutral: "Okej"
-        case .bad: "Dålig"
-        case .terrible: "Mycket dålig"
+        case .great: String(localized: "Mycket bra")
+        case .good: String(localized: "Bra")
+        case .neutral: String(localized: "Okej")
+        case .bad: String(localized: "Dålig")
+        case .terrible: String(localized: "Mycket dålig")
         }
     }
 }

@@ -245,7 +245,7 @@ final class SyncCoordinator {
             return cachedOwnerAuthor
         }
         let profile = try await FriendsRepository.shared.fetchMyProfile(uid: uid)
-        let author = ShareMapping.Author(uid: uid, name: profile?.displayName ?? "Ägare")
+        let author = ShareMapping.Author(uid: uid, name: profile?.displayName ?? String(localized: "Ägare"))
         cachedOwnerAuthor = author
         return author
     }

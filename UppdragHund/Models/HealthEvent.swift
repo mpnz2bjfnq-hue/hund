@@ -58,12 +58,12 @@ enum BodyLocation: String, Codable, CaseIterable, Identifiable {
 
     var displayName: String {
         switch self {
-        case .frontLeftLeg: "Fram vänster ben"
-        case .frontRightLeg: "Fram höger ben"
-        case .backLeftLeg: "Bak vänster ben"
-        case .backRightLeg: "Bak höger ben"
-        case .spine: "Rygg"
-        case .other: "Övrigt"
+        case .frontLeftLeg: String(localized: "Fram vänster ben")
+        case .frontRightLeg: String(localized: "Fram höger ben")
+        case .backLeftLeg: String(localized: "Bak vänster ben")
+        case .backRightLeg: String(localized: "Bak höger ben")
+        case .spine: String(localized: "Rygg")
+        case .other: String(localized: "Övrigt")
         }
     }
 }
@@ -78,8 +78,8 @@ enum BodyView: String, Codable, CaseIterable, Identifiable {
 
     var displayName: String {
         switch self {
-        case .side: "Sida"
-        case .top:  "Ovanifrån"
+        case .side: String(localized: "Sida")
+        case .top:  String(localized: "Ovanifrån")
         }
     }
 

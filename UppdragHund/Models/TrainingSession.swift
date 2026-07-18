@@ -21,15 +21,15 @@ enum TrainingActivityType: String, Codable, CaseIterable, Identifiable {
 
     var displayName: String {
         switch self {
-        case .recall: "Inkallning"
-        case .heel: "Fot"
-        case .sitDownStay: "Sitt/Ligg/Stanna"
-        case .retrieving: "Apportering"
-        case .noseWork: "Sök"
-        case .agility: "Agility"
-        case .puppyClass: "Valpkurs"
-        case .obedience: "Lydnad"
-        case .socialization: "Socialisering"
+        case .recall: String(localized: "Inkallning")
+        case .heel: String(localized: "Fot")
+        case .sitDownStay: String(localized: "Sitt/Ligg/Stanna")
+        case .retrieving: String(localized: "Apportering")
+        case .noseWork: String(localized: "Sök")
+        case .agility: String(localized: "Agility")
+        case .puppyClass: String(localized: "Valpkurs")
+        case .obedience: String(localized: "Lydnad")
+        case .socialization: String(localized: "Socialisering")
         }
     }
 }

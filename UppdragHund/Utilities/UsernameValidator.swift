@@ -19,9 +19,9 @@ enum UsernameValidator {
 
         var errorDescription: String? {
             switch self {
-            case .tooShort: "Användarnamnet måste vara minst \(minLength) tecken."
-            case .tooLong: "Användarnamnet får vara högst \(maxLength) tecken."
-            case .invalidCharacters: "Använd bara a–z, 0–9, punkt och understreck."
+            case .tooShort: String(localized: "Användarnamnet måste vara minst \(minLength) tecken.")
+            case .tooLong: String(localized: "Användarnamnet får vara högst \(maxLength) tecken.")
+            case .invalidCharacters: String(localized: "Använd bara a–z, 0–9, punkt och understreck.")
             }
         }
     }

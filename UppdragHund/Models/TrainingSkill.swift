@@ -17,9 +17,9 @@ enum SkillLevel: String, Codable, CaseIterable, Identifiable {
 
     var displayName: String {
         switch self {
-        case .notStarted: "Ej börjat"
-        case .inProgress: "På gång"
-        case .mastered: "Behärskar"
+        case .notStarted: String(localized: "Ej börjat")
+        case .inProgress: String(localized: "På gång")
+        case .mastered: String(localized: "Behärskar")
         }
     }
 

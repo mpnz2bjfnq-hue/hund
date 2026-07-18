@@ -173,7 +173,7 @@ final class DogShareService {
 
         var errorDescription: String? {
             switch self {
-            case .missingRemoteID: "Hunden saknar synk-ID. Starta om appen och försök igen."
+            case .missingRemoteID: String(localized: "Hunden saknar synk-ID. Starta om appen och försök igen.")
             }
         }
     }

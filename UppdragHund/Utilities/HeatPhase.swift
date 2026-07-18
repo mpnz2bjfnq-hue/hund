@@ -74,11 +74,11 @@ enum HeatPhase: Equatable {
     var signs: String {
         switch self {
         case .proestrus:
-            "Svullen, hård vulva och blodiga flytningar. Tiken står inte för hanhund."
+            String(localized: "Svullen, hård vulva och blodiga flytningar. Tiken står inte för hanhund.")
         case .estrus:
-            "Mjukare, mindre svullen vulva och ljusare flytningar. Tiken viker svansen och står för hanhund."
+            String(localized: "Mjukare, mindre svullen vulva och ljusare flytningar. Tiken viker svansen och står för hanhund.")
         case .metestrus:
-            "Svullnaden går ned, flytningarna blir mörka. Tiken står inte längre."
+            String(localized: "Svullnaden går ned, flytningarna blir mörka. Tiken står inte längre.")
         }
     }
 
@@ -181,64 +181,64 @@ enum HeatGuide {
     /// SSRK:s kedja (Apportören 4/2022, figur 1).
     static let timeline: [TimelineStep] = [
         TimelineStep(
-            day: "Dag 1",
-            title: "Löpstart",
-            detail: "Första blödningsdagen. Härifrån räknas alla dagar nedan.",
+            day: String(localized: "Dag 1"),
+            title: String(localized: "Löpstart"),
+            detail: String(localized: "Första blödningsdagen. Härifrån räknas alla dagar nedan."),
             isTestStep: false
         ),
         TimelineStep(
-            day: "Dag ~\(HeatPhase.progesteroneTestDay)",
-            title: "LH-toppen – ta provet här",
-            detail: "LH-toppen infaller hos de flesta tikar runt dygn 8. Det är här progesteronprovet ska tas om parning planeras — inte senare, då har toppen redan passerat.",
+            day: String(localized: "Dag ~\(HeatPhase.progesteroneTestDay)"),
+            title: String(localized: "LH-toppen – ta provet här"),
+            detail: String(localized: "LH-toppen infaller hos de flesta tikar runt dygn 8. Det är här progesteronprovet ska tas om parning planeras — inte senare, då har toppen redan passerat."),
             isTestStep: true
         ),
         TimelineStep(
-            day: "Dag ~10",
-            title: "Ägglossning",
-            detail: "Sker ungefär 2 dygn efter LH-toppen.",
+            day: String(localized: "Dag ~10"),
+            title: String(localized: "Ägglossning"),
+            detail: String(localized: "Sker ungefär 2 dygn efter LH-toppen."),
             isTestStep: false
         ),
         TimelineStep(
-            day: "Dag ~12–13",
-            title: "Äggen är befruktningsdugliga",
-            detail: "Hundens ägg är omogna vid ägglossningen och behöver 2–3 dygn på sig att mogna. Därför är ägglossningsdagen inte parningsdagen.",
+            day: String(localized: "Dag ~12–13"),
+            title: String(localized: "Äggen är befruktningsdugliga"),
+            detail: String(localized: "Hundens ägg är omogna vid ägglossningen och behöver 2–3 dygn på sig att mogna. Därför är ägglossningsdagen inte parningsdagen."),
             isTestStep: false
         )
     ]
 
-    static let variationTitle = "Dagarna ovan är genomsnitt"
+    static let variationTitle = String(localized: "Dagarna ovan är genomsnitt")
 
-    static let variationBody = """
+    static let variationBody = String(localized: """
     De beskriver en tänkt medeltik, inte din. Ägglossning har uppmätts allt \
     från dag 3 till dag 31 efter löpstart, och samma tik kan variera med upp \
     till 12 dagar mellan sina egna löp. Att räkna dagar är därför inte en \
     tillförlitlig metod för att planera parning — det är den vanligaste \
     orsaken till att parningar misslyckas.
-    """
+    """)
 
-    static let testTitle = "Bara progesteronprov ger svar för din tik"
+    static let testTitle = String(localized: "Bara progesteronprov ger svar för din tik")
 
-    static let testBody = """
+    static let testBody = String(localized: """
     Ett blodprov hos veterinär visar var i cykeln din tik faktiskt är. Prov \
     tas runt dygn 8 och upprepas med cirka 48 timmars mellanrum tills \
     stigningen fångas. Vaginalcytologi används ofta som komplement. Progesteron \
     stiger olika snabbt hos olika tikar och kan variera mellan löp hos samma \
     tik — värden från ett tidigare löp går inte att lita på.
-    """
+    """)
 
-    static let breedTitle = "Påverkar rasen?"
+    static let breedTitle = String(localized: "Påverkar rasen?")
 
-    static let breedBody = """
+    static let breedBody = String(localized: """
     Inte var i löpet ägglossningen ligger. Rasen påverkar hur ofta löpen \
     kommer (från var fjärde månad till var 18:e hos vissa jätteraser) och när \
     första löpet infaller (6–18 månader, med stor rasvariation). Själva \
     tidpunkten för ägglossning inom löpet varierar individuellt, inte per ras.
-    """
+    """)
 
-    static let disclaimer = """
+    static let disclaimer = String(localized: """
     Informationen är allmän och ersätter inte veterinärbedömning. Kontakta \
     veterinär vid frågor om din tik.
-    """
+    """)
 
     struct Source: Identifiable {
         let id = UUID()
@@ -278,18 +278,18 @@ enum HeatGuide {
         [
             Nudge(
                 day: HeatPhase.bookingLeadDay,
-                title: "Dags att boka prov?",
-                body: "Planerar du parning med \(dogName)? Progesteronprovet tas runt dygn \(HeatPhase.progesteroneTestDay) — boka tid nu."
+                title: String(localized: "Dags att boka prov?"),
+                body: String(localized: "Planerar du parning med \(dogName)? Progesteronprovet tas runt dygn \(HeatPhase.progesteroneTestDay) — boka tid nu.")
             ),
             Nudge(
                 day: HeatPhase.progesteroneTestDay,
-                title: "Provdag",
-                body: "\(dogName) är på dygn \(HeatPhase.progesteroneTestDay). Ett progesteronprov idag fångar LH-toppen hos de flesta tikar."
+                title: String(localized: "Provdag"),
+                body: String(localized: "\(dogName) är på dygn \(HeatPhase.progesteroneTestDay). Ett progesteronprov idag fångar LH-toppen hos de flesta tikar.")
             ),
             Nudge(
                 day: HeatPhase.maxOngoingDays,
-                title: "Pågår löpet fortfarande?",
-                body: "\(dogName)s löp har varit registrerat i \(HeatPhase.maxOngoingDays) dagar. Avsluta det i Kalender om det är över."
+                title: String(localized: "Pågår löpet fortfarande?"),
+                body: String(localized: "\(dogName)s löp har varit registrerat i \(HeatPhase.maxOngoingDays) dagar. Avsluta det i Kalender om det är över.")
             )
         ]
     }

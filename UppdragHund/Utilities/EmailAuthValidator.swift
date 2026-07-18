@@ -17,10 +17,10 @@ enum EmailAuthValidator {
 
         var errorDescription: String? {
             switch self {
-            case .emptyName: "Ange ett namn."
-            case .emptyEmail: "Ange en e-postadress."
-            case .invalidEmail: "E-postadressen ser inte giltig ut."
-            case .shortPassword: "Lösenordet måste vara minst 6 tecken."
+            case .emptyName: String(localized: "Ange ett namn.")
+            case .emptyEmail: String(localized: "Ange en e-postadress.")
+            case .invalidEmail: String(localized: "E-postadressen ser inte giltig ut.")
+            case .shortPassword: String(localized: "Lösenordet måste vara minst 6 tecken.")
             }
         }
     }

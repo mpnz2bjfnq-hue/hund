@@ -25,6 +25,11 @@ struct LocalizationTests {
         #expect(bundle.localizedString(forKey: "Tik", value: "MISSING", table: nil) == "Female")
         #expect(bundle.localizedString(forKey: "Veterinärbesök", value: "MISSING", table: nil) == "Vet visit")
         #expect(bundle.localizedString(forKey: "Förlöp", value: "MISSING", table: nil) == "Early heat")
+        // Etapp 2: inloggning, fel och notiser.
+        #expect(bundle.localizedString(forKey: "Logga in", value: "MISSING", table: nil) == "Sign in")
+        #expect(bundle.localizedString(forKey: "Skapa konto", value: "MISSING", table: nil) == "Create account")
+        #expect(bundle.localizedString(forKey: "Fel e-post eller lösenord.", value: "MISSING", table: nil) == "Wrong email or password.")
+        #expect(bundle.localizedString(forKey: "Löp närmar sig", value: "MISSING", table: nil) == "Heat approaching")
     }
 
     @Test func englishFormatKeysResolve() throws {

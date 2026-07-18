@@ -40,7 +40,7 @@ final class CurrentUserStore {
                 try? AuthService.shared.signOut()
                 return
             }
-            let name = AuthService.shared.currentDisplayName ?? "Hundägare"
+            let name = AuthService.shared.currentDisplayName ?? String(localized: "Hundägare")
             try? await FriendsRepository.shared.ensureProfile(uid: uid, displayName: name, email: nil)
             fetched = try? await FriendsRepository.shared.fetchMyProfile(uid: uid)
         }
