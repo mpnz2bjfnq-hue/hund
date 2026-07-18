@@ -66,9 +66,20 @@ struct WalkTrackerView: View {
                 Button {
                     if tracker.isTracking {
                         tracker.stop()
+                        WalkLiveActivityController.shared.tick(
+                            distanceMeters: tracker.meters, elapsedSeconds: elapsed, isPaused: true
+                        )
                     } else {
+                        let isFirstStart = !started
                         tracker.start()
                         started = true
+                        if isFirstStart {
+                            WalkLiveActivityController.shared.start(dogName: dog.name, elapsedSeconds: elapsed)
+                        } else {
+                            WalkLiveActivityController.shared.tick(
+                                distanceMeters: tracker.meters, elapsedSeconds: elapsed, isPaused: false
+                            )
+                        }
                     }
                 } label: {
                     Label(
@@ -90,9 +101,17 @@ struct WalkTrackerView: View {
                 ToolbarItem(placement: .confirmationAction) { Button("Spara") { save() }.disabled(!started) }
             }
             .onReceive(timer) { _ in
-                if tracker.isTracking { elapsed += 1 }
+                if tracker.isTracking {
+                    elapsed += 1
+                    WalkLiveActivityController.shared.tick(
+                        distanceMeters: tracker.meters, elapsedSeconds: elapsed, isPaused: false
+                    )
+                }
             }
-            .onDisappear { tracker.stop() }
+            .onDisappear {
+                tracker.stop()
+                WalkLiveActivityController.shared.end(distanceMeters: tracker.meters, elapsedSeconds: elapsed)
+            }
         }
     }
 

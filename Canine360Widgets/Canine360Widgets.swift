@@ -18,6 +18,7 @@ struct Canine360WidgetBundle: WidgetBundle {
     var body: some Widget {
         KommandeWidget()
         SnapploggaWidget()
+        WalkLiveActivity()
     }
 }
 

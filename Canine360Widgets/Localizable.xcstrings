@@ -1,309 +1,327 @@
 {
-  "sourceLanguage" : "sv",
-  "strings" : {
-    "%@" : {
-
-    },
-    "%lld d" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld d"
+  "sourceLanguage": "sv",
+  "strings": {
+    "%@": {},
+    "%lld d": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld d"
           }
         }
       }
     },
-    "Dagbok" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Diary"
+    "Dagbok": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diary"
           }
         }
       }
     },
-    "Du har läsbehörighet för %@ — be ägaren om loggbehörighet för att snapplogga." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "You have view access to %@ — ask the owner for logging access to quick log."
+    "Du har läsbehörighet för %@ — be ägaren om loggbehörighet för att snapplogga.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You have view access to %@ — ask the owner for logging access to quick log."
           }
         }
       }
     },
-    "Foder" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Food"
+    "Foder": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Food"
           }
         }
       }
     },
-    "Förväntat löp" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Expected heat"
+    "Förväntat löp": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Expected heat"
           }
         }
       }
     },
-    "Genvägar som öppnar appen direkt i rätt loggningsflöde. Välj hund med långtryck → Redigera widget." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Shortcuts that open the app straight into the right logging flow. Choose dog with long press → Edit Widget."
+    "Genvägar som öppnar appen direkt i rätt loggningsflöde. Välj hund med långtryck → Redigera widget.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shortcuts that open the app straight into the right logging flow. Choose dog with long press → Edit Widget."
           }
         }
       }
     },
-    "Hälsa" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Health"
+    "Hund": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dog"
           }
         }
       }
     },
-    "Hund" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dog"
+    "Hundträff i parken": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dog meetup in the park"
           }
         }
       }
     },
-    "hunden" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "the dog"
+    "Hälsa": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Health"
           }
         }
       }
     },
-    "Hundträff i parken" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dog meetup in the park"
+    "Idag": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Today"
           }
         }
       }
     },
-    "Idag" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Today"
+    "Idag %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Today %@"
           }
         }
       }
     },
-    "Idag %@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Today %@"
+    "Imorgon": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tomorrow"
           }
         }
       }
     },
-    "Imorgon" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tomorrow"
+    "Ingen hund att visa. Lägg till en hund i appen.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No dog to show. Add a dog in the app."
           }
         }
       }
     },
-    "Ingen hund att visa. Lägg till en hund i appen." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No dog to show. Add a dog in the app."
+    "Inget inbokat": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nothing booked"
           }
         }
       }
     },
-    "Inget inbokat" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nothing booked"
+    "Kommande": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Upcoming"
           }
         }
       }
     },
-    "Kommande" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Upcoming"
+    "Logga för %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Log for %@"
           }
         }
       }
     },
-    "Logga för %@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Log for %@"
+    "Njut av dagen 🐾": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enjoy the day 🐾"
           }
         }
       }
     },
-    "Nästa vet-bokning, förväntat löp och inbokade träffar. Välj hund med långtryck → Redigera widget." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Next vet booking, expected heat and booked meetups. Choose dog with long press → Edit Widget."
+    "Nu": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Now"
           }
         }
       }
     },
-    "Njut av dagen 🐾" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Enjoy the day 🐾"
+    "Nästa vet-bokning, förväntat löp och inbokade träffar. Välj hund med långtryck → Redigera widget.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Next vet booking, expected heat and booked meetups. Choose dog with long press → Edit Widget."
           }
         }
       }
     },
-    "Nu" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Now"
+    "Om %lld d": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In %lld d"
           }
         }
       }
     },
-    "Om %lld d" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "In %lld d"
+    "Pausad": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paused"
           }
         }
       }
     },
-    "Öppna Canine360 för att synka widgeten." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Open Canine360 to sync the widget."
+    "Promenad med %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Walk with %@"
           }
         }
       }
     },
-    "Pågår" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ongoing"
+    "Pågår": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ongoing"
           }
         }
       }
     },
-    "Snapplogga" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Quick Log"
+    "Snapplogga": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quick Log"
           }
         }
       }
     },
-    "Stadsparken" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "City Park"
+    "Stadsparken": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "City Park"
           }
         }
       }
     },
-    "Träning" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Training"
+    "Träning": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Training"
           }
         }
       }
     },
-    "Vaccination" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Vaccination"
+    "Vaccination": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vaccination"
           }
         }
       }
     },
-    "Välj hund" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Choose dog"
+    "Veterinärbesök": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vet visit"
           }
         }
       }
     },
-    "Veterinärbesök" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Vet visit"
+    "Vilken hund widgeten visar.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Which dog the widget shows."
           }
         }
       }
     },
-    "Vilken hund widgeten visar." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Which dog the widget shows."
+    "Välj hund": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose dog"
+          }
+        }
+      }
+    },
+    "hunden": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "the dog"
+          }
+        }
+      }
+    },
+    "Öppna Canine360 för att synka widgeten.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open Canine360 to sync the widget."
           }
         }
       }
     }
   },
-  "version" : "1.0"
+  "version": "1.0"
 }

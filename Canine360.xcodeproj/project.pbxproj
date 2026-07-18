@@ -11,8 +11,8 @@
 		FA5D83E13005AA720004E39E /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = FA5D83E03005AA720004E39E /* FirebaseFirestore */; };
 		FA5D83F03005AA720004E39E /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = FA5D83F13005AA720004E39E /* FirebaseMessaging */; };
 		FA5D83F23005AA720004E39E /* FirebaseFunctions in Frameworks */ = {isa = PBXBuildFile; productRef = FA5D83F33005AA720004E39E /* FirebaseFunctions */; };
-		FAC3600030050001000000B2 /* FirebaseAppCheck in Frameworks */ = {isa = PBXBuildFile; productRef = FAC3600030050001000000B1 /* FirebaseAppCheck */; };
 		FAC3600030050001000000A9 /* Canine360Widgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = FAC3600030050001000000A4 /* Canine360Widgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		FAC3600030050001000000B2 /* FirebaseAppCheck in Frameworks */ = {isa = PBXBuildFile; productRef = FAC3600030050001000000B1 /* FirebaseAppCheck */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
