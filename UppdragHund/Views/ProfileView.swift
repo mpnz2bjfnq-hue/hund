@@ -200,7 +200,8 @@ struct ProfileView: View {
 
     private var header: some View {
         VStack(spacing: 8) {
-            // Omslagsbild med överlappande avatar — samma stil som egna profilen.
+            // Omslagsbild à la Facebook: kant till kant, raka hörn, avataren
+            // överlappar nederkanten.
             if let cover = profile?.coverPhotoData, let image = UIImage(data: cover) {
                 ZStack(alignment: .bottom) {
                     Color.clear
@@ -216,12 +217,8 @@ struct ProfileView: View {
                                 startPoint: .center, endPoint: .bottom
                             )
                         )
-                        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous)
-                                .strokeBorder(.white.opacity(0.08), lineWidth: 0.5)
-                        )
-                        .shadow(color: .black.opacity(0.3), radius: 10, y: 4)
+                        .clipped()
+                        .padding(.horizontal, -20)
                     ProfileAvatar(photoData: profile?.photoData, size: 92)
                         .overlay(Circle().stroke(Theme.Colors.brand, lineWidth: 2.5))
                         .offset(y: 46)

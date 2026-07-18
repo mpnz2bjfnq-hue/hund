@@ -244,7 +244,8 @@ struct MinProfilView: View {
 
     private var profileHeader: some View {
         VStack(spacing: Theme.Spacing.m) {
-            // Omslagsbild à la sociala appar — avataren överlappar nederkanten.
+            // Omslagsbild à la Facebook: kant till kant, raka hörn, avataren
+            // överlappar nederkanten. Negativ padding tar ut skärmens marginal.
             if let cover = currentUser.profile?.coverPhotoData, let image = UIImage(data: cover) {
                 ZStack(alignment: .bottom) {
                     Color.clear
@@ -260,12 +261,9 @@ struct MinProfilView: View {
                                 startPoint: .center, endPoint: .bottom
                             )
                         )
-                        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous)
-                                .strokeBorder(.white.opacity(0.08), lineWidth: 0.5)
-                        )
-                        .shadow(color: .black.opacity(0.3), radius: 10, y: 4)
+                        .clipped()
+                        .padding(.horizontal, -Theme.Spacing.l)
+                        .padding(.top, -Theme.Spacing.l)
                     avatarButton
                         .offset(y: 46)
                 }
