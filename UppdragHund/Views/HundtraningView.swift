@@ -21,6 +21,7 @@ struct HundtraningView: View {
     @State private var isPresentingNewSession = false
     @State private var isPresentingNewPlan = false
     @State private var isPresentingWalk = false
+    @State private var isPresentingHealthImport = false
     @State private var sessionPendingDelete: TrainingSession?
     @State private var sessionShowingRoute: TrainingSession?
 
@@ -69,6 +70,9 @@ struct HundtraningView: View {
         }
         .sheet(isPresented: $isPresentingWalk) {
             WalkTrackerView(dog: dog)
+        }
+        .sheet(isPresented: $isPresentingHealthImport) {
+            ImportFromHealthView(dog: dog)
         }
     }
 
@@ -211,6 +215,11 @@ struct HundtraningView: View {
                     }
                     Button { isPresentingWalk = true } label: {
                         Label("Logga promenad (GPS)", systemImage: "figure.walk")
+                    }
+                    if HealthKitService.shared.isAvailable {
+                        Button { isPresentingHealthImport = true } label: {
+                            Label("Importera från Hälsa", systemImage: "heart.text.square")
+                        }
                     }
                 } label: {
                     Image(systemName: "plus")

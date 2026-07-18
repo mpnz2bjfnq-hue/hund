@@ -48,6 +48,9 @@ final class TrainingSession {
     var distanceMeters: Double?
     /// Stegräknarens antal steg (GPS-promenader). nil för äldre/övriga pass.
     var steps: Int?
+    /// HKWorkout-UUID om passet importerats från Apple Hälsa — hindrar
+    /// dubbelimport av samma träningspass.
+    var healthKitUUID: String?
     /// GPS-rutt som JSON av [[lat, lon], …]. Sätts av promenad-loggaren.
     var routeData: Data?
     var note: String?
