@@ -382,7 +382,18 @@
         }
       }
     },
+    "%lld medlemmar": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld members"
+          }
+        }
+      }
+    },
     "%lld medlemmar · Ägare: %@": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {

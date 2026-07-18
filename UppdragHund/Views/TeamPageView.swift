@@ -67,6 +67,7 @@ struct TeamPageView: View {
     @State private var errorMessage: String?
     @State private var invitedUids: Set<String> = []
     @State private var teamPhotoItem: PhotosPickerItem?
+    @State private var teamCropCandidate: CropCandidate?
 
     private var isOwner: Bool { authService.currentUserID == team.ownerUid }
 
@@ -225,7 +226,7 @@ struct TeamPageView: View {
                         .foregroundStyle(.white)
                         .lineLimit(1)
                         .minimumScaleFactor(0.6)
-                    Text("\(team.memberCount) medlemmar · Ägare: \(team.memberNames[team.ownerUid] ?? team.ownerName)")
+                    Text("\(team.memberCount) medlemmar")
                         .font(Theme.Typography.footnote)
                         .foregroundStyle(.white.opacity(0.8))
                 }
@@ -267,16 +268,25 @@ struct TeamPageView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .onChange(of: teamPhotoItem) {
             Task {
+                // Öppna beskärningen med originalet — ägaren väljer själv
+                // utsnitt och zoom innan bilden laddas upp.
                 guard let item = teamPhotoItem,
                       let data = try? await item.loadTransferable(type: Data.self),
-                      let image = UIImage(data: data),
-                      let thumb = AvatarImage.makeThumbnailData(from: image),
-                      let teamID = team.id else { return }
-                try? await TeamsRepository.shared.setTeamPhoto(teamID: teamID, photoData: thumb)
-                if let updated = await TeamsRepository.shared.team(id: teamID) {
-                    team = updated
+                      let image = UIImage(data: data) else { return }
+                teamCropCandidate = CropCandidate(image: image)
+                teamPhotoItem = nil
+            }
+        }
+        .sheet(item: $teamCropCandidate) { candidate in
+            ImageCropView(image: candidate.image, outputWidth: 900, aspect: 16 / 9, quality: 0.6) { cropped in
+                Task {
+                    guard let teamID = team.id else { return }
+                    try? await TeamsRepository.shared.setTeamPhoto(teamID: teamID, photoData: cropped)
+                    if let updated = await TeamsRepository.shared.team(id: teamID) {
+                        team = updated
+                    }
+                    onChanged()
                 }
-                onChanged()
             }
         }
     }
