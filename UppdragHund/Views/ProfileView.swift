@@ -204,7 +204,7 @@ struct ProfileView: View {
             if let cover = profile?.coverPhotoData, let image = UIImage(data: cover) {
                 ZStack(alignment: .bottom) {
                     Color.clear
-                        .frame(height: 132)
+                        .frame(height: 190)
                         .overlay(
                             Image(uiImage: image)
                                 .resizable()
