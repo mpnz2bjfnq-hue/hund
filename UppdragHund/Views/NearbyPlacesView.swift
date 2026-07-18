@@ -12,8 +12,11 @@ import MapKit
 import CoreLocation
 
 struct NearbyPlacesView: View {
+    // Bara kategorier som Apple Kartor har pålitlig data för. "Hundvänligt
+    // café" fanns tidigare men togs bort — MKLocalSearch kan inte verifiera
+    // hundvänlighet, så etiketten lovade mer än den kunde hålla.
     private enum Category: String, CaseIterable, Identifiable {
-        case vet, dogPark, petStore, cafe
+        case vet, dogPark, petStore
 
         var id: String { rawValue }
 
@@ -22,7 +25,6 @@ struct NearbyPlacesView: View {
             case .vet: String(localized: "Veterinär")
             case .dogPark: String(localized: "Rastgård")
             case .petStore: String(localized: "Djuraffär")
-            case .cafe: String(localized: "Hundvänligt café")
             }
         }
 
@@ -32,7 +34,6 @@ struct NearbyPlacesView: View {
             case .vet: "veterinär"
             case .dogPark: "hundrastgård"
             case .petStore: "djuraffär"
-            case .cafe: "hundvänligt café"
             }
         }
 
@@ -41,7 +42,6 @@ struct NearbyPlacesView: View {
             case .vet: "cross.case.fill"
             case .dogPark: "tree.fill"
             case .petStore: "bag.fill"
-            case .cafe: "cup.and.saucer.fill"
             }
         }
 
@@ -50,7 +50,6 @@ struct NearbyPlacesView: View {
             case .vet: .red
             case .dogPark: Theme.Colors.brand
             case .petStore: .blue
-            case .cafe: .orange
             }
         }
     }
