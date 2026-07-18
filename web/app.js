@@ -33,7 +33,7 @@ const app = initializeApp({
 // PUBLIK och hör hemma i klientkoden; secret-nyckeln bor bara i
 // Firebase-konsolen. Måste initieras FÖRE getFirestore/getFunctions.
 // TODO: byt ut mot din reCAPTCHA v3 site key från google.com/recaptcha/admin.
-const RECAPTCHA_V3_SITE_KEY = "DIN_RECAPTCHA_V3_SITE_KEY";
+const RECAPTCHA_V3_SITE_KEY = "6LebhVotAAAAAN2CU-Lba9HhyuZluLTZPk1_KFXw";
 if (RECAPTCHA_V3_SITE_KEY !== "DIN_RECAPTCHA_V3_SITE_KEY") {
   initializeAppCheck(app, {
     provider: new ReCaptchaV3Provider(RECAPTCHA_V3_SITE_KEY),
