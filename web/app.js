@@ -6,6 +6,9 @@
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
+  initializeAppCheck, ReCaptchaV3Provider,
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app-check.js";
+import {
   getAuth, onAuthStateChanged, signInWithEmailAndPassword,
   createUserWithEmailAndPassword, signOut, updateProfile,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
@@ -25,6 +28,19 @@ const app = initializeApp({
   storageBucket: "canine360-f1221.firebasestorage.app",
   messagingSenderId: "266247775406",
 });
+// App Check: intygar att anropen kommer från den riktiga webbappen
+// (reCAPTCHA v3) så Firestore/Functions kan enforca. Site-nyckeln är
+// PUBLIK och hör hemma i klientkoden; secret-nyckeln bor bara i
+// Firebase-konsolen. Måste initieras FÖRE getFirestore/getFunctions.
+// TODO: byt ut mot din reCAPTCHA v3 site key från google.com/recaptcha/admin.
+const RECAPTCHA_V3_SITE_KEY = "DIN_RECAPTCHA_V3_SITE_KEY";
+if (RECAPTCHA_V3_SITE_KEY !== "DIN_RECAPTCHA_V3_SITE_KEY") {
+  initializeAppCheck(app, {
+    provider: new ReCaptchaV3Provider(RECAPTCHA_V3_SITE_KEY),
+    isTokenAutoRefreshEnabled: true,
+  });
+}
+
 const auth = getAuth(app);
 const db = getFirestore(app);
 const functions = getFunctions(app, "europe-north1");
