@@ -45,6 +45,7 @@ struct MinProfilView: View {
     private var angelCount: Int { angelDogs.count }
     @State private var isPresentingAngels = false
     @State private var sectionsAppeared = false
+    @State private var dogForDetails: Dog?
 
     var body: some View {
         ScrollView {
@@ -113,6 +114,16 @@ struct MinProfilView: View {
         }
         .sheet(isPresented: $isPresentingAngels) {
             AngelDogsView(angels: angelDogs)
+        }
+        .sheet(item: $dogForDetails) { dog in
+            NavigationStack {
+                DogProfileDetailView(dog: dog)
+                    .toolbar {
+                        ToolbarItem(placement: .confirmationAction) {
+                            Button("Klar") { dogForDetails = nil }
+                        }
+                    }
+            }
         }
         .task {
             if currentUser.profile == nil {
@@ -433,10 +444,16 @@ struct MinProfilView: View {
         .cardStyle()
     }
 
+    /// Ett tryck väljer hunden som aktiv; ett tryck till på den redan valda
+    /// öppnar hundprofilen. Håll in för att välja explicit i en meny.
     private func dogAvatarTile(_ dog: Dog) -> some View {
         let isActive = dog.persistentModelID == activeDogStore.activeDog?.persistentModelID
         return Button {
-            activeDogStore.activeDog = dog
+            if isActive {
+                dogForDetails = dog
+            } else {
+                activeDogStore.activeDog = dog
+            }
         } label: {
             VStack(spacing: 6) {
                 ZStack(alignment: .bottomTrailing) {
@@ -460,7 +477,21 @@ struct MinProfilView: View {
             .frame(width: 78)
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(CardPressStyle())
+        .contextMenu {
+            Button {
+                dogForDetails = dog
+            } label: {
+                Label("Visa hundprofil", systemImage: "pawprint.fill")
+            }
+            if !isActive {
+                Button {
+                    activeDogStore.activeDog = dog
+                } label: {
+                    Label("Välj som aktiv hund", systemImage: "checkmark.circle")
+                }
+            }
+        }
         .accessibilityAddTraits(isActive ? [.isSelected] : [])
     }
 
