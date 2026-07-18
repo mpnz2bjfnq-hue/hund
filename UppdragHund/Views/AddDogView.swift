@@ -23,6 +23,7 @@ struct AddDogView: View {
     @State private var sex: DogSex
     @State private var photoData: Data?
     @State private var photoItem: PhotosPickerItem?
+    @State private var cropCandidate: CropCandidate?
     @State private var color: String
     @State private var registrationNumber: String
     @State private var chipNumber: String
@@ -89,6 +90,12 @@ struct AddDogView: View {
                                 Text(photoData == nil ? "Lägg till bild" : "Byt bild")
                             }
                             if photoData != nil {
+                                Button("Justera bild") {
+                                    if let data = photoData, let image = UIImage(data: data) {
+                                        cropCandidate = CropCandidate(image: image)
+                                    }
+                                }
+                                .font(.caption)
                                 Button("Ta bort bild", role: .destructive) {
                                     photoData = nil
                                     photoItem = nil
@@ -170,16 +177,22 @@ struct AddDogView: View {
             .onChange(of: photoItem) {
                 loadPickedPhoto()
             }
+            .sheet(item: $cropCandidate) { candidate in
+                ImageCropView(image: candidate.image, outputSide: 800) { data in
+                    photoData = data
+                }
+            }
         }
     }
 
     private func loadPickedPhoto() {
         guard let photoItem else { return }
         Task {
+            // Öppna beskärningen med originalet — användaren väljer själv
+            // utsnitt och zoom innan bilden komprimeras.
             if let data = try? await photoItem.loadTransferable(type: Data.self),
-               let image = UIImage(data: data),
-               let thumb = AvatarImage.makeThumbnailData(from: image) {
-                photoData = thumb
+               let image = UIImage(data: data) {
+                cropCandidate = CropCandidate(image: image)
             }
         }
     }

@@ -1793,6 +1793,16 @@
         }
       }
     },
+    "Dra för att flytta · nyp för att zooma": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Drag to move · pinch to zoom"
+          }
+        }
+      }
+    },
     "Dra i handtagen för att ändra ordning. Bocka av ett block för att dölja det på Hem.": {
       "localizations": {
         "en": {
@@ -3531,6 +3541,16 @@
           "stringUnit": {
             "state": "new",
             "value": "Intervall: %1$lld dagar (%2$@)"
+          }
+        }
+      }
+    },
+    "Justera bild": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adjust photo"
           }
         }
       }
