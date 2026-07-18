@@ -4,6 +4,7 @@
 //
 
 import SwiftUI
+import SwiftData
 
 private enum MainTab: Hashable {
     case hem, flode, kalender, profil
@@ -25,10 +26,19 @@ private enum QuickLogRoute: String, Identifiable {
     }
 }
 
+/// En snapplogga-begäran: flöde + vilken hund det gäller (widgeten kan vara
+/// inställd på en annan hund än den aktiva).
+private struct QuickLogRequest: Identifiable {
+    let id = UUID()
+    let route: QuickLogRoute
+    let dog: Dog
+}
+
 struct MainTabView: View {
     @Environment(ActiveDogStore.self) private var activeDogStore
+    @Query private var dogs: [Dog]
     @State private var selectedTab: MainTab = .hem
-    @State private var quickLogRoute: QuickLogRoute?
+    @State private var quickLog: QuickLogRequest?
 
     var body: some View {
         TabView(selection: $selectedTab) {
@@ -88,26 +98,25 @@ struct MainTabView: View {
         .onOpenURL { url in
             handleDeepLink(url)
         }
-        .sheet(item: $quickLogRoute) { route in
-            if let dog = activeDogStore.activeDog {
-                switch route {
-                case .halsa: NewHealthEventView(dog: dog)
-                case .foder: NewMealEntryView(dog: dog)
-                case .traning: NewTrainingSessionView(dog: dog)
-                case .dagbok: NewDiaryEntryView(dog: dog)
-                }
+        .sheet(item: $quickLog) { request in
+            switch request.route {
+            case .halsa: NewHealthEventView(dog: request.dog)
+            case .foder: NewMealEntryView(dog: request.dog)
+            case .traning: NewTrainingSessionView(dog: request.dog)
+            case .dagbok: NewDiaryEntryView(dog: request.dog)
             }
         }
     }
 
-    /// Widget-djuplänkar: canine360://hem och canine360://logga/{halsa|foder|traning|dagbok}.
+    /// Widget-djuplänkar: canine360://hem och
+    /// canine360://logga/{halsa|foder|traning|dagbok}?dog={remoteID}.
     private func handleDeepLink(_ url: URL) {
         guard url.scheme == WidgetDeepLink.scheme else { return }
         switch url.host() {
         case "hem":
             selectedTab = .hem
         case "logga":
-            guard let dog = activeDogStore.activeDog,
+            guard let dog = resolveDog(from: url),
                   let route = QuickLogRoute(rawValue: url.lastPathComponent),
                   DogAccess(dog: dog, currentUid: AuthService.shared.currentUserID)
                       .canLog(in: route.module) else {
@@ -115,10 +124,21 @@ struct MainTabView: View {
                 return
             }
             selectedTab = .hem
-            quickLogRoute = route
+            quickLog = QuickLogRequest(route: route, dog: dog)
         default:
             break
         }
+    }
+
+    /// Hunden ur länkens ?dog=-parameter (kontots hundar), annars den aktiva.
+    private func resolveDog(from url: URL) -> Dog? {
+        guard let id = URLComponents(url: url, resolvingAgainstBaseURL: false)?
+            .queryItems?.first(where: { $0.name == "dog" })?.value else {
+            return activeDogStore.activeDog
+        }
+        return AccountScope.dogs(for: AuthService.shared.currentUserID, in: dogs)
+            .first { $0.remoteID?.uuidString == id }
+            ?? activeDogStore.activeDog
     }
 }
 

@@ -4,12 +4,14 @@
 //
 //  Hemskärms- och låsskärmswidgets. Läser WidgetSnapshot ur app-gruppen
 //  (appen skriver via WidgetDataService) — widgeten pratar aldrig med
-//  Firebase eller SwiftData själv.
+//  Firebase eller SwiftData själv. Vilken hund som visas väljs per widget
+//  via långtryck → Redigera widget (SelectDogIntent).
 //
 
 import WidgetKit
 import SwiftUI
 import UIKit
+import AppIntents
 
 @main
 struct Canine360WidgetBundle: WidgetBundle {
@@ -17,6 +19,48 @@ struct Canine360WidgetBundle: WidgetBundle {
         KommandeWidget()
         SnapploggaWidget()
     }
+}
+
+// MARK: - Hundval (widget-konfiguration)
+
+struct DogEntity: AppEntity {
+    static let typeDisplayRepresentation: TypeDisplayRepresentation = "Hund"
+    static let defaultQuery = DogEntityQuery()
+
+    var id: String
+    var name: String
+
+    var displayRepresentation: DisplayRepresentation {
+        DisplayRepresentation(title: "\(name)")
+    }
+}
+
+struct DogEntityQuery: EntityQuery {
+    private func allDogs() -> [DogEntity] {
+        (WidgetStore.load()?.dogs ?? []).map { DogEntity(id: $0.id, name: $0.name) }
+    }
+
+    func entities(for identifiers: [String]) async throws -> [DogEntity] {
+        allDogs().filter { identifiers.contains($0.id) }
+    }
+
+    func suggestedEntities() async throws -> [DogEntity] {
+        allDogs()
+    }
+
+    func defaultResult() async -> DogEntity? {
+        let snapshot = WidgetStore.load()
+        guard let dog = snapshot?.dog(withID: nil) else { return nil }
+        return DogEntity(id: dog.id, name: dog.name)
+    }
+}
+
+struct SelectDogIntent: WidgetConfigurationIntent {
+    static let title: LocalizedStringResource = "Välj hund"
+    static let description = IntentDescription("Vilken hund widgeten visar.")
+
+    @Parameter(title: "Hund")
+    var dog: DogEntity?
 }
 
 // MARK: - Gemensamt
@@ -31,45 +75,52 @@ enum WidgetTheme {
 
 struct SnapshotEntry: TimelineEntry {
     let date: Date
-    let snapshot: WidgetSnapshot?
+    /// Vald (eller aktiv) hund ur cachen; nil när cachen saknas helt.
+    let dog: WidgetSnapshot.DogData?
+    let hasSnapshot: Bool
 
     static var placeholder: SnapshotEntry {
         let now = Date.now
-        return SnapshotEntry(date: now, snapshot: WidgetSnapshot(
-            dogName: "Ronja",
-            dogBreed: "Schäfer",
-            dogPhotoData: nil,
+        return SnapshotEntry(date: now, dog: WidgetSnapshot.DogData(
+            id: "placeholder",
+            name: "Ronja",
+            breed: "Schäfer",
+            photoData: nil,
             upcoming: [
                 .init(date: now.addingTimeInterval(3600 * 26), title: "Veterinärbesök", subtitle: "Vaccination", kind: .health),
                 .init(date: now.addingTimeInterval(3600 * 24 * 3), title: "Hundträff i parken", subtitle: "Stadsparken", kind: .meetup),
                 .init(date: now.addingTimeInterval(3600 * 24 * 12), title: "Förväntat löp", subtitle: nil, kind: .heat),
             ],
-            generatedAt: now
-        ))
+            canLogModules: ["health", "meals", "training", "diary"]
+        ), hasSnapshot: true)
     }
 }
 
-struct SnapshotProvider: TimelineProvider {
+struct DogSelectionProvider: AppIntentTimelineProvider {
     func placeholder(in context: Context) -> SnapshotEntry { .placeholder }
 
-    func getSnapshot(in context: Context, completion: @escaping (SnapshotEntry) -> Void) {
-        if context.isPreview {
-            completion(.placeholder)
-        } else {
-            completion(SnapshotEntry(date: .now, snapshot: WidgetStore.load()))
-        }
+    func snapshot(for configuration: SelectDogIntent, in context: Context) async -> SnapshotEntry {
+        context.isPreview ? .placeholder : entry(for: configuration)
     }
 
-    func getTimeline(in context: Context, completion: @escaping (Timeline<SnapshotEntry>) -> Void) {
-        let snapshot = WidgetStore.load()
-        let entry = SnapshotEntry(date: .now, snapshot: snapshot)
+    func timeline(for configuration: SelectDogIntent, in context: Context) async -> Timeline<SnapshotEntry> {
+        let entry = entry(for: configuration)
         // Uppdatera när nästa händelse passerat, dock senast vid midnatt
         // (så "Om X dagar" räknar ner korrekt).
         let calendar = Calendar.current
         let midnight = calendar.startOfDay(for: calendar.date(byAdding: .day, value: 1, to: .now) ?? .now)
-        let nextEventDate = snapshot?.upcoming.map(\.date).filter { $0 > .now }.min()
+        let nextEventDate = entry.dog?.upcoming.map(\.date).filter { $0 > .now }.min()
         let refresh = min(nextEventDate ?? midnight, midnight)
-        completion(Timeline(entries: [entry], policy: .after(refresh)))
+        return Timeline(entries: [entry], policy: .after(refresh))
+    }
+
+    private func entry(for configuration: SelectDogIntent) -> SnapshotEntry {
+        let snapshot = WidgetStore.load()
+        return SnapshotEntry(
+            date: .now,
+            dog: snapshot?.dog(withID: configuration.dog?.id),
+            hasSnapshot: snapshot != nil
+        )
     }
 }
 
@@ -109,11 +160,11 @@ extension WidgetSnapshot.Item {
 }
 
 private struct DogHeader: View {
-    let snapshot: WidgetSnapshot
+    let dog: WidgetSnapshot.DogData
 
     var body: some View {
         HStack(spacing: 6) {
-            if let data = snapshot.dogPhotoData, let image = UIImage(data: data) {
+            if let data = dog.photoData, let image = UIImage(data: data) {
                 Image(uiImage: image)
                     .resizable()
                     .scaledToFill()
@@ -124,7 +175,7 @@ private struct DogHeader: View {
                     .font(.caption2)
                     .foregroundStyle(WidgetTheme.brand)
             }
-            Text(snapshot.dogName)
+            Text(dog.name)
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(WidgetTheme.textSecondary)
                 .lineLimit(1)
@@ -136,11 +187,15 @@ private struct DogHeader: View {
 
 struct KommandeWidget: Widget {
     var body: some WidgetConfiguration {
-        StaticConfiguration(kind: "KommandeWidget", provider: SnapshotProvider()) { entry in
+        AppIntentConfiguration(
+            kind: "KommandeWidget",
+            intent: SelectDogIntent.self,
+            provider: DogSelectionProvider()
+        ) { entry in
             KommandeView(entry: entry)
         }
         .configurationDisplayName("Kommande")
-        .description("Nästa vet-bokning, förväntat löp och inbokade träffar för din aktiva hund.")
+        .description("Nästa vet-bokning, förväntat löp och inbokade träffar. Välj hund med långtryck → Redigera widget.")
         .supportedFamilies([.systemSmall, .systemMedium, .accessoryRectangular, .accessoryCircular])
     }
 }
@@ -150,7 +205,7 @@ struct KommandeView: View {
     let entry: SnapshotEntry
 
     private var upcoming: [WidgetSnapshot.Item] {
-        entry.snapshot?.upcoming.filter { $0.date > .now || $0.kind == .heat } ?? []
+        entry.dog?.upcoming.filter { $0.date > .now || $0.kind == .heat } ?? []
     }
 
     var body: some View {
@@ -169,8 +224,8 @@ struct KommandeView: View {
 
     private var small: some View {
         VStack(alignment: .leading, spacing: 6) {
-            if let snapshot = entry.snapshot {
-                DogHeader(snapshot: snapshot)
+            if let dog = entry.dog {
+                DogHeader(dog: dog)
                 Spacer(minLength: 0)
                 if let next = upcoming.first {
                     Image(systemName: next.icon)
@@ -196,9 +251,9 @@ struct KommandeView: View {
 
     private var medium: some View {
         VStack(alignment: .leading, spacing: 8) {
-            if let snapshot = entry.snapshot {
+            if let dog = entry.dog {
                 HStack {
-                    DogHeader(snapshot: snapshot)
+                    DogHeader(dog: dog)
                     Spacer()
                     Text("Kommande")
                         .font(.caption2.weight(.semibold))
@@ -250,7 +305,9 @@ struct KommandeView: View {
         VStack(alignment: .leading, spacing: 4) {
             Image(systemName: "pawprint.fill")
                 .foregroundStyle(WidgetTheme.brand)
-            Text("Öppna Canine360 för att synka widgeten.")
+            Text(entry.hasSnapshot
+                 ? "Ingen hund att visa. Lägg till en hund i appen."
+                 : "Öppna Canine360 för att synka widgeten.")
                 .font(.caption)
                 .foregroundStyle(WidgetTheme.textSecondary)
         }
@@ -320,11 +377,15 @@ struct KommandeView: View {
 
 struct SnapploggaWidget: Widget {
     var body: some WidgetConfiguration {
-        StaticConfiguration(kind: "SnapploggaWidget", provider: SnapshotProvider()) { entry in
+        AppIntentConfiguration(
+            kind: "SnapploggaWidget",
+            intent: SelectDogIntent.self,
+            provider: DogSelectionProvider()
+        ) { entry in
             SnapploggaView(entry: entry)
         }
         .configurationDisplayName("Snapplogga")
-        .description("Genvägar som öppnar appen direkt i rätt loggningsflöde.")
+        .description("Genvägar som öppnar appen direkt i rätt loggningsflöde. Välj hund med långtryck → Redigera widget.")
         .supportedFamilies([.systemMedium])
     }
 }
@@ -336,51 +397,59 @@ struct SnapploggaView: View {
         let id: String
         let title: String
         let icon: String
-        let url: URL
+        /// SharedModule-rawValue som styr om knappen visas för vald hund.
+        let module: String
     }
 
     private let actions: [Action] = [
-        Action(id: "halsa", title: "Hälsa", icon: "heart.text.square.fill", url: WidgetDeepLink.logHealth),
-        Action(id: "foder", title: "Foder", icon: "fork.knife", url: WidgetDeepLink.logMeal),
-        Action(id: "traning", title: "Träning", icon: "figure.run", url: WidgetDeepLink.logTraining),
-        Action(id: "dagbok", title: "Dagbok", icon: "book.fill", url: WidgetDeepLink.logDiary),
+        Action(id: "halsa", title: "Hälsa", icon: "heart.text.square.fill", module: "health"),
+        Action(id: "foder", title: "Foder", icon: "fork.knife", module: "meals"),
+        Action(id: "traning", title: "Träning", icon: "figure.run", module: "training"),
+        Action(id: "dagbok", title: "Dagbok", icon: "book.fill", module: "diary"),
     ]
+
+    private var allowedActions: [Action] {
+        guard let dog = entry.dog else { return actions }
+        return actions.filter { dog.canLogModules.contains($0.module) }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                if let snapshot = entry.snapshot {
-                    Text("Logga för \(snapshot.dogName)")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(WidgetTheme.textSecondary)
-                } else {
-                    Text("Snapplogga")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(WidgetTheme.textSecondary)
-                }
+                Text(entry.dog.map { "Logga för \($0.name)" } ?? "Snapplogga")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(WidgetTheme.textSecondary)
                 Spacer()
                 Image(systemName: "plus.circle.fill")
                     .font(.caption)
                     .foregroundStyle(WidgetTheme.brand)
             }
-            HStack(spacing: 8) {
-                ForEach(actions) { action in
-                    Link(destination: action.url) {
-                        VStack(spacing: 6) {
-                            Image(systemName: action.icon)
-                                .font(.title3)
-                                .foregroundStyle(WidgetTheme.brand)
-                            Text(action.title)
-                                .font(.caption2.weight(.medium))
-                                .foregroundStyle(WidgetTheme.textPrimary)
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.8)
+            if allowedActions.isEmpty {
+                Spacer(minLength: 0)
+                Text("Du har läsbehörighet för \(entry.dog?.name ?? "hunden") — be ägaren om loggbehörighet för att snapplogga.")
+                    .font(.caption)
+                    .foregroundStyle(WidgetTheme.textSecondary)
+                Spacer(minLength: 0)
+            } else {
+                HStack(spacing: 8) {
+                    ForEach(allowedActions) { action in
+                        Link(destination: WidgetDeepLink.log(action.id, dogID: entry.dog?.id)) {
+                            VStack(spacing: 6) {
+                                Image(systemName: action.icon)
+                                    .font(.title3)
+                                    .foregroundStyle(WidgetTheme.brand)
+                                Text(action.title)
+                                    .font(.caption2.weight(.medium))
+                                    .foregroundStyle(WidgetTheme.textPrimary)
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.8)
+                            }
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                    .fill(Color.white.opacity(0.08))
+                            )
                         }
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .background(
-                            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                .fill(Color.white.opacity(0.08))
-                        )
                     }
                 }
             }

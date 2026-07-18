@@ -23,13 +23,30 @@ struct WidgetSnapshot: Codable, Equatable {
         var kind: Kind
     }
 
-    var dogName: String
-    var dogBreed: String
-    /// Liten JPEG-thumbnail (samma som hundprofilens avatar), valfri.
-    var dogPhotoData: Data?
-    /// Kommande händelser sorterade i datumordning (max en handfull).
-    var upcoming: [Item]
+    /// En hund som kan väljas i widgetens inställningar (långtryck → Redigera).
+    struct DogData: Codable, Equatable, Identifiable {
+        /// Hundens remoteID (uuidString) — samma id som djuplänkarna bär.
+        var id: String
+        var name: String
+        var breed: String
+        /// Liten JPEG-thumbnail (samma som hundprofilens avatar), valfri.
+        var photoData: Data?
+        /// Kommande händelser sorterade i datumordning (max en handfull).
+        var upcoming: [Item]
+        /// SharedModule-rawValues användaren får logga i (styr Snapplogga-
+        /// knapparna: egen hund = alla, delad läsbehörighet = inga).
+        var canLogModules: [String]
+    }
+
+    var dogs: [DogData]
+    /// Hunden som är aktiv i appen — widgetens förval tills man väljer själv.
+    var activeDogID: String?
     var generatedAt: Date
+
+    func dog(withID id: String?) -> DogData? {
+        if let id, let match = dogs.first(where: { $0.id == id }) { return match }
+        return dogs.first(where: { $0.id == activeDogID }) ?? dogs.first
+    }
 }
 
 enum WidgetStore {
@@ -64,8 +81,11 @@ enum WidgetDeepLink {
     static let scheme = "canine360"
 
     static let home = URL(string: "canine360://hem")!
-    static let logHealth = URL(string: "canine360://logga/halsa")!
-    static let logMeal = URL(string: "canine360://logga/foder")!
-    static let logTraining = URL(string: "canine360://logga/traning")!
-    static let logDiary = URL(string: "canine360://logga/dagbok")!
+
+    /// canine360://logga/{halsa|foder|traning|dagbok}?dog={remoteID}
+    static func log(_ kind: String, dogID: String?) -> URL {
+        var string = "canine360://logga/\(kind)"
+        if let dogID { string += "?dog=\(dogID)" }
+        return URL(string: string) ?? home
+    }
 }

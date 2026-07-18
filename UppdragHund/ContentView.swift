@@ -68,6 +68,7 @@ struct ContentView: View {
                     await NotificationService.syncMeetupReminders(for: uid)
                 }
                 await WidgetDataService.refresh(
+                    dogs: activatableDogs,
                     activeDog: activeDogStore.activeDog,
                     uid: authService.currentUserID
                 )
@@ -99,6 +100,7 @@ struct ContentView: View {
                         await NotificationService.syncMeetupReminders(for: uid)
                     }
                     await WidgetDataService.refresh(
+                        dogs: activatableDogs,
                         activeDog: activeDogStore.activeDog,
                         uid: authService.currentUserID
                     )
@@ -109,6 +111,7 @@ struct ContentView: View {
                     await SyncCoordinator.shared.pushDirtyDogs()
                     // Widgeten ska spegla det som loggades under sessionen.
                     await WidgetDataService.refresh(
+                        dogs: activatableDogs,
                         activeDog: activeDogStore.activeDog,
                         uid: authService.currentUserID
                     )
@@ -123,7 +126,7 @@ struct ContentView: View {
                 // här är auth redan borta och skrivningar nekas av reglerna.
                 SessionCleanupService.handleSignOut(context: modelContext, activeDogStore: activeDogStore)
                 ensureActiveDogSelected()
-                Task { await WidgetDataService.refresh(activeDog: nil, uid: nil) }
+                Task { await WidgetDataService.refresh(dogs: [], activeDog: nil, uid: nil) }
             }
         }
     }
