@@ -257,9 +257,16 @@ struct MinProfilView: View {
                                 .scaledToFill()
                         )
                         .overlay(
+                            // Flerstegad gradient i nederkant ger djup och
+                            // lyfter avataren från omslaget.
                             LinearGradient(
-                                colors: [.clear, .black.opacity(0.35)],
-                                startPoint: .center, endPoint: .bottom
+                                stops: [
+                                    .init(color: .clear, location: 0),
+                                    .init(color: .clear, location: 0.45),
+                                    .init(color: .black.opacity(0.25), location: 0.75),
+                                    .init(color: .black.opacity(0.65), location: 1),
+                                ],
+                                startPoint: .top, endPoint: .bottom
                             )
                         )
                         .clipped()
