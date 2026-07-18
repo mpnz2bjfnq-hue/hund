@@ -28,7 +28,10 @@
 
 import Foundation
 
-enum HeatPhase: Equatable {
+// Ren datummatte utan delat tillstånd → nonisolated, så statiska metoder
+// kan anropas från och skickas som funktionsvärden i nonisolated-kontexter
+// (SwiftData-accessorer, .map(forDayInCycle)) trots MainActor-standarden.
+nonisolated enum HeatPhase: Equatable {
     case proestrus   // förlöp
     case estrus      // höglöp
     case metestrus   // efterlöp
