@@ -33,70 +33,109 @@ struct CompleteProfileView: View {
     }
 
     var body: some View {
-        NavigationStack {
+        ZStack {
+            Theme.screenSurface
+
             ScrollView {
-                VStack(spacing: 20) {
-                    Text("Skapa din profil")
-                        .font(.title2.bold())
-                        .padding(.top, 8)
-                    Text("Välj ett namn och ett användarnamn som dina vänner känner igen dig på.")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal)
-
-                    VStack(spacing: 12) {
-                        ProfileAvatar(photoData: photoData, size: 96)
-                        PhotosPicker(selection: $photoItem, matching: .images) {
-                            Text(photoData == nil ? "Lägg till profilbild" : "Byt bild")
-                        }
-                    }
-
-                    VStack(alignment: .leading, spacing: 12) {
-                        TextField("Ditt namn", text: $displayName)
-                            .textContentType(.name)
-                            .textFieldStyle(.roundedBorder)
-                        HStack {
-                            Text("@").foregroundStyle(.secondary)
-                            TextField("användarnamn", text: $username)
-                                .textInputAutocapitalization(.never)
-                                .autocorrectionDisabled()
-                        }
-                        .padding(8)
-                        .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 8))
-                        Text("a–z, 0–9, punkt och understreck.")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    .padding(.horizontal)
-
-                    if let errorMessage {
-                        Text(errorMessage)
-                            .font(.caption)
-                            .foregroundStyle(.red)
+                VStack(spacing: Theme.Spacing.xl) {
+                    VStack(spacing: Theme.Spacing.s) {
+                        Text("Skapa din profil")
+                            .font(Theme.Typography.screenTitle)
+                            .foregroundStyle(Theme.Colors.textPrimary)
+                        Text("Välj ett namn och ett användarnamn som dina vänner känner igen dig på.")
+                            .font(Theme.Typography.caption)
+                            .foregroundStyle(Theme.Colors.textSecondary)
                             .multilineTextAlignment(.center)
                             .padding(.horizontal)
                     }
+                    .padding(.top, Theme.Spacing.xl)
 
-                    Button {
-                        save()
-                    } label: {
-                        if isSaving {
-                            ProgressView().frame(maxWidth: .infinity)
-                        } else {
-                            Text("Fortsätt").frame(maxWidth: .infinity)
+                    // Avatar med kamerabricka, som på profilsidan.
+                    PhotosPicker(selection: $photoItem, matching: .images) {
+                        ZStack(alignment: .bottomTrailing) {
+                            ProfileAvatar(photoData: photoData, size: 104)
+                                .overlay(Circle().stroke(Theme.Colors.brand, lineWidth: 2.5))
+                            Image(systemName: "camera.fill")
+                                .font(.caption)
+                                .foregroundStyle(.white)
+                                .padding(8)
+                                .background(Circle().fill(Theme.Colors.brand))
+                                .overlay(Circle().stroke(Theme.Colors.screenBackground, lineWidth: 2))
                         }
                     }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.large)
-                    .disabled(isSaving)
-                    .padding(.horizontal)
+                    .buttonStyle(.plain)
+
+                    VStack(spacing: Theme.Spacing.m) {
+                        profileField(icon: "person", placeholder: "Ditt namn", text: $displayName)
+                            .textContentType(.name)
+                        profileField(icon: "at", placeholder: "användarnamn", text: $username)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+
+                        Text("a–z, 0–9, punkt och understreck.")
+                            .font(.caption)
+                            .foregroundStyle(Theme.Colors.textSecondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+
+                        if let errorMessage {
+                            HStack(alignment: .top, spacing: 6) {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                Text(errorMessage)
+                                Spacer(minLength: 0)
+                            }
+                            .font(.caption)
+                            .foregroundStyle(Theme.Colors.warning)
+                        }
+
+                        Button {
+                            save()
+                        } label: {
+                            Group {
+                                if isSaving {
+                                    ProgressView().tint(.white)
+                                } else {
+                                    Text("Fortsätt").font(.body.weight(.semibold))
+                                }
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 4)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.large)
+                        .tint(Theme.Colors.brand)
+                        .disabled(isSaving)
+                        .padding(.top, 2)
+                    }
+                    .cardStyle()
                 }
-                .padding(.bottom, 24)
+                .padding(Theme.Spacing.l)
             }
             .scrollDismissesKeyboard(.interactively)
             .onChange(of: photoItem) { loadPickedPhoto() }
         }
+        .preferredColorScheme(.dark)
+    }
+
+    /// Tonat inmatningsfält med ikon — samma som inloggningsskärmen.
+    private func profileField(icon: String, placeholder: String, text: Binding<String>) -> some View {
+        HStack(spacing: Theme.Spacing.m) {
+            Image(systemName: icon)
+                .font(.subheadline)
+                .foregroundStyle(Theme.Colors.textSecondary)
+                .frame(width: 20)
+            TextField(placeholder, text: text)
+                .foregroundStyle(Theme.Colors.textPrimary)
+        }
+        .padding(.horizontal, Theme.Spacing.m)
+        .padding(.vertical, 14)
+        .background(
+            RoundedRectangle(cornerRadius: Theme.Radius.small, style: .continuous)
+                .fill(.white.opacity(0.06))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: Theme.Radius.small, style: .continuous)
+                .strokeBorder(.white.opacity(0.10), lineWidth: 0.5)
+        )
     }
 
     private func loadPickedPhoto() {
