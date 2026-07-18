@@ -13,6 +13,9 @@ import MapKit
 
 struct WalkTrackerView: View {
     let dog: Dog
+    /// Startar spårningen direkt när vyn visas — för widget/kontroll-flödet
+    /// där användaren redan tryckt "starta" på låsskärmen.
+    var autoStart = false
 
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
@@ -124,24 +127,7 @@ struct WalkTrackerView: View {
 
                 // Stor rund start/paus — sportklocke-känslan.
                 Button {
-                    if tracker.isTracking {
-                        tracker.stop()
-                        WalkLiveActivityController.shared.tick(
-                            distanceMeters: tracker.meters, elapsedSeconds: elapsed, isPaused: true
-                        )
-                    } else {
-                        let isFirstStart = !started
-                        tracker.start()
-                        started = true
-                        if isFirstStart {
-                            WalkLiveActivityController.shared.start(dogName: dog.name, elapsedSeconds: elapsed)
-                        } else {
-                            WalkLiveActivityController.shared.tick(
-                                distanceMeters: tracker.meters, elapsedSeconds: elapsed, isPaused: false
-                            )
-                        }
-                    }
-                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                    toggleTracking()
                 } label: {
                     ZStack {
                         Circle()
@@ -184,7 +170,34 @@ struct WalkTrackerView: View {
                 tracker.stop()
                 WalkLiveActivityController.shared.end(distanceMeters: tracker.meters, elapsedSeconds: elapsed)
             }
+            .task {
+                // Från widget/kontroll: användaren har redan tryckt "starta".
+                if autoStart && !started {
+                    toggleTracking()
+                }
+            }
         }
+    }
+
+    private func toggleTracking() {
+        if tracker.isTracking {
+            tracker.stop()
+            WalkLiveActivityController.shared.tick(
+                distanceMeters: tracker.meters, elapsedSeconds: elapsed, isPaused: true
+            )
+        } else {
+            let isFirstStart = !started
+            tracker.start()
+            started = true
+            if isFirstStart {
+                WalkLiveActivityController.shared.start(dogName: dog.name, elapsedSeconds: elapsed)
+            } else {
+                WalkLiveActivityController.shared.tick(
+                    distanceMeters: tracker.meters, elapsedSeconds: elapsed, isPaused: false
+                )
+            }
+        }
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
     }
 
     private func walkMetric(label: String, value: String, unit: String? = nil) -> some View {

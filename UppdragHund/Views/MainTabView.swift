@@ -12,7 +12,7 @@ private enum MainTab: Hashable {
 
 /// Snapplogga-flöden som widgetens djuplänkar (canine360://logga/…) öppnar.
 private enum QuickLogRoute: String, Identifiable {
-    case halsa, foder, traning, dagbok
+    case halsa, foder, traning, dagbok, promenad
 
     var id: String { rawValue }
 
@@ -20,7 +20,7 @@ private enum QuickLogRoute: String, Identifiable {
         switch self {
         case .halsa: .health
         case .foder: .meals
-        case .traning: .training
+        case .traning, .promenad: .training
         case .dagbok: .diary
         }
     }
@@ -112,6 +112,7 @@ struct MainTabView: View {
             case .foder: NewMealEntryView(dog: request.dog)
             case .traning: NewTrainingSessionView(dog: request.dog)
             case .dagbok: NewDiaryEntryView(dog: request.dog)
+            case .promenad: WalkTrackerView(dog: request.dog, autoStart: true)
             }
         }
     }

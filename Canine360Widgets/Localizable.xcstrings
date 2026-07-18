@@ -63,6 +63,16 @@
         }
       }
     },
+    "GPS + steg": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "GPS + steps"
+          }
+        }
+      }
+    },
     "Genvägar som öppnar appen direkt i rätt loggningsflöde. Välj hund med långtryck → Redigera widget.": {
       "localizations": {
         "en": {
@@ -263,6 +273,16 @@
         }
       }
     },
+    "Starta promenad": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start walk"
+          }
+        }
+      }
+    },
     "TEMPO": {
       "localizations": {
         "en": {
@@ -349,6 +369,36 @@
           "stringUnit": {
             "state": "translated",
             "value": "Open Canine360 to sync the widget."
+          }
+        }
+      }
+    },
+    "Öppnar Canine360 och startar en promenad direkt.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opens Canine360 and starts a walk right away."
+          }
+        }
+      }
+    },
+    "Öppnar Canine360 och startar en promenad.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opens Canine360 and starts a walk."
+          }
+        }
+      }
+    },
+    "Öppnar appen och startar en promenad direkt — för låsskärmen.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opens the app and starts a walk right away — for the lock screen."
           }
         }
       }

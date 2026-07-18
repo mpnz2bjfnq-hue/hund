@@ -18,7 +18,11 @@ struct Canine360WidgetBundle: WidgetBundle {
     var body: some Widget {
         KommandeWidget()
         SnapploggaWidget()
+        StartWalkWidget()
         WalkLiveActivity()
+        if #available(iOS 18.0, *) {
+            StartWalkControl()
+        }
     }
 }
 
