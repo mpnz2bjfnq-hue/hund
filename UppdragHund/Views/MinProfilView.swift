@@ -50,6 +50,7 @@ struct MinProfilView: View {
         ScrollView {
             VStack(spacing: Theme.Spacing.xl) {
                 profileHeader
+                    .padding(.bottom, -Theme.Spacing.m)
                     .riseIn(0, shown: sectionsAppeared)
                 statsRow
                     .riseIn(1, shown: sectionsAppeared)
@@ -243,7 +244,7 @@ struct MinProfilView: View {
     // MARK: - Profilhuvud
 
     private var profileHeader: some View {
-        VStack(spacing: Theme.Spacing.m) {
+        VStack(spacing: Theme.Spacing.s) {
             // Omslagsbild à la Facebook: kant till kant, raka hörn, avataren
             // överlappar nederkanten. Negativ padding tar ut skärmens marginal.
             if let cover = currentUser.profile?.coverPhotoData, let image = UIImage(data: cover) {
@@ -267,7 +268,7 @@ struct MinProfilView: View {
                     avatarButton
                         .offset(y: 46)
                 }
-                .padding(.bottom, 46)
+                .padding(.bottom, 40)
             } else {
                 avatarButton
             }
@@ -321,7 +322,6 @@ struct MinProfilView: View {
             }
         }
         .frame(maxWidth: .infinity)
-        .padding(.top, Theme.Spacing.s)
     }
 
     private var avatarButton: some View {
