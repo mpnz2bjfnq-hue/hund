@@ -43,26 +43,33 @@ struct MinProfilView: View {
     private var angelDogs: [Dog] { ownDogs.filter(\.isDeceased) }
     private var angelCount: Int { angelDogs.count }
     @State private var isPresentingAngels = false
+    @State private var sectionsAppeared = false
 
     var body: some View {
         ScrollView {
             VStack(spacing: Theme.Spacing.xl) {
                 profileHeader
+                    .riseIn(0, shown: sectionsAppeared)
                 statsRow
+                    .riseIn(1, shown: sectionsAppeared)
                 dogsCard
+                    .riseIn(2, shown: sectionsAppeared)
                 if isAdmin {
                     adminCard
+                        .riseIn(3, shown: sectionsAppeared)
                 }
                 if !hasDiscoveredSettings && !settingsExpanded {
                     settingsHint
                 }
                 settingsCard
+                    .riseIn(3, shown: sectionsAppeared)
                 logoutButton
             }
             .padding(Theme.Spacing.l)
         }
+        .onAppear { sectionsAppeared = true }
         .frame(maxWidth: .infinity)
-        .background(Theme.Colors.screenBackground)
+        .background(Theme.screenSurface)
         .overlay(alignment: .bottomTrailing) {
             feedbackBubble
         }

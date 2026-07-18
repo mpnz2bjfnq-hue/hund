@@ -53,7 +53,7 @@ struct PostDetailView: View {
                 }
                 commentInputBar
             }
-            .background(Theme.Colors.screenBackground)
+            .background(Theme.screenSurface)
             .navigationTitle("Inlägg")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

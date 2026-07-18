@@ -109,7 +109,7 @@ struct TeamInviteCodeSheet: View {
                 }
                 .padding(Theme.Spacing.l)
             }
-            .background(Theme.Colors.screenBackground)
+            .background(Theme.screenSurface)
             .navigationTitle("Bjud in med kod")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

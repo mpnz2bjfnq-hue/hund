@@ -24,7 +24,7 @@ struct AchievementsView: View {
             .padding(Theme.Spacing.l)
         }
         .frame(maxWidth: .infinity)
-        .background(Theme.Colors.screenBackground)
+        .background(Theme.screenSurface)
         .navigationTitle("Utmärkelser")
         .navigationBarTitleDisplayMode(.inline)
     }

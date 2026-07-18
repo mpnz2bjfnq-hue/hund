@@ -39,7 +39,7 @@ struct TrainingOverview: View {
             }
             .padding(Theme.Spacing.l)
         }
-        .background(Theme.Colors.screenBackground)
+        .background(Theme.screenSurface)
         .alert("Ny färdighet", isPresented: $showAddSkill) {
             TextField("t.ex. Rulla runt", text: $newSkillName)
             Button("Lägg till") { addSkill() }

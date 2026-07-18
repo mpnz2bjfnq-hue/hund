@@ -36,7 +36,7 @@ struct DogProfileDetailView: View {
             .padding(Theme.Spacing.l)
         }
         .frame(maxWidth: .infinity)
-        .background(Theme.Colors.screenBackground)
+        .background(Theme.screenSurface)
         .navigationTitle(dog.name)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {

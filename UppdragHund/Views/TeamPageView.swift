@@ -104,7 +104,7 @@ struct TeamPageView: View {
             .padding(Theme.Spacing.l)
         }
         .frame(maxWidth: .infinity)
-        .background(Theme.Colors.screenBackground)
+        .background(Theme.screenSurface)
         .navigationTitle(team.name)
         .navigationBarTitleDisplayMode(.inline)
         .tint(Theme.Colors.brand)

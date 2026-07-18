@@ -52,7 +52,7 @@ struct DagbokView: View {
                         photoGrid
                     }
                 }
-                .background(Theme.Colors.screenBackground)
+                .background(Theme.screenSurface)
             }
         }
         .navigationTitle("Dagbok")

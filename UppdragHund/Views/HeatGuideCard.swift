@@ -240,5 +240,5 @@ private struct TintedIconLabelStyle: LabelStyle {
         }
         .padding()
     }
-    .background(Theme.Colors.screenBackground)
+    .background(Theme.screenSurface)
 }

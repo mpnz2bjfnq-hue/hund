@@ -40,5 +40,5 @@ struct DogAvatar: View {
         DogAvatar(photoData: nil, size: 60, isActive: false)
     }
     .padding()
-    .background(Theme.Colors.screenBackground)
+    .background(Theme.screenSurface)
 }

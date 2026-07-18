@@ -81,7 +81,7 @@ struct HemView: View {
             EditHomeView()
         }
         .frame(maxWidth: .infinity)
-        .background(Theme.Colors.screenBackground)
+        .background(Theme.screenSurface)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .principal) {
@@ -111,7 +111,7 @@ struct HemView: View {
             heroCard
                 .heroZoomSource(id: "dogHero", in: heroNamespace)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(CardPressStyle())
     }
 
     /// Hero-kort: hundens foto som bakgrund med gradient och stort namn.
@@ -225,7 +225,7 @@ struct HemView: View {
                         } label: {
                             shortcutLabel(shortcut)
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(CardPressStyle())
                     }
                 }
                 .cardStyle()
@@ -754,7 +754,7 @@ private struct TodayCarousel: View {
     private func cardView(_ card: TodayCard) -> some View {
         if let destination = card.destination {
             NavigationLink { destination } label: { cardContent(card) }
-                .buttonStyle(.plain)
+                .buttonStyle(CardPressStyle())
         } else {
             cardContent(card)
         }

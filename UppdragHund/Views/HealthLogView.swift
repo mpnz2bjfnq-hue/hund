@@ -250,7 +250,7 @@ private struct InjuryDetailView: View {
                 }
                 .padding()
             }
-            .background(Theme.Colors.screenBackground)
+            .background(Theme.screenSurface)
             .navigationTitle("Skada")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

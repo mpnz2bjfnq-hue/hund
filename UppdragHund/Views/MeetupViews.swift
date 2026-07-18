@@ -450,7 +450,7 @@ struct MeetupDetailView: View {
                 }
                 .padding(Theme.Spacing.l)
             }
-            .background(Theme.Colors.screenBackground)
+            .background(Theme.screenSurface)
             .navigationTitle("Träff")
             .navigationBarTitleDisplayMode(.inline)
             .tint(Theme.Colors.brand)

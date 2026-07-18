@@ -148,7 +148,7 @@ struct KalenderView: View {
             }
             .padding()
         }
-        .background(Theme.Colors.screenBackground)
+        .background(Theme.screenSurface)
         .task(id: prediction.nextExpectedStartDate) {
             guard heatRemindersEnabled, let nextStart = prediction.nextExpectedStartDate else {
                 NotificationService.cancelHeatPredictionNotification(for: dog)

@@ -84,7 +84,7 @@ struct PrivacyInfoView: View {
             .padding(Theme.Spacing.l)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .background(Theme.Colors.screenBackground)
+        .background(Theme.screenSurface)
         .navigationTitle("Integritet & data")
         .navigationBarTitleDisplayMode(.inline)
     }

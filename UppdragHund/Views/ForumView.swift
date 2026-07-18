@@ -63,7 +63,7 @@ struct ForumView: View {
             .padding(Theme.Spacing.l)
         }
         .frame(maxWidth: .infinity)
-        .background(Theme.Colors.screenBackground)
+        .background(Theme.screenSurface)
         .navigationTitle("Forum")
         .navigationBarTitleDisplayMode(.inline)
         .bottomActionButton("Ny diskussion") {
@@ -293,7 +293,7 @@ struct ForumThreadDetailView: View {
             .padding(Theme.Spacing.l)
         }
         .frame(maxWidth: .infinity)
-        .background(Theme.Colors.screenBackground)
+        .background(Theme.screenSurface)
         .navigationTitle("Diskussion")
         .navigationBarTitleDisplayMode(.inline)
         .safeAreaInset(edge: .bottom) {

@@ -26,5 +26,5 @@ struct Canine360Wordmark: View {
 #Preview {
     Canine360Wordmark()
         .padding()
-        .background(Theme.Colors.screenBackground)
+        .background(Theme.screenSurface)
 }

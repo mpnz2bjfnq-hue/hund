@@ -129,3 +129,90 @@ extension View {
         }
     }
 }
+
+// MARK: - Skärmyta, tryckrespons och intåg — appens "liv"-verktyg
+
+extension Theme {
+    /// Skärmbakgrund med en svag brandglöd upptill i stället för platt färg.
+    static var screenSurface: some View {
+        ZStack {
+            Colors.screenBackground
+            RadialGradient(
+                colors: [Colors.brand.opacity(0.09), .clear],
+                center: .topLeading,
+                startRadius: 0,
+                endRadius: 460
+            )
+        }
+        .ignoresSafeArea()
+    }
+}
+
+/// Tryckrespons för kortlänkar: krymper och dämpas lätt under fingret.
+struct CardPressStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.97 : 1)
+            .opacity(configuration.isPressed ? 0.92 : 1)
+            .animation(.spring(duration: 0.25, bounce: 0.3), value: configuration.isPressed)
+    }
+}
+
+/// Kort med glas + kategoriton som tonar ut mot hörnet (samma recept som
+/// Hem-brickorna) — för ytor som ska ha en egen färgidentitet.
+private struct TintedCardStyle: ViewModifier {
+    var tint: Color
+    var padding: CGFloat
+    var radius: CGFloat
+
+    func body(content: Content) -> some View {
+        content
+            .padding(padding)
+            .background(
+                RoundedRectangle(cornerRadius: radius, style: .continuous)
+                    .fill(.ultraThinMaterial)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: radius, style: .continuous)
+                            .fill(LinearGradient(
+                                colors: [tint.opacity(0.20), tint.opacity(0.05)],
+                                startPoint: .topLeading, endPoint: .bottomTrailing
+                            ))
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: radius, style: .continuous)
+                            .strokeBorder(tint.opacity(0.20), lineWidth: 0.5)
+                    )
+            )
+            .shadow(color: .black.opacity(0.22), radius: 8, y: 3)
+    }
+}
+
+extension View {
+    func tintedCardStyle(
+        _ tint: Color,
+        padding: CGFloat = Theme.Spacing.l,
+        radius: CGFloat = Theme.Radius.card
+    ) -> some View {
+        modifier(TintedCardStyle(tint: tint, padding: padding, radius: radius))
+    }
+}
+
+/// Intågsanimation: innehållet stiger upp och tonar in, förskjutet per index.
+private struct RiseIn: ViewModifier {
+    let index: Int
+    let shown: Bool
+
+    func body(content: Content) -> some View {
+        content
+            .opacity(shown ? 1 : 0)
+            .offset(y: shown ? 0 : 14)
+            .scaleEffect(shown ? 1 : 0.97)
+            .animation(.spring(duration: 0.5, bounce: 0.22).delay(Double(index) * 0.07), value: shown)
+    }
+}
+
+extension View {
+    func riseIn(_ index: Int, shown: Bool) -> some View {
+        modifier(RiseIn(index: index, shown: shown))
+    }
+}

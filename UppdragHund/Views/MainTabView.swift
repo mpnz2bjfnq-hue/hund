@@ -180,7 +180,7 @@ private struct NoDogYetView: View {
             .tint(Theme.Colors.brand)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Theme.Colors.screenBackground)
+        .background(Theme.screenSurface)
         .toolbar {
             ToolbarItem(placement: .principal) {
                 BrandPrincipal(title: "Canine360")

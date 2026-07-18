@@ -33,7 +33,7 @@ struct CommunityPageView: View {
             .padding(Theme.Spacing.l)
         }
         .frame(maxWidth: .infinity)
-        .background(Theme.Colors.screenBackground)
+        .background(Theme.screenSurface)
         .navigationTitle(community.city)
         .navigationBarTitleDisplayMode(.inline)
         .tint(Theme.Colors.brand)

@@ -132,7 +132,7 @@ struct DogBodyMap: View {
                 DogBodyMap(view: $view, point: $point, isEditable: true)
                     .padding()
             }
-            .background(Theme.Colors.screenBackground)
+            .background(Theme.screenSurface)
         }
     }
     return Harness()

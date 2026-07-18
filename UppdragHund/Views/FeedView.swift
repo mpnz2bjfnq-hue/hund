@@ -24,6 +24,7 @@ struct FeedView: View {
     @State private var isEditingSocial = false
 
     @AppStorage(SocialBlockStore.storageKey) private var blocksRaw = SocialBlockStore.defaultRaw
+    @State private var blocksAppeared = false
 
     private var blocks: [SocialBlock] { SocialBlockStore.decode(blocksRaw) }
     private var hasGroups: Bool { !myTeams.isEmpty || !myCommunities.isEmpty }
@@ -49,13 +50,16 @@ struct FeedView: View {
                     }
                     .padding(.bottom, -Theme.Spacing.m)
 
-                    ForEach(blocks) { block in
-                        switch block {
-                        case .teams:    teamsBlock
-                        case .discover: discoverBlock
-                        case .meetups:  meetupsBlock
-                        case .forum:    forumBlock
+                    ForEach(Array(blocks.enumerated()), id: \.element) { index, block in
+                        Group {
+                            switch block {
+                            case .teams:    teamsBlock
+                            case .discover: discoverBlock
+                            case .meetups:  meetupsBlock
+                            case .forum:    forumBlock
+                            }
                         }
+                        .riseIn(index, shown: blocksAppeared)
                     }
                 }
             }
@@ -63,7 +67,7 @@ struct FeedView: View {
             .animation(.spring(duration: 0.4), value: blocks)
         }
         .frame(maxWidth: .infinity)
-        .background(Theme.Colors.screenBackground)
+        .background(Theme.screenSurface)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .principal) {
@@ -83,7 +87,10 @@ struct FeedView: View {
             EditSocialView()
         }
         .refreshable { await load() }
-        .onAppear { Task { await load() } }
+        .onAppear {
+            blocksAppeared = true
+            Task { await load() }
+        }
     }
 
     // MARK: - Block
@@ -104,7 +111,8 @@ struct FeedView: View {
             bigCard(
                 icon: "building.2.fill",
                 title: community.name,
-                subtitle: communitySubtitle(community)
+                subtitle: communitySubtitle(community),
+                tint: .teal
             ) {
                 CommunityPageView(community: community)
             }
@@ -119,7 +127,8 @@ struct FeedView: View {
                 title: "Team-inbjudan",
                 subtitle: pendingTeamInvites == 1
                     ? "Du har 1 väntande inbjudan"
-                    : "Du har \(pendingTeamInvites) väntande inbjudningar"
+                    : "Du har \(pendingTeamInvites) väntande inbjudningar",
+                tint: .blue
             ) {
                 JoinOrCreateTeamView()
             }
@@ -127,7 +136,8 @@ struct FeedView: View {
         bigCard(
             icon: "plus.circle.fill",
             title: hasGroups ? "Fler team & grupper" : "Team & grupper",
-            subtitle: "Skapa ett team, gå med med kod, eller gå med i en stadsgrupp"
+            subtitle: "Skapa ett team, gå med med kod, eller gå med i en stadsgrupp",
+            tint: .blue
         ) {
             JoinOrCreateTeamView()
         }
@@ -141,7 +151,8 @@ struct FeedView: View {
                 ? (upcomingMeetups == 1
                     ? "1 kommande träff"
                     : "\(upcomingMeetups) kommande träffar")
-                : "Planera hundträffar med vänner och team"
+                : "Planera hundträffar med vänner och team",
+            tint: .orange
         ) {
             MeetupsListView()
         }
@@ -151,7 +162,8 @@ struct FeedView: View {
         bigCard(
             icon: "bubble.left.and.bubble.right.fill",
             title: "Forum",
-            subtitle: "Ställ frågor och diskutera hundträning med andra"
+            subtitle: "Ställ frågor och diskutera hundträning med andra",
+            tint: .purple
         ) {
             ForumView()
         }
@@ -164,6 +176,7 @@ struct FeedView: View {
         title: String,
         subtitle: String,
         photoData: Data? = nil,
+        tint: Color = Theme.Colors.brand,
         @ViewBuilder destination: @escaping () -> Destination
     ) -> some View {
         NavigationLink {
@@ -179,10 +192,10 @@ struct FeedView: View {
                 } else {
                     Image(systemName: icon)
                         .font(.title2)
-                        .foregroundStyle(Theme.Colors.brand)
+                        .foregroundStyle(tint)
                         .frame(width: 52, height: 52)
                         .background(
-                            Theme.Colors.brand.opacity(0.12),
+                            tint.opacity(0.14),
                             in: RoundedRectangle(cornerRadius: 14, style: .continuous)
                         )
                 }
@@ -204,9 +217,9 @@ struct FeedView: View {
             }
             .padding(Theme.Spacing.m)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .cardStyle()
+            .tintedCardStyle(tint)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(CardPressStyle())
     }
 
     // MARK: - Data
