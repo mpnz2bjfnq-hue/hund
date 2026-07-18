@@ -52,6 +52,14 @@ final class Dog {
     /// att flagga förhöjd temp i hälsologgen.
     var normalTemperatureCelsius: Double? = nil
 
+    // Vård-/vaktinfo (valfritt, lokalt) — visas i Hundvaktsläget.
+    var vetName: String? = nil
+    var vetPhone: String? = nil
+    var emergencyContactName: String? = nil
+    var emergencyContactPhone: String? = nil
+    /// Fri text: matschema, rutiner, allergier, vad sittern behöver veta.
+    var careNotes: String? = nil
+
     // Minnesläge: satt när hunden gått bort. All data behålls för att
     // kunna hedras — hunden visas som "ängel" istället för aktiv hund.
     var passedAwayDate: Date? = nil

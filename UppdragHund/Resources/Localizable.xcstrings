@@ -1674,6 +1674,16 @@
         }
       }
     },
+    "Dela med hundvakt": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Share with sitter"
+          }
+        }
+      }
+    },
     "Dela med ny vän": {
       "localizations": {
         "en": {
@@ -1841,6 +1851,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Your name"
+          }
+        }
+      }
+    },
+    "Djuraffär": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pet store"
           }
         }
       }
@@ -2902,6 +2922,36 @@
         }
       }
     },
+    "Hundvakt": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dog sitter"
+          }
+        }
+      }
+    },
+    "Hundvaktsläge": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dog sitter mode"
+          }
+        }
+      }
+    },
+    "Hundvänligt café": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dog-friendly café"
+          }
+        }
+      }
+    },
     "Hundägare": {
       "localizations": {
         "en": {
@@ -3288,6 +3338,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "No workouts yet"
+          }
+        }
+      }
+    },
+    "Inga platser hittades": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No places found"
           }
         }
       }
@@ -3788,6 +3848,16 @@
         }
       }
     },
+    "Kategori": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Category"
+          }
+        }
+      }
+    },
     "Klar": {
       "localizations": {
         "en": {
@@ -3878,6 +3948,26 @@
         }
       }
     },
+    "Kommandon hunden kan": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Commands the dog knows"
+          }
+        }
+      }
+    },
+    "Kommandon: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Commands: %@"
+          }
+        }
+      }
+    },
     "Kommentar": {
       "localizations": {
         "en": {
@@ -3944,6 +4034,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Consulting"
+          }
+        }
+      }
+    },
+    "Kontakter": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Contacts"
           }
         }
       }
@@ -4399,6 +4499,16 @@
         }
       }
     },
+    "Lägg till matschema, rutiner och allergier under Redigera.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add feeding schedule, routines and allergies under Edit."
+          }
+        }
+      }
+    },
     "Lägg till omslag": {
       "localizations": {
         "en": {
@@ -4773,6 +4883,16 @@
         }
       }
     },
+    "Matschema, rutiner, allergier…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Feeding schedule, routines, allergies…"
+          }
+        }
+      }
+    },
     "Max antal platser": {
       "localizations": {
         "en": {
@@ -4809,6 +4929,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Medication"
+          }
+        }
+      }
+    },
+    "Mediciner": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Medications"
+          }
+        }
+      }
+    },
+    "Mediciner:": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Medications:"
           }
         }
       }
@@ -5063,6 +5203,16 @@
         }
       }
     },
+    "Namn/klinik": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Name/clinic"
+          }
+        }
+      }
+    },
     "Neka": {
       "localizations": {
         "en": {
@@ -5283,6 +5433,16 @@
         }
       }
     },
+    "Nära dig": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Near you"
+          }
+        }
+      }
+    },
     "Närvaro": {
       "localizations": {
         "en": {
@@ -5359,6 +5519,32 @@
           "stringUnit": {
             "state": "translated",
             "value": "The pin is set — tap the map to move it."
+          }
+        }
+      }
+    },
+    "Nödkontakt": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Emergency contact"
+          }
+        }
+      }
+    },
+    "Nödkontakt: %@ %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Emergency contact: %1$@ %2$@"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "new",
+            "value": "Nödkontakt: %1$@ %2$@"
           }
         }
       }
@@ -5595,6 +5781,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Walks you took with Garmin, Apple Watch or your phone appear here once they've synced to Apple Health."
+          }
+        }
+      }
+    },
+    "Prova en annan kategori, eller flytta dig till ett område med fler platser.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Try another category, or move to an area with more places."
           }
         }
       }
@@ -5849,6 +6045,16 @@
         }
       }
     },
+    "Rastgård": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dog park"
+          }
+        }
+      }
+    },
     "Reaktion/anteckning": {
       "localizations": {
         "en": {
@@ -5895,6 +6101,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Edit profile"
+          }
+        }
+      }
+    },
+    "Redigera vaktinfo": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Edit sitter info"
           }
         }
       }
@@ -5965,6 +6181,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Title"
+          }
+        }
+      }
+    },
+    "Rutiner & att tänka på": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Routines & things to know"
+          }
+        }
+      }
+    },
+    "Rutiner:": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Routines:"
           }
         }
       }
@@ -6976,6 +7212,16 @@
         }
       }
     },
+    "Telefon": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Phone"
+          }
+        }
+      }
+    },
     "Temperatur": {
       "localizations": {
         "en": {
@@ -7684,6 +7930,32 @@
           "stringUnit": {
             "state": "translated",
             "value": "Who sees the post?"
+          }
+        }
+      }
+    },
+    "Veterinär": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vet"
+          }
+        }
+      }
+    },
+    "Veterinär: %@ %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vet: %1$@ %2$@"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "new",
+            "value": "Veterinär: %1$@ %2$@"
           }
         }
       }
@@ -8480,6 +8752,16 @@
           "stringUnit": {
             "state": "new",
             "value": "🏅 %1$lld/%2$lld"
+          }
+        }
+      }
+    },
+    "🐾 Hundvakt-info för %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "🐾 Dog sitter info for %@"
           }
         }
       }
