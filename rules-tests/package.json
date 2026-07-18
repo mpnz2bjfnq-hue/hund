@@ -1,0 +1,13 @@
+{
+  "name": "canine360-rules-tests",
+  "private": true,
+  "type": "module",
+  "description": "Säkerhetsregeltester för Firestore — körs mot emulatorn, aldrig mot produktion.",
+  "scripts": {
+    "test": "node --test firestore.rules.test.mjs"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^3.0.4",
+    "firebase": "^10.14.1"
+  }
+}

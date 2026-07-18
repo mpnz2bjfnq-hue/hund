@@ -23,3 +23,7 @@ DerivedData/
 
 # Local device build output
 build-device/
+
+# Regeltester
+rules-tests/node_modules/
+firestore-debug.log
