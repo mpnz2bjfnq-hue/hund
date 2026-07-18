@@ -4,6 +4,8 @@
 <dict>
 	<key>NSSupportsLiveActivities</key>
 	<true/>
+	<key>NSMotionUsageDescription</key>
+	<string>Stegräknaren kombineras med GPS så att promenadens sträcka blir mer exakt.</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>

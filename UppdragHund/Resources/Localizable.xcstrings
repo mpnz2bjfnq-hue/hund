@@ -5864,6 +5864,16 @@
         }
       }
     },
+    "STEG": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "STEPS"
+          }
+        }
+      }
+    },
     "Senast uppdaterad 15 juli 2026": {
       "localizations": {
         "en": {

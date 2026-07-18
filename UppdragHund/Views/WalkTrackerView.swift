@@ -99,6 +99,13 @@ struct WalkTrackerView: View {
                             ),
                             unit: "/km"
                         )
+                        Rectangle()
+                            .fill(Theme.Colors.textSecondary.opacity(0.2))
+                            .frame(width: 1, height: 34)
+                        walkMetric(
+                            label: String(localized: "STEG"),
+                            value: "\(tracker.stepCount)"
+                        )
                     }
                     .padding(.top, Theme.Spacing.s)
                 }
