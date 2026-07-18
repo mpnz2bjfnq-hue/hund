@@ -91,7 +91,9 @@ enum BodyView: String, Codable, CaseIterable, Identifiable {
     }
 
     /// Avkodar en lagrad rå-sträng, inklusive äldre vy-namn.
-    static func decode(_ raw: String) -> BodyView? {
+    /// nonisolated: anropas från SwiftDatas nonisolated model-accessor
+    /// (`injuryView`) trots projektets MainActor-standardisolering.
+    nonisolated static func decode(_ raw: String) -> BodyView? {
         if let v = BodyView(rawValue: raw) { return v }
         switch raw {
         case "left", "right", "front", "back": return .side
