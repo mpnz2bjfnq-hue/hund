@@ -439,6 +439,16 @@
         }
       }
     },
+    "%lld steg": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld steps"
+          }
+        }
+      }
+    },
     "%lld veckor": {
       "localizations": {
         "en": {
@@ -7648,6 +7658,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "View dog profile"
+          }
+        }
+      }
+    },
+    "Visa rutt": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show route"
           }
         }
       }

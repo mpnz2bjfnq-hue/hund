@@ -238,6 +238,7 @@ struct WalkTrackerView: View {
         session.routeData = TrainingSession.encodeRoute(
             tracker.route.map { (latitude: $0.latitude, longitude: $0.longitude) }
         )
+        session.steps = tracker.stepCount > 0 ? tracker.stepCount : nil
         modelContext.insert(session)
         SyncCoordinator.shared.entryTouched(session, dog: dog)
         dismiss()

@@ -46,6 +46,8 @@ final class TrainingSession {
     var activity: String
     var durationMinutes: Int?
     var distanceMeters: Double?
+    /// Stegräknarens antal steg (GPS-promenader). nil för äldre/övriga pass.
+    var steps: Int?
     /// GPS-rutt som JSON av [[lat, lon], …]. Sätts av promenad-loggaren.
     var routeData: Data?
     var note: String?
@@ -72,9 +74,22 @@ final class TrainingSession {
     var distanceText: String? {
         guard let distanceMeters, distanceMeters > 0 else { return nil }
         if distanceMeters >= 1000 {
-            return String(format: "%.1f km", distanceMeters / 1000)
+            return String(format: "%.2f km", distanceMeters / 1000)
         }
         return "\(Int(distanceMeters)) m"
+    }
+
+    /// Medelfart i km/h om både sträcka och tid finns, annars nil.
+    var averageSpeedText: String? {
+        guard let distanceMeters, distanceMeters > 0,
+              let durationMinutes, durationMinutes > 0 else { return nil }
+        let kmh = (distanceMeters / 1000) / (Double(durationMinutes) / 60)
+        return String(format: "%.1f km/h", kmh)
+    }
+
+    var stepsText: String? {
+        guard let steps, steps > 0 else { return nil }
+        return String(localized: "\(steps) steg")
     }
 
     /// Avkodad GPS-rutt som (lat, lon)-par.

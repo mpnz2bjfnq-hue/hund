@@ -86,37 +86,57 @@ struct HundtraningView: View {
         } else {
             List {
                 ForEach(sortedSessions) { session in
-                    Button {
-                        if session.routeData != nil { sessionShowingRoute = session }
-                    } label: {
-                        TrainingSessionRow(session: session)
-                    }
-                    .buttonStyle(.plain)
-                    .swipeActions(edge: .trailing) {
-                        if access.canModify(entryCreatedByUid: session.createdByUid) {
-                            Button(role: .destructive) {
-                                sessionPendingDelete = session
-                            } label: {
-                                Label("Ta bort", systemImage: "trash")
+                    // Raden är INTE en Button — en Button slåss med svepet och
+                    // stänger det direkt. Rutten öppnas via tap på hela raden.
+                    TrainingSessionRow(session: session)
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            if session.routeData != nil { sessionShowingRoute = session }
+                        }
+                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                            if access.canModify(entryCreatedByUid: session.createdByUid) {
+                                Button(role: .destructive) {
+                                    sessionPendingDelete = session
+                                } label: {
+                                    Label("Ta bort", systemImage: "trash")
+                                }
                             }
                         }
-                    }
-                    // På raden så bekräftelsen dyker upp intill den.
-                    .confirmationDialog(
-                        "Ta bort träningspasset?",
-                        isPresented: Binding(
-                            get: { sessionPendingDelete?.persistentModelID == session.persistentModelID },
-                            set: { if !$0 { sessionPendingDelete = nil } }
-                        ),
-                        titleVisibility: .visible
-                    ) {
-                        Button("Ta bort", role: .destructive) {
-                            SyncCoordinator.shared.delete(session, of: dog, in: modelContext)
-                            sessionPendingDelete = nil
+                        .contextMenu {
+                            if session.routeData != nil {
+                                Button {
+                                    sessionShowingRoute = session
+                                } label: {
+                                    Label("Visa rutt", systemImage: "map")
+                                }
+                            }
+                            if access.canModify(entryCreatedByUid: session.createdByUid) {
+                                Button(role: .destructive) {
+                                    sessionPendingDelete = session
+                                } label: {
+                                    Label("Ta bort", systemImage: "trash")
+                                }
+                            }
                         }
-                        Button("Avbryt", role: .cancel) { sessionPendingDelete = nil }
-                    }
                 }
+            }
+            // Bekräftelsen ligger på listan, inte per rad — så den överlever
+            // att raden slutar renderas medan svepet stänger.
+            .confirmationDialog(
+                "Ta bort träningspasset?",
+                isPresented: Binding(
+                    get: { sessionPendingDelete != nil },
+                    set: { if !$0 { sessionPendingDelete = nil } }
+                ),
+                titleVisibility: .visible
+            ) {
+                Button("Ta bort", role: .destructive) {
+                    if let session = sessionPendingDelete {
+                        SyncCoordinator.shared.delete(session, of: dog, in: modelContext)
+                    }
+                    sessionPendingDelete = nil
+                }
+                Button("Avbryt", role: .cancel) { sessionPendingDelete = nil }
             }
             .sheet(item: $sessionShowingRoute) { session in
                 RouteMapView(session: session)
@@ -222,11 +242,15 @@ private struct TrainingSessionRow: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
-            if session.durationMinutes != nil || session.distanceText != nil {
+            let stats = [
+                session.durationMinutes.map { "\($0) min" },
+                session.distanceText,
+                session.averageSpeedText,
+                session.stepsText,
+            ].compactMap { $0 }
+            if !stats.isEmpty {
                 HStack(spacing: 4) {
-                    Text([session.durationMinutes.map { "\($0) min" }, session.distanceText]
-                        .compactMap { $0 }
-                        .joined(separator: " · "))
+                    Text(stats.joined(separator: " · "))
                     if session.routeData != nil {
                         Image(systemName: "map")
                     }
