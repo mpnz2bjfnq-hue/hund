@@ -216,3 +216,27 @@ extension View {
         modifier(RiseIn(index: index, shown: shown))
     }
 }
+
+/// Mjukt intåg när en flik blir synlig: tonar in och stiger några punkter
+/// i stället för iOS hårda klipp mellan tabbar.
+private struct TabAppearTransition: ViewModifier {
+    @State private var shown = false
+
+    func body(content: Content) -> some View {
+        content
+            .opacity(shown ? 1 : 0)
+            .scaleEffect(shown ? 1 : 0.985)
+            .offset(y: shown ? 0 : 10)
+            .onAppear {
+                shown = false
+                withAnimation(.spring(duration: 0.38, bounce: 0.18)) { shown = true }
+            }
+            .onDisappear { shown = false }
+    }
+}
+
+extension View {
+    func tabTransition() -> some View {
+        modifier(TabAppearTransition())
+    }
+}

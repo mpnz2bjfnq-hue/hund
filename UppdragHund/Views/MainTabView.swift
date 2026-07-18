@@ -50,6 +50,7 @@ struct MainTabView: View {
                     NoDogYetView()
                 }
             }
+            .tabTransition()
             .tabItem {
                 Label("Hem", systemImage: "house.fill")
             }
@@ -58,6 +59,7 @@ struct MainTabView: View {
             NavigationStack {
                 FeedView()
             }
+            .tabTransition()
             .tabItem {
                 Label("Socialt", systemImage: "person.2.fill")
             }
@@ -77,6 +79,7 @@ struct MainTabView: View {
                     }
                 }
             }
+            .tabTransition()
             .tabItem {
                 Label("Kalender", systemImage: "calendar")
             }
@@ -85,11 +88,13 @@ struct MainTabView: View {
             NavigationStack {
                 MinProfilView()
             }
+            .tabTransition()
             .tabItem {
                 Label("Min profil", systemImage: "person.crop.circle")
             }
             .tag(MainTab.profil)
         }
+        .sensoryFeedback(.selection, trigger: selectedTab)
         .onAppear {
             // Utan hund är profilen den naturliga startsidan (nytt konto).
             if activeDogStore.activeDog == nil {
