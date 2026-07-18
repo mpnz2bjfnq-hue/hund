@@ -13,8 +13,9 @@ enum AvatarImage {
     static let jpegQuality: CGFloat = 0.7
 
     /// Skalar (aspect-fill), beskär till en kvadrat och komprimerar till JPEG.
-    static func makeThumbnailData(from image: UIImage) -> Data? {
-        let side = targetSize
+    /// `side` styr storleken — små thumbnails (t.ex. 128) för listor som ska
+    /// samsas många i ett Firestore-dokument.
+    static func makeThumbnailData(from image: UIImage, side: CGFloat = targetSize) -> Data? {
         let format = UIGraphicsImageRendererFormat.default()
         format.scale = 1
         format.opaque = true

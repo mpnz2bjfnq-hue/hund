@@ -56,6 +56,8 @@ struct DogSummary: Codable, Equatable, Identifiable {
     var isDeceased: Bool?
     /// Dödsdatum, för minnesraden på vänners profiler.
     var deceasedDate: Date?
+    /// Liten foto-thumbnail (~128px) så vänner ser hunden, inte en symbol.
+    var photoData: Data?
     // Meriter (badges) — valfria för profiler publicerade före fälten.
     var hdResult: String?
     var edResult: String?

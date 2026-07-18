@@ -9,6 +9,7 @@
 import Foundation
 import SwiftData
 import FirebaseFirestore
+import UIKit
 
 @MainActor
 enum ProfilePublisher {
@@ -27,6 +28,9 @@ enum ProfilePublisher {
                     sex: dog.sex.rawValue,
                     isDeceased: dog.isDeceased,
                     deceasedDate: dog.passedAwayDate,
+                    photoData: dog.photoData
+                        .flatMap(UIImage.init(data:))
+                        .flatMap { AvatarImage.makeThumbnailData(from: $0, side: 128) },
                     hdResult: dog.hdResult,
                     edResult: dog.edResult,
                     mentalTest: dog.mentalTestDone,

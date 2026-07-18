@@ -48,7 +48,8 @@ struct ProfileView: View {
                     sexName: dog.sex.displayName,
                     isAngel: dog.isDeceased,
                     deceasedDate: dog.passedAwayDate,
-                    badges: DogBadge.badges(for: dog)
+                    badges: DogBadge.badges(for: dog),
+                    photoData: dog.photoData
                 )
             }
         }
@@ -61,7 +62,8 @@ struct ProfileView: View {
                 sexName: DogSex(rawValue: summary.sex)?.displayName,
                 isAngel: summary.isAngel,
                 deceasedDate: summary.deceasedDate,
-                badges: summary.badges
+                badges: summary.badges,
+                photoData: summary.photoData
             )
         }
     }
@@ -329,10 +331,23 @@ struct ProfileView: View {
             selectedDog = dog
         } label: {
             VStack(spacing: 6) {
-                Image(systemName: dog.isAngel ? "rainbow" : "pawprint.circle.fill")
-                    .font(.system(size: 44))
-                    .foregroundStyle(.tint)
-                    .symbolRenderingMode(dog.isAngel ? .multicolor : .monochrome)
+                if let data = dog.photoData, let image = UIImage(data: data) {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 48, height: 48)
+                        .clipShape(Circle())
+                        .overlay(alignment: .bottomTrailing) {
+                            if dog.isAngel {
+                                Text("🌈").font(.caption2)
+                            }
+                        }
+                } else {
+                    Image(systemName: dog.isAngel ? "rainbow" : "pawprint.circle.fill")
+                        .font(.system(size: 44))
+                        .foregroundStyle(.tint)
+                        .symbolRenderingMode(dog.isAngel ? .multicolor : .monochrome)
+                }
                 Text(dog.name)
                     .font(.subheadline.weight(.medium))
                     .lineLimit(1)
@@ -407,6 +422,7 @@ struct ProfileView: View {
         var isAngel: Bool = false
         var deceasedDate: Date?
         var badges: [DogBadge] = []
+        var photoData: Data?
     }
 }
 
@@ -421,10 +437,19 @@ struct DogSummarySheet: View {
             List {
                 Section {
                     VStack(spacing: 8) {
-                        Image(systemName: dog.isAngel ? "rainbow" : "pawprint.circle.fill")
-                            .font(.system(size: 64))
-                            .foregroundStyle(.tint)
-                            .symbolRenderingMode(dog.isAngel ? .multicolor : .monochrome)
+                        if let data = dog.photoData, let image = UIImage(data: data) {
+                            Image(uiImage: image)
+                                .resizable()
+                                .scaledToFill()
+                                .frame(width: 96, height: 96)
+                                .clipShape(Circle())
+                                .overlay(Circle().stroke(Theme.Colors.brand, lineWidth: 2))
+                        } else {
+                            Image(systemName: dog.isAngel ? "rainbow" : "pawprint.circle.fill")
+                                .font(.system(size: 64))
+                                .foregroundStyle(.tint)
+                                .symbolRenderingMode(dog.isAngel ? .multicolor : .monochrome)
+                        }
                         Text(dog.name)
                             .font(.title2.bold())
                         if dog.isAngel {
