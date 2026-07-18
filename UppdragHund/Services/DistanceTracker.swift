@@ -99,9 +99,14 @@ final class DistanceTracker: NSObject, CLLocationManagerDelegate {
     /// OBS: stegräknaren är TYST när man står still (callbacken triggas bara
     /// av steg) — därför är gaten STÄNGD som standard när stegdata kan
     /// förväntas. Öppen bara utan behörighet/hårdvara (då gäller GPS-filtren).
+    /// Kan stegräknaren agera rörelse-gate? (Hårdvara + behörighet.)
+    private var pedometerGateAvailable: Bool {
+        CMPedometer.isStepCountingAvailable()
+            && CMPedometer.authorizationStatus() == .authorized
+    }
+
     private var isProbablyMoving: Bool {
-        guard CMPedometer.isStepCountingAvailable(),
-              CMPedometer.authorizationStatus() == .authorized else { return true }
+        guard pedometerGateAvailable else { return true }
         // Steg nyligen → vi går.
         if Date.now.timeIntervalSince(lastStepIncreaseAt) < 12 { return true }
         // Varmkörning: ge stegräknaren några sekunder efter start/fortsätt
@@ -122,12 +127,8 @@ final class DistanceTracker: NSObject, CLLocationManagerDelegate {
             currentAccuracy = location.horizontalAccuracy
 
             guard let last = lastLocation else {
-                // Första referenspunkten kräver skarp fix — annars startar
-                // rutten i en dålig gissning och "vandrar" därifrån.
-                if location.horizontalAccuracy <= 15 {
-                    lastLocation = location
-                    route.append(location.coordinate)
-                }
+                lastLocation = location
+                route.append(location.coordinate)
                 continue
             }
 
@@ -141,9 +142,12 @@ final class DistanceTracker: NSObject, CLLocationManagerDelegate {
                 continue
             }
 
-            // Stillastående-drift: GPS:en vandrar slumpmässigt inom sin
-            // osäkerhetsradie. Steg mindre än osäkerheten är brus, inte rörelse.
-            let minimumStep = max(5, location.horizontalAccuracy)
+            // När stegräknaren bekräftar rörelse är GPS-stegen riktiga —
+            // då räcker ett milt brusfilter. (Den hårda osäkerhetströskeln
+            // behövs bara utan stegdata, där gaten inte kan skydda.)
+            let minimumStep = pedometerGateAvailable
+                ? max(3, location.horizontalAccuracy * 0.3)
+                : max(5, location.horizontalAccuracy)
             guard step >= minimumStep else { continue }
 
             // Teleporteringar (tunnlar, cellbyten): orimlig fart → flytta
