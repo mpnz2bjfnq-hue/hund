@@ -107,9 +107,9 @@ final class DogShareService {
     /// Återkallar en delning. Var det hundens sista delning städas allt på servern.
     func revoke(_ share: ShareDoc) async throws {
         try await repository.deleteShare(dogRemoteID: share.dogRemoteID, recipientUid: share.recipientUid)
-        let remaining = try await repository.shares(forDog: share.dogRemoteID)
+        let remaining = try await repository.shares(forDog: share.dogRemoteID, ownerUid: share.ownerUid)
         if remaining.isEmpty {
-            try await repository.deleteDogCompletely(dogRemoteID: share.dogRemoteID)
+            try await repository.deleteDogCompletely(dogRemoteID: share.dogRemoteID, ownerUid: share.ownerUid)
         }
     }
 
@@ -158,7 +158,8 @@ final class DogShareService {
     }
 
     private func moduleStillShared(_ module: SharedModule, dogRemoteID: String) async throws -> Bool {
-        try await repository.shares(forDog: dogRemoteID)
+        guard let uid = AuthService.shared.currentUserID else { return false }
+        return try await repository.shares(forDog: dogRemoteID, ownerUid: uid)
             .contains { $0.modules.contains(module.rawValue) }
     }
 

@@ -87,6 +87,7 @@ struct NewTrainingSessionView: View {
             dog: dog
         )
         modelContext.insert(session)
+        try? modelContext.save()
         SyncCoordinator.shared.entryTouched(session, dog: dog)
         dismiss()
     }

@@ -147,6 +147,7 @@ struct NewHealthEventView: View {
             event.injuryStatus = injuryStatus
         }
         modelContext.insert(event)
+        try? modelContext.save()
         SyncCoordinator.shared.entryTouched(event, dog: dog)
         dismiss()
     }

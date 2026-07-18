@@ -14,6 +14,7 @@ struct ContentView: View {
     @Environment(\.scenePhase) private var scenePhase
     @Query(sort: \Dog.name) private var dogs: [Dog]
     @State private var activeDogStore = ActiveDogStore()
+    @State private var deepLinks = DeepLinkStore()
     @State private var authService = AuthService.shared
     @State private var currentUser = CurrentUserStore.shared
     @State private var isLoadingProfile = false
@@ -46,6 +47,12 @@ struct ContentView: View {
             }
         }
         .environment(activeDogStore)
+        .environment(deepLinks)
+        // Tas emot vid roten — vid kallstart finns MainTabView inte än när
+        // URL:en levereras, så den buffras och konsumeras när tabbarna visas.
+        .onOpenURL { url in
+            deepLinks.pending = url
+        }
         .onAppear { ensureActiveDogSelected() }
         .task(id: authService.isSignedIn) {
             if authService.isSignedIn {

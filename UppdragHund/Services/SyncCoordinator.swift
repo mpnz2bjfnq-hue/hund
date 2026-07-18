@@ -145,9 +145,13 @@ final class SyncCoordinator {
                 FetchDescriptor<SyncTombstone>(predicate: #Predicate { $0.module == "dog" })
             )
             for tombstone in dogTombstones {
-                try await repository.deleteDogCompletely(dogRemoteID: tombstone.dogRemoteID.uuidString)
+                try await repository.deleteDogCompletely(dogRemoteID: tombstone.dogRemoteID.uuidString, ownerUid: uid)
                 context.delete(tombstone)
             }
+
+            // Mottagarsidan: egna poster/raderingar på delade hundar pushas
+            // per post — de täcks inte av ägarnas dirty-flagga nedan.
+            try await pushFriendEntries(context: context, uid: uid)
 
             let dirtyDogs = try context.fetch(
                 FetchDescriptor<Dog>(predicate: #Predicate { !$0.isShared && $0.needsUpload })
@@ -161,7 +165,7 @@ final class SyncCoordinator {
 
             for dog in dirtyDogs {
                 guard let dogRemoteID = dog.remoteID else { continue }
-                let shares = try await repository.shares(forDog: dogRemoteID.uuidString)
+                let shares = try await repository.shares(forDog: dogRemoteID.uuidString, ownerUid: uid)
                 guard !shares.isEmpty else {
                     // Hunden delas inte (längre) — inget att pusha.
                     dog.needsUpload = false
@@ -182,6 +186,60 @@ final class SyncCoordinator {
             try context.save()
         } catch {
             // Offline etc. — needsUpload/tombstones ligger kvar till nästa svep.
+        }
+    }
+
+    /// Mottagarens push: på delade hundar med readWrite laddas egna poster
+    /// (pendingUpload) och egna raderingar (tombstones) upp per post.
+    /// Reglerna kräver createdByUid == eget uid, vilket entryTouched/delete
+    /// redan garanterar.
+    private func pushFriendEntries(context: ModelContext, uid: String) async throws {
+        let sharedDogs = try context.fetch(
+            FetchDescriptor<Dog>(predicate: #Predicate { $0.isShared })
+        )
+        guard sharedDogs.contains(where: { $0.sharePermission == .readWrite }) else { return }
+
+        let repository = SharingRepository.shared
+        // Säkerställ författarinfo (namn på posten hos ägaren).
+        _ = try await ownerAuthor(uid: uid)
+        let tombstones = try context.fetch(FetchDescriptor<SyncTombstone>())
+            .filter { $0.module != "dog" }
+
+        for dog in sharedDogs where dog.sharePermission == .readWrite {
+            guard let dogRemoteID = dog.remoteID else { continue }
+
+            for module in SharedModule.allCases where dog.sharedModules.contains(module) {
+                let moduleTombstones = tombstones.filter {
+                    $0.dogRemoteID == dogRemoteID && $0.module == module.rawValue
+                }
+                if !moduleTombstones.isEmpty {
+                    try await repository.deleteEntries(
+                        dogRemoteID: dogRemoteID.uuidString,
+                        module: module,
+                        ids: moduleTombstones.compactMap { $0.entryRemoteID?.uuidString }
+                    )
+                    moduleTombstones.forEach(context.delete)
+                }
+
+                let pending = moduleEntries(module, of: dog).filter {
+                    $0.0.pendingUpload && $0.0.createdByUid == uid
+                }
+                guard !pending.isEmpty else { continue }
+
+                var docs: [String: Encodable] = [:]
+                for (entry, dto) in pending {
+                    guard let id = entry.remoteID?.uuidString else { continue }
+                    docs[id] = dto
+                }
+                try await repository.upsertEntries(
+                    dogRemoteID: dogRemoteID.uuidString,
+                    module: module,
+                    docs: docs
+                )
+                for (entry, _) in pending {
+                    entry.pendingUpload = false
+                }
+            }
         }
     }
 

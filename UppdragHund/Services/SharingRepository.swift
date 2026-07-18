@@ -44,8 +44,12 @@ final class SharingRepository {
         return snapshot.documents.compactMap { try? $0.data(as: ShareDoc.self) }
     }
 
-    func shares(forDog dogRemoteID: String) async throws -> [ShareDoc] {
+    /// OBS: ownerUid-filtret är inte bara semantik — säkerhetsreglerna kan
+    /// bara bevisa en query som filtrerar på ägare eller mottagare. Utan det
+    /// nekas hela frågan av Firestore.
+    func shares(forDog dogRemoteID: String, ownerUid: String) async throws -> [ShareDoc] {
         let snapshot = try await db.collection("shares")
+            .whereField("ownerUid", isEqualTo: ownerUid)
             .whereField("dogRemoteID", isEqualTo: dogRemoteID)
             .getDocuments()
         return snapshot.documents.compactMap { try? $0.data(as: ShareDoc.self) }
@@ -72,11 +76,11 @@ final class SharingRepository {
 
     /// Firestore-klienten har ingen rekursiv delete — subkollektionerna
     /// måste tömmas explicit innan hunddokumentet och dess shares tas bort.
-    func deleteDogCompletely(dogRemoteID: String) async throws {
+    func deleteDogCompletely(dogRemoteID: String, ownerUid: String) async throws {
         for module in SharedModule.allCases {
             try await deleteAllEntries(dogRemoteID: dogRemoteID, module: module)
         }
-        for share in try await shares(forDog: dogRemoteID) {
+        for share in try await shares(forDog: dogRemoteID, ownerUid: ownerUid) {
             try await db.collection("shares").document(share.documentID).delete()
         }
         try await dogRef(dogRemoteID).delete()

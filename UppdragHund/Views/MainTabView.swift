@@ -36,6 +36,7 @@ private struct QuickLogRequest: Identifiable {
 
 struct MainTabView: View {
     @Environment(ActiveDogStore.self) private var activeDogStore
+    @Environment(DeepLinkStore.self) private var deepLinks
     @Query private var dogs: [Dog]
     @State private var selectedTab: MainTab = .hem
     @State private var quickLog: QuickLogRequest?
@@ -95,8 +96,10 @@ struct MainTabView: View {
                 selectedTab = .profil
             }
         }
-        .onOpenURL { url in
-            handleDeepLink(url)
+        // Djuplänkar buffras i ContentView (kallstart) och konsumeras här.
+        .task { consumePendingDeepLink() }
+        .onChange(of: deepLinks.pending) { _, _ in
+            consumePendingDeepLink()
         }
         .sheet(item: $quickLog) { request in
             switch request.route {
@@ -106,6 +109,12 @@ struct MainTabView: View {
             case .dagbok: NewDiaryEntryView(dog: request.dog)
             }
         }
+    }
+
+    private func consumePendingDeepLink() {
+        guard let url = deepLinks.pending else { return }
+        deepLinks.pending = nil
+        handleDeepLink(url)
     }
 
     /// Widget-djuplänkar: canine360://hem och

@@ -210,7 +210,7 @@ struct ShareDogView: View {
         do {
             myProfile = try await FriendsRepository.shared.fetchMyProfile(uid: uid)
             friends = try await FriendsRepository.shared.friends(for: uid)
-            existingShares = try await SharingRepository.shared.shares(forDog: dogRemoteID)
+            existingShares = try await SharingRepository.shared.shares(forDog: dogRemoteID, ownerUid: uid)
             errorMessage = nil
         } catch {
             errorMessage = error.localizedDescription
