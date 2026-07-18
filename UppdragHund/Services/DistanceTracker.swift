@@ -28,9 +28,10 @@ final class DistanceTracker: NSObject, CLLocationManagerDelegate {
     var stepCount: Int = 0
 
     // Stegräknar-gaten: GPS-steg räknas bara när steg nyligen registrerats.
-    private var pedometerHasData = false
     private var lastStepCount = 0
     private var lastStepIncreaseAt = Date.distantPast
+    /// När spårningen (åter)startades — varmkörningsfönster för stegdata.
+    private var resumedAt = Date.distantPast
 
     override init() {
         super.init()
@@ -52,6 +53,7 @@ final class DistanceTracker: NSObject, CLLocationManagerDelegate {
         // Nollställ referenspunkten så en paus inte räknas som förflyttning.
         lastLocation = nil
         isTracking = true
+        resumedAt = .now
         manager.requestWhenInUseAuthorization()
         manager.startUpdatingLocation()
         startPedometer()
@@ -69,9 +71,9 @@ final class DistanceTracker: NSObject, CLLocationManagerDelegate {
         stepCount = 0
         lastLocation = nil
         hasStarted = false
-        pedometerHasData = false
         lastStepCount = 0
         lastStepIncreaseAt = .distantPast
+        resumedAt = .distantPast
     }
 
     // MARK: - Stegräknare (rörelse-gate)
@@ -83,7 +85,6 @@ final class DistanceTracker: NSObject, CLLocationManagerDelegate {
         pedometer.startUpdates(from: .now) { [weak self] data, _ in
             guard let self, let data else { return }
             DispatchQueue.main.async {
-                self.pedometerHasData = true
                 let steps = priorSteps + data.numberOfSteps.intValue
                 if steps > self.lastStepCount {
                     self.lastStepCount = steps
@@ -94,11 +95,18 @@ final class DistanceTracker: NSObject, CLLocationManagerDelegate {
         }
     }
 
-    /// Rör sig användaren enligt stegräknaren? Utan stegdata (nekad
-    /// behörighet, äldre enhet) faller vi tillbaka på enbart GPS-filtren.
+    /// Rör sig användaren enligt stegräknaren?
+    /// OBS: stegräknaren är TYST när man står still (callbacken triggas bara
+    /// av steg) — därför är gaten STÄNGD som standard när stegdata kan
+    /// förväntas. Öppen bara utan behörighet/hårdvara (då gäller GPS-filtren).
     private var isProbablyMoving: Bool {
-        guard pedometerHasData else { return true }
-        return Date.now.timeIntervalSince(lastStepIncreaseAt) < 12
+        guard CMPedometer.isStepCountingAvailable(),
+              CMPedometer.authorizationStatus() == .authorized else { return true }
+        // Steg nyligen → vi går.
+        if Date.now.timeIntervalSince(lastStepIncreaseAt) < 12 { return true }
+        // Varmkörning: ge stegräknaren några sekunder efter start/fortsätt
+        // innan tystnad tolkas som stillastående.
+        return Date.now.timeIntervalSince(resumedAt) < 8
     }
 
     // MARK: - CLLocationManagerDelegate
