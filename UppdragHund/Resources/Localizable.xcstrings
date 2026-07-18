@@ -1343,6 +1343,16 @@
         }
       }
     },
+    "Byt omslag": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Change cover"
+          }
+        }
+      }
+    },
     "Canine": {
       "localizations": {
         "en": {
@@ -1369,6 +1379,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Canine360 helps you keep track of your dog's heat cycles, health and everyday life."
+          }
+        }
+      }
+    },
+    "Chipmärkt": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Microchipped"
           }
         }
       }
@@ -1943,6 +1963,16 @@
         }
       }
     },
+    "ED (armbågar)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ED (elbows)"
+          }
+        }
+      }
+    },
     "Efterlöp": {
       "localizations": {
         "en": {
@@ -1979,6 +2009,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Custom reminders"
+          }
+        }
+      }
+    },
+    "Ej angivet": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not specified"
           }
         }
       }
@@ -2079,6 +2119,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Export as PDF"
+          }
+        }
+      }
+    },
+    "Favoritbilder": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Favorite photos"
           }
         }
       }
@@ -2565,6 +2615,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Make consultant"
+          }
+        }
+      }
+    },
+    "HD (höfter)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "HD (hips)"
           }
         }
       }
@@ -3825,6 +3885,16 @@
         }
       }
     },
+    "Kort presentation…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Short bio…"
+          }
+        }
+      }
+    },
     "Kunde inte ladda din profil. Kontrollera din anslutning.": {
       "localizations": {
         "en": {
@@ -4181,6 +4251,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Add dog"
+          }
+        }
+      }
+    },
+    "Lägg till omslag": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add cover"
           }
         }
       }
@@ -4603,6 +4683,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "Email support"
+          }
+        }
+      }
+    },
+    "Mentaltest": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mental test"
+          }
+        }
+      }
+    },
+    "Mentaltest (MH/BPH)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mental test (MH/BPH)"
+          }
+        }
+      }
+    },
+    "Meriter": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Merits"
+          }
+        }
+      }
+    },
+    "Meriter (valfritt)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Merits (optional)"
           }
         }
       }
@@ -5137,6 +5257,26 @@
         }
       }
     },
+    "Omslaget visas överst på din profil, som på andra sociala appar.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The cover is shown at the top of your profile, like on other social apps."
+          }
+        }
+      }
+    },
+    "Omslagsbild": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cover photo"
+          }
+        }
+      }
+    },
     "Ordnas av %@": {
       "localizations": {
         "en": {
@@ -5249,6 +5389,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Location access denied. Enable it under Settings → Canine360 → Location."
+          }
+        }
+      }
+    },
+    "Presentation": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bio"
           }
         }
       }
@@ -6349,6 +6499,16 @@
         }
       }
     },
+    "T.ex. ”🐾 Schäferägare från Örebro. Tränar IPO och lydnad.” Max %lld tecken.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "E.g. \"🐾 German Shepherd owner from Örebro. Training IPO and obedience.\" Max %lld characters."
+          }
+        }
+      }
+    },
     "Ta bort": {
       "localizations": {
         "en": {
@@ -6985,6 +7145,16 @@
         }
       }
     },
+    "Upp till fyra bilder som visas på din profil. Håll in en bild för att ta bort den.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Up to four photos shown on your profile. Long-press a photo to remove it."
+          }
+        }
+      }
+    },
     "Uppdatera delade hundar": {
       "localizations": {
         "en": {
@@ -7091,12 +7261,42 @@
         }
       }
     },
+    "Utställning": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show"
+          }
+        }
+      }
+    },
+    "Utställningsmerit": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show merit"
+          }
+        }
+      }
+    },
     "Vaccination": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Vaccination"
+          }
+        }
+      }
+    },
+    "Vaccinerad": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vaccinated"
           }
         }
       }
@@ -7347,6 +7547,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Show all"
+          }
+        }
+      }
+    },
+    "Visas som badges på hundens profil. Chipmärkt-badgen kommer automatiskt när chipnummer är ifyllt.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shown as badges on the dog's profile. The Microchipped badge appears automatically once a chip number is entered."
           }
         }
       }

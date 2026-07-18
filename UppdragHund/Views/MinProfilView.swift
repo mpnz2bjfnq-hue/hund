@@ -9,6 +9,7 @@
 
 import SwiftUI
 import SwiftData
+import UIKit
 
 struct MinProfilView: View {
     @Environment(ActiveDogStore.self) private var activeDogStore
@@ -52,6 +53,8 @@ struct MinProfilView: View {
                     .riseIn(0, shown: sectionsAppeared)
                 statsRow
                     .riseIn(1, shown: sectionsAppeared)
+                favoritesCard
+                    .riseIn(2, shown: sectionsAppeared)
                 dogsCard
                     .riseIn(2, shown: sectionsAppeared)
                 if isAdmin {
@@ -241,33 +244,35 @@ struct MinProfilView: View {
 
     private var profileHeader: some View {
         VStack(spacing: Theme.Spacing.m) {
-            Button {
-                isEditingProfile = true
-            } label: {
-                ZStack(alignment: .bottomTrailing) {
-                    ProfileAvatar(photoData: currentUser.profile?.photoData, size: 92)
-                        .overlay(Circle().stroke(Theme.Colors.brand, lineWidth: 2.5))
-                    Image(systemName: "camera.fill")
-                        .font(.caption)
-                        .foregroundStyle(Theme.Colors.textPrimary)
-                        .padding(7)
-                        .background(Circle().fill(Theme.Colors.brand))
-                        .overlay(Circle().stroke(Theme.Colors.screenBackground, lineWidth: 2))
+            // Omslagsbild à la sociala appar — avataren överlappar nederkanten.
+            if let cover = currentUser.profile?.coverPhotoData, let image = UIImage(data: cover) {
+                ZStack(alignment: .bottom) {
+                    Color.clear
+                        .frame(height: 132)
+                        .overlay(
+                            Image(uiImage: image)
+                                .resizable()
+                                .scaledToFill()
+                        )
+                        .overlay(
+                            LinearGradient(
+                                colors: [.clear, .black.opacity(0.35)],
+                                startPoint: .center, endPoint: .bottom
+                            )
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous)
+                                .strokeBorder(.white.opacity(0.08), lineWidth: 0.5)
+                        )
+                        .shadow(color: .black.opacity(0.3), radius: 10, y: 4)
+                    avatarButton
+                        .offset(y: 46)
                 }
-                .overlay(alignment: .topTrailing) {
-                    if isAdmin {
-                        Image(systemName: "shield.lefthalf.filled")
-                            .font(.caption2)
-                            .foregroundStyle(.white)
-                            .padding(5)
-                            .background(Circle().fill(Theme.Colors.brand))
-                            .overlay(Circle().stroke(Theme.Colors.screenBackground, lineWidth: 2))
-                            .accessibilityLabel("Admin")
-                    }
-                }
+                .padding(.bottom, 46)
+            } else {
+                avatarButton
             }
-            .buttonStyle(.plain)
-            .disabled(currentUser.profile == nil)
 
             VStack(spacing: 4) {
                 Text(currentUser.profile?.displayName ?? "Din profil")
@@ -277,6 +282,14 @@ struct MinProfilView: View {
                     Text("@\(handle)")
                         .font(Theme.Typography.caption)
                         .foregroundStyle(Theme.Colors.textSecondary)
+                }
+                if let bio = currentUser.profile?.bio, !bio.isEmpty {
+                    Text(bio)
+                        .font(Theme.Typography.caption)
+                        .foregroundStyle(Theme.Colors.textPrimary.opacity(0.9))
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, Theme.Spacing.xl)
+                        .padding(.top, 2)
                 }
                 if !myTeams.isEmpty {
                     HStack(spacing: 6) {
@@ -311,6 +324,63 @@ struct MinProfilView: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.top, Theme.Spacing.s)
+    }
+
+    private var avatarButton: some View {
+        Button {
+            isEditingProfile = true
+        } label: {
+            ZStack(alignment: .bottomTrailing) {
+                ProfileAvatar(photoData: currentUser.profile?.photoData, size: 92)
+                    .overlay(Circle().stroke(Theme.Colors.brand, lineWidth: 2.5))
+                Image(systemName: "camera.fill")
+                    .font(.caption)
+                    .foregroundStyle(Theme.Colors.textPrimary)
+                    .padding(7)
+                    .background(Circle().fill(Theme.Colors.brand))
+                    .overlay(Circle().stroke(Theme.Colors.screenBackground, lineWidth: 2))
+            }
+            .overlay(alignment: .topTrailing) {
+                if isAdmin {
+                    Image(systemName: "shield.lefthalf.filled")
+                        .font(.caption2)
+                        .foregroundStyle(.white)
+                        .padding(5)
+                        .background(Circle().fill(Theme.Colors.brand))
+                        .overlay(Circle().stroke(Theme.Colors.screenBackground, lineWidth: 2))
+                        .accessibilityLabel("Admin")
+                }
+            }
+        }
+        .buttonStyle(.plain)
+        .disabled(currentUser.profile == nil)
+    }
+
+    /// Favoritbilder — visas bara när användaren valt några.
+    @ViewBuilder
+    private var favoritesCard: some View {
+        if let photos = currentUser.profile?.favoritePhotoDatas, !photos.isEmpty {
+            VStack(alignment: .leading, spacing: Theme.Spacing.m) {
+                Text("Favoritbilder")
+                    .font(Theme.Typography.sectionTitle)
+                    .foregroundStyle(Theme.Colors.textPrimary)
+                HStack(spacing: Theme.Spacing.s) {
+                    ForEach(photos.indices, id: \.self) { index in
+                        if let image = UIImage(data: photos[index]) {
+                            Color.clear
+                                .aspectRatio(1, contentMode: .fit)
+                                .overlay(
+                                    Image(uiImage: image)
+                                        .resizable()
+                                        .scaledToFill()
+                                )
+                                .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.small, style: .continuous))
+                        }
+                    }
+                }
+            }
+            .cardStyle()
+        }
     }
 
     // MARK: - Mina hundar

@@ -41,6 +41,13 @@ final class Dog {
     var chipNumber: String? = nil
     var breeder: String? = nil
 
+    // Meriter & hälsostatus — visas som badges på hundprofilen.
+    var hdResult: String? = nil        // Höftledsröntgen: A–E
+    var edResult: String? = nil        // Armbågsröntgen: 0–3
+    var mentalTestDone: Bool = false   // MH/BPH genomförd
+    var showMerit: Bool = false        // Utställningsmerit
+    var vaccinated: Bool = false
+
     /// Hundens normala kroppstemperatur (°C), om ägaren angett den. Används för
     /// att flagga förhöjd temp i hälsologgen.
     var normalTemperatureCelsius: Double? = nil

@@ -114,6 +114,9 @@ struct DogProfileDetailView: View {
                 .buttonStyle(.plain)
                 .accessibilityLabel("Kopiera registreringsnummer")
             }
+
+            DogBadgeRow(badges: DogBadge.badges(for: dog))
+                .padding(.top, 2)
         }
         .frame(maxWidth: .infinity)
         .cardStyle(padding: Theme.Spacing.xl)

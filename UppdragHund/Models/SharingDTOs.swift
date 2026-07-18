@@ -41,6 +41,12 @@ struct SharedDogDoc: Codable, Equatable {
     var registrationNumber: String? = nil
     var chipNumber: String? = nil
     var breeder: String? = nil
+    // Meriter (badges). Valfria av samma bakåtkompatibilitetsskäl.
+    var hdResult: String? = nil
+    var edResult: String? = nil
+    var mentalTestDone: Bool? = nil
+    var showMerit: Bool? = nil
+    var vaccinated: Bool? = nil
     // Liten JPEG-thumbnail (~256px). Firestore lagrar som Blob; ryms i dokumentet.
     var photoData: Data? = nil
 }

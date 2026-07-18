@@ -19,6 +19,14 @@ struct UserProfile: Codable, Identifiable {
     /// Komprimerad profilbild (~256px JPEG) lagrad direkt i profilen.
     /// Ingen Firebase Storage behövs i v1.
     var photoData: Data?
+    /// Omslagsbild (16:9, hårt komprimerad) som visas bakom profilhuvudet.
+    /// Alla bild-blobbar delar profil-dokumentets 1 MB-gräns — storlekarna
+    /// hålls nere av beskärningens outputWidth + jpegQuality.
+    var coverPhotoData: Data?
+    /// Kort presentation ("🐾 Schäferägare från Örebro …").
+    var bio: String?
+    /// Upp till fyra favoritbilder (kvadratiska, hårt komprimerade).
+    var favoritePhotoDatas: [Data]?
     /// Denormaliserat antal vänner — vänlistan är privat per säkerhetsreglerna,
     /// så antalet speglas hit (Cloud Function + self-heal vid egen laddning).
     var friendCount: Int?
@@ -48,7 +56,25 @@ struct DogSummary: Codable, Equatable, Identifiable {
     var isDeceased: Bool?
     /// Dödsdatum, för minnesraden på vänners profiler.
     var deceasedDate: Date?
+    // Meriter (badges) — valfria för profiler publicerade före fälten.
+    var hdResult: String?
+    var edResult: String?
+    var mentalTest: Bool?
+    var showMerit: Bool?
+    var vaccinated: Bool?
+    var chipped: Bool?
 
     var id: String { remoteID }
     var isAngel: Bool { isDeceased == true }
+
+    var badges: [DogBadge] {
+        DogBadge.badges(
+            hdResult: hdResult,
+            edResult: edResult,
+            mentalTest: mentalTest == true,
+            showMerit: showMerit == true,
+            vaccinated: vaccinated == true,
+            chipped: chipped == true
+        )
+    }
 }

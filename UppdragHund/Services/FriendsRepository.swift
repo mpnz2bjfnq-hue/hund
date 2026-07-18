@@ -63,7 +63,10 @@ final class FriendsRepository {
         uid: String,
         displayName: String? = nil,
         handle: String? = nil,
-        photoData: Data?? = nil
+        photoData: Data?? = nil,
+        coverPhotoData: Data?? = nil,
+        bio: String?? = nil,
+        favoritePhotoDatas: [Data]?? = nil
     ) async throws {
         var data: [String: Any] = [:]
         if let displayName { data["displayName"] = displayName }
@@ -71,6 +74,15 @@ final class FriendsRepository {
         if let photoData {
             // photoData == .some(nil) betyder "ta bort bilden".
             data["photoData"] = photoData ?? FieldValue.delete()
+        }
+        if let coverPhotoData {
+            data["coverPhotoData"] = coverPhotoData ?? FieldValue.delete()
+        }
+        if let bio {
+            data["bio"] = (bio?.isEmpty == false ? bio : nil) ?? FieldValue.delete()
+        }
+        if let favoritePhotoDatas {
+            data["favoritePhotoDatas"] = (favoritePhotoDatas?.isEmpty == false ? favoritePhotoDatas : nil) ?? FieldValue.delete()
         }
         guard !data.isEmpty else { return }
         try await db.collection("users").document(uid).setData(data, merge: true)

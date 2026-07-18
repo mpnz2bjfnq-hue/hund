@@ -31,6 +31,11 @@ enum ShareMapping {
             registrationNumber: dog.registrationNumber,
             chipNumber: dog.chipNumber,
             breeder: dog.breeder,
+            hdResult: dog.hdResult,
+            edResult: dog.edResult,
+            mentalTestDone: dog.mentalTestDone,
+            showMerit: dog.showMerit,
+            vaccinated: dog.vaccinated,
             photoData: dog.photoData
         )
     }
@@ -46,6 +51,11 @@ enum ShareMapping {
         dog.registrationNumber = doc.registrationNumber
         dog.chipNumber = doc.chipNumber
         dog.breeder = doc.breeder
+        dog.hdResult = doc.hdResult
+        dog.edResult = doc.edResult
+        dog.mentalTestDone = doc.mentalTestDone ?? false
+        dog.showMerit = doc.showMerit ?? false
+        dog.vaccinated = doc.vaccinated ?? false
         dog.photoData = doc.photoData
     }
 

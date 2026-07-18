@@ -28,6 +28,11 @@ struct AddDogView: View {
     @State private var registrationNumber: String
     @State private var chipNumber: String
     @State private var breeder: String
+    @State private var hdResult: String
+    @State private var edResult: String
+    @State private var mentalTestDone: Bool
+    @State private var showMerit: Bool
+    @State private var vaccinated: Bool
     @State private var normalTempText: String
 
     init(dogToEdit: Dog? = nil) {
@@ -58,6 +63,11 @@ struct AddDogView: View {
         _registrationNumber = State(initialValue: dogToEdit?.registrationNumber ?? "")
         _chipNumber = State(initialValue: dogToEdit?.chipNumber ?? "")
         _breeder = State(initialValue: dogToEdit?.breeder ?? "")
+        _hdResult = State(initialValue: dogToEdit?.hdResult ?? "")
+        _edResult = State(initialValue: dogToEdit?.edResult ?? "")
+        _mentalTestDone = State(initialValue: dogToEdit?.mentalTestDone ?? false)
+        _showMerit = State(initialValue: dogToEdit?.showMerit ?? false)
+        _vaccinated = State(initialValue: dogToEdit?.vaccinated ?? false)
         _normalTempText = State(initialValue: dogToEdit?.normalTemperatureCelsius.map { String(format: "%.1f", $0) } ?? "")
         _isDeceased = State(initialValue: dogToEdit?.passedAwayDate != nil)
         _passedAwayDate = State(initialValue: dogToEdit?.passedAwayDate ?? .now)
@@ -140,6 +150,24 @@ struct AddDogView: View {
                 }
 
                 Section {
+                    Picker("HD (höfter)", selection: $hdResult) {
+                        Text("Ej angivet").tag("")
+                        ForEach(["A", "B", "C", "D", "E"], id: \.self) { Text($0).tag($0) }
+                    }
+                    Picker("ED (armbågar)", selection: $edResult) {
+                        Text("Ej angivet").tag("")
+                        ForEach(["0", "1", "2", "3"], id: \.self) { Text($0).tag($0) }
+                    }
+                    Toggle("Mentaltest (MH/BPH)", isOn: $mentalTestDone)
+                    Toggle("Utställningsmerit", isOn: $showMerit)
+                    Toggle("Vaccinerad", isOn: $vaccinated)
+                } header: {
+                    Text("Meriter (valfritt)")
+                } footer: {
+                    Text("Visas som badges på hundens profil. Chipmärkt-badgen kommer automatiskt när chipnummer är ifyllt.")
+                }
+
+                Section {
                     TextField("Normaltemp (°C)", text: $normalTempText)
                         .keyboardType(.decimalPad)
                 } header: {
@@ -178,7 +206,7 @@ struct AddDogView: View {
                 loadPickedPhoto()
             }
             .sheet(item: $cropCandidate) { candidate in
-                ImageCropView(image: candidate.image, outputSide: 800) { data in
+                ImageCropView(image: candidate.image, outputWidth: 800) { data in
                     photoData = data
                 }
             }
@@ -210,6 +238,11 @@ struct AddDogView: View {
             dogToEdit.registrationNumber = trimmedOrNil(registrationNumber)
             dogToEdit.chipNumber = trimmedOrNil(chipNumber)
             dogToEdit.breeder = trimmedOrNil(breeder)
+            dogToEdit.hdResult = hdResult.isEmpty ? nil : hdResult
+            dogToEdit.edResult = edResult.isEmpty ? nil : edResult
+            dogToEdit.mentalTestDone = mentalTestDone
+            dogToEdit.showMerit = showMerit
+            dogToEdit.vaccinated = vaccinated
             dogToEdit.normalTemperatureCelsius = parsedNormalTemp
             dogToEdit.passedAwayDate = isDeceased ? passedAwayDate : nil
             SyncCoordinator.shared.dogProfileTouched(dogToEdit)
@@ -229,6 +262,11 @@ struct AddDogView: View {
             dog.registrationNumber = trimmedOrNil(registrationNumber)
             dog.chipNumber = trimmedOrNil(chipNumber)
             dog.breeder = trimmedOrNil(breeder)
+            dog.hdResult = hdResult.isEmpty ? nil : hdResult
+            dog.edResult = edResult.isEmpty ? nil : edResult
+            dog.mentalTestDone = mentalTestDone
+            dog.showMerit = showMerit
+            dog.vaccinated = vaccinated
             dog.normalTemperatureCelsius = parsedNormalTemp
             modelContext.insert(dog)
         }

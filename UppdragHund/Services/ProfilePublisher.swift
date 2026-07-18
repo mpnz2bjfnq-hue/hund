@@ -26,7 +26,13 @@ enum ProfilePublisher {
                     birthDate: dog.birthDate,
                     sex: dog.sex.rawValue,
                     isDeceased: dog.isDeceased,
-                    deceasedDate: dog.passedAwayDate
+                    deceasedDate: dog.passedAwayDate,
+                    hdResult: dog.hdResult,
+                    edResult: dog.edResult,
+                    mentalTest: dog.mentalTestDone,
+                    showMerit: dog.showMerit,
+                    vaccinated: dog.vaccinated,
+                    chipped: dog.chipNumber?.isEmpty == false
                 )
             }
             .sorted { $0.name < $1.name }

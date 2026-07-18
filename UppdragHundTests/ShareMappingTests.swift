@@ -125,6 +125,48 @@ struct ShareMappingTests {
         #expect(target.breeder == "Kennel Example")
     }
 
+    @Test func dogMeritsRoundTripAndDefaultToFalse() {
+        let dog = Dog(name: "Sixten", breed: "Malinois", birthDate: .now, sex: .male)
+        dog.hdResult = "A"
+        dog.edResult = "0"
+        dog.mentalTestDone = true
+        dog.showMerit = true
+        dog.vaccinated = true
+
+        let doc = ShareMapping.dogDoc(from: dog, owner: author)
+        let target = Dog(name: "", breed: "", birthDate: .now, sex: .female)
+        ShareMapping.apply(doc, to: target)
+
+        #expect(target.hdResult == "A")
+        #expect(target.edResult == "0")
+        #expect(target.mentalTestDone)
+        #expect(target.showMerit)
+        #expect(target.vaccinated)
+
+        // Gamla dokument utan meritfält ska ge false/nil, inte krascha.
+        var legacy = doc
+        legacy.hdResult = nil
+        legacy.edResult = nil
+        legacy.mentalTestDone = nil
+        legacy.showMerit = nil
+        legacy.vaccinated = nil
+        let legacyTarget = Dog(name: "", breed: "", birthDate: .now, sex: .female)
+        ShareMapping.apply(legacy, to: legacyTarget)
+        #expect(legacyTarget.hdResult == nil)
+        #expect(!legacyTarget.mentalTestDone)
+        #expect(!legacyTarget.vaccinated)
+    }
+
+    @Test func dogBadgesDeriveChipFromChipNumber() {
+        let dog = Dog(name: "Sixten", breed: "Malinois", birthDate: .now, sex: .male)
+        dog.chipNumber = "752098100123456"
+        dog.hdResult = "A"
+        let badges = DogBadge.badges(for: dog)
+        #expect(badges.contains { $0.id == "chip" })
+        #expect(badges.contains { $0.id == "hd" && $0.text == "HD A" })
+        #expect(!badges.contains { $0.id == "vaccine" })
+    }
+
     @Test func dogPhotoRoundTrips() {
         let photo = Data([0xFF, 0xD8, 0xFF])
         let dog = Dog(name: "Sixten", breed: "Malinois", birthDate: .now, sex: .male)

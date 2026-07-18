@@ -3,8 +3,8 @@
 //  UppdragHund
 //
 //  Beskärning av vald bild: dra för att flytta, nyp för att zooma.
-//  Kvadratisk ram eftersom resultatet används både som rund avatar och
-//  som hero-bakgrund. Resultatet renderas till en JPEG i vald storlek.
+//  Ramens form styrs av `aspect` (1 = kvadrat för avatarer/hundfoton,
+//  16/9 för omslagsbilder). Resultatet renderas till en JPEG.
 //
 
 import SwiftUI
@@ -18,8 +18,12 @@ struct CropCandidate: Identifiable {
 
 struct ImageCropView: View {
     let image: UIImage
-    /// Sidlängd i pixlar på den färdiga kvadraten.
-    var outputSide: CGFloat = 800
+    /// Bredd i pixlar på den färdiga bilden (höjd = bredd / aspect).
+    var outputWidth: CGFloat = 800
+    /// Ramens bredd/höjd-förhållande. 1 = kvadrat, 16/9 = omslag.
+    var aspect: CGFloat = 1
+    /// JPEG-kvalitet — sänk för bilder som ska samsas i ett Firestore-dokument.
+    var quality: CGFloat = AvatarImage.jpegQuality
     let onCrop: (Data) -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -28,42 +32,42 @@ struct ImageCropView: View {
     @State private var committedZoom: CGFloat = 1
     @State private var offset: CGSize = .zero
     @State private var committedOffset: CGSize = .zero
-    @State private var cropSide: CGFloat = 0
+    @State private var cropSize: CGSize = .zero
 
     var body: some View {
         NavigationStack {
             GeometryReader { geo in
-                let side = min(geo.size.width, geo.size.height) - Theme.Spacing.xl * 2
+                let size = frameSize(in: geo.size)
                 ZStack {
                     Color.black.ignoresSafeArea()
 
                     Image(uiImage: image)
                         .resizable()
                         .frame(
-                            width: image.size.width * displayScale(cropSide: side),
-                            height: image.size.height * displayScale(cropSide: side)
+                            width: image.size.width * displayScale(cropSize: size),
+                            height: image.size.height * displayScale(cropSize: size)
                         )
                         .offset(offset)
                         .position(x: geo.size.width / 2, y: geo.size.height / 2)
 
-                    dimOverlay(side: side, in: geo.size)
+                    dimOverlay(cropSize: size, in: geo.size)
 
                     RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous)
                         .stroke(.white.opacity(0.9), lineWidth: 1)
-                        .frame(width: side, height: side)
+                        .frame(width: size.width, height: size.height)
                         .position(x: geo.size.width / 2, y: geo.size.height / 2)
                         .allowsHitTesting(false)
 
                     Text("Dra för att flytta · nyp för att zooma")
                         .font(Theme.Typography.caption)
                         .foregroundStyle(.white.opacity(0.7))
-                        .position(x: geo.size.width / 2, y: (geo.size.height + side) / 2 + Theme.Spacing.xl)
+                        .position(x: geo.size.width / 2, y: (geo.size.height + size.height) / 2 + Theme.Spacing.xl)
                         .allowsHitTesting(false)
                 }
                 .contentShape(Rectangle())
-                .gesture(dragGesture(cropSide: side).simultaneously(with: zoomGesture(cropSide: side)))
-                .onAppear { cropSide = side }
-                .onChange(of: geo.size) { _, _ in cropSide = side }
+                .gesture(dragGesture(cropSize: size).simultaneously(with: zoomGesture(cropSize: size)))
+                .onAppear { cropSize = size }
+                .onChange(of: geo.size) { _, _ in cropSize = size }
             }
             .navigationTitle("Justera bild")
             .navigationBarTitleDisplayMode(.inline)
@@ -88,42 +92,51 @@ struct ImageCropView: View {
 
     // MARK: - Geometri
 
+    /// Största ram med rätt förhållande som ryms med marginal.
+    private func frameSize(in available: CGSize) -> CGSize {
+        let margin = Theme.Spacing.xl * 2
+        let maxWidth = available.width - margin
+        let maxHeight = available.height - margin
+        let width = min(maxWidth, maxHeight * aspect)
+        return CGSize(width: width, height: width / aspect)
+    }
+
     /// Skala så bilden minst fyller ramen, gånger användarens zoom.
-    private func displayScale(cropSide: CGFloat) -> CGFloat {
+    private func displayScale(cropSize: CGSize) -> CGFloat {
         guard image.size.width > 0, image.size.height > 0 else { return 1 }
-        return max(cropSide / image.size.width, cropSide / image.size.height) * zoom
+        return max(cropSize.width / image.size.width, cropSize.height / image.size.height) * zoom
     }
 
     /// Bilden får aldrig lämna en glipa innanför ramen.
-    private func clampedOffset(_ proposed: CGSize, cropSide: CGFloat) -> CGSize {
-        let width = image.size.width * displayScale(cropSide: cropSide)
-        let height = image.size.height * displayScale(cropSide: cropSide)
-        let maxX = max(0, (width - cropSide) / 2)
-        let maxY = max(0, (height - cropSide) / 2)
+    private func clampedOffset(_ proposed: CGSize, cropSize: CGSize) -> CGSize {
+        let width = image.size.width * displayScale(cropSize: cropSize)
+        let height = image.size.height * displayScale(cropSize: cropSize)
+        let maxX = max(0, (width - cropSize.width) / 2)
+        let maxY = max(0, (height - cropSize.height) / 2)
         return CGSize(
             width: min(maxX, max(-maxX, proposed.width)),
             height: min(maxY, max(-maxY, proposed.height))
         )
     }
 
-    private func dragGesture(cropSide: CGFloat) -> some Gesture {
+    private func dragGesture(cropSize: CGSize) -> some Gesture {
         DragGesture()
             .onChanged { value in
                 offset = clampedOffset(CGSize(
                     width: committedOffset.width + value.translation.width,
                     height: committedOffset.height + value.translation.height
-                ), cropSide: cropSide)
+                ), cropSize: cropSize)
             }
             .onEnded { _ in
                 committedOffset = offset
             }
     }
 
-    private func zoomGesture(cropSide: CGFloat) -> some Gesture {
+    private func zoomGesture(cropSize: CGSize) -> some Gesture {
         MagnifyGesture()
             .onChanged { value in
                 zoom = min(6, max(1, committedZoom * value.magnification))
-                offset = clampedOffset(offset, cropSide: cropSide)
+                offset = clampedOffset(offset, cropSize: cropSize)
             }
             .onEnded { _ in
                 committedZoom = zoom
@@ -132,11 +145,11 @@ struct ImageCropView: View {
     }
 
     /// Mörkar allt utanför ramen (even-odd-fyllning med hål i mitten).
-    private func dimOverlay(side: CGFloat, in size: CGSize) -> some View {
+    private func dimOverlay(cropSize: CGSize, in size: CGSize) -> some View {
         let hole = CGRect(
-            x: (size.width - side) / 2,
-            y: (size.height - side) / 2,
-            width: side, height: side
+            x: (size.width - cropSize.width) / 2,
+            y: (size.height - cropSize.height) / 2,
+            width: cropSize.width, height: cropSize.height
         )
         return Path { path in
             path.addRect(CGRect(origin: .zero, size: size))
@@ -151,30 +164,28 @@ struct ImageCropView: View {
 
     // MARK: - Rendering
 
-    /// Ritar exakt det som syns i ramen till en kvadratisk JPEG.
+    /// Ritar exakt det som syns i ramen till en JPEG i outputstorleken.
     private func renderCropped() -> Data? {
-        guard cropSide > 0 else { return nil }
-        let factor = outputSide / cropSide
-        let scale = displayScale(cropSide: cropSide)
+        guard cropSize.width > 0 else { return nil }
+        let outputSize = CGSize(width: outputWidth, height: outputWidth / aspect)
+        let factor = outputWidth / cropSize.width
+        let scale = displayScale(cropSize: cropSize)
         let drawSize = CGSize(
             width: image.size.width * scale * factor,
             height: image.size.height * scale * factor
         )
         let origin = CGPoint(
-            x: (outputSide - drawSize.width) / 2 + offset.width * factor,
-            y: (outputSide - drawSize.height) / 2 + offset.height * factor
+            x: (outputSize.width - drawSize.width) / 2 + offset.width * factor,
+            y: (outputSize.height - drawSize.height) / 2 + offset.height * factor
         )
 
         let format = UIGraphicsImageRendererFormat.default()
         format.scale = 1
         format.opaque = true
-        let renderer = UIGraphicsImageRenderer(
-            size: CGSize(width: outputSide, height: outputSide),
-            format: format
-        )
+        let renderer = UIGraphicsImageRenderer(size: outputSize, format: format)
         let rendered = renderer.image { _ in
             image.draw(in: CGRect(origin: origin, size: drawSize))
         }
-        return rendered.jpegData(compressionQuality: AvatarImage.jpegQuality)
+        return rendered.jpegData(compressionQuality: quality)
     }
 }

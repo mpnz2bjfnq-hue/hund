@@ -47,7 +47,8 @@ struct ProfileView: View {
                     birthDate: dog.birthDate,
                     sexName: dog.sex.displayName,
                     isAngel: dog.isDeceased,
-                    deceasedDate: dog.passedAwayDate
+                    deceasedDate: dog.passedAwayDate,
+                    badges: DogBadge.badges(for: dog)
                 )
             }
         }
@@ -59,7 +60,8 @@ struct ProfileView: View {
                 birthDate: summary.birthDate,
                 sexName: DogSex(rawValue: summary.sex)?.displayName,
                 isAngel: summary.isAngel,
-                deceasedDate: summary.deceasedDate
+                deceasedDate: summary.deceasedDate,
+                badges: summary.badges
             )
         }
     }
@@ -78,6 +80,26 @@ struct ProfileView: View {
             statsRow
                 .listRowSeparator(.hidden)
                 .listRowBackground(Color.clear)
+
+            if let photos = profile?.favoritePhotoDatas, !photos.isEmpty {
+                Section("Favoritbilder") {
+                    HStack(spacing: Theme.Spacing.s) {
+                        ForEach(photos.indices, id: \.self) { index in
+                            if let image = UIImage(data: photos[index]) {
+                                Color.clear
+                                    .aspectRatio(1, contentMode: .fit)
+                                    .overlay(
+                                        Image(uiImage: image)
+                                            .resizable()
+                                            .scaledToFill()
+                                    )
+                                    .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.small, style: .continuous))
+                            }
+                        }
+                    }
+                    .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                }
+            }
 
             if !activeDogRows.isEmpty {
                 Section("Hundar") {
@@ -178,13 +200,50 @@ struct ProfileView: View {
 
     private var header: some View {
         VStack(spacing: 8) {
-            ProfileAvatar(photoData: profile?.photoData, size: 92)
+            // Omslagsbild med överlappande avatar — samma stil som egna profilen.
+            if let cover = profile?.coverPhotoData, let image = UIImage(data: cover) {
+                ZStack(alignment: .bottom) {
+                    Color.clear
+                        .frame(height: 132)
+                        .overlay(
+                            Image(uiImage: image)
+                                .resizable()
+                                .scaledToFill()
+                        )
+                        .overlay(
+                            LinearGradient(
+                                colors: [.clear, .black.opacity(0.35)],
+                                startPoint: .center, endPoint: .bottom
+                            )
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous)
+                                .strokeBorder(.white.opacity(0.08), lineWidth: 0.5)
+                        )
+                        .shadow(color: .black.opacity(0.3), radius: 10, y: 4)
+                    ProfileAvatar(photoData: profile?.photoData, size: 92)
+                        .overlay(Circle().stroke(Theme.Colors.brand, lineWidth: 2.5))
+                        .offset(y: 46)
+                }
+                .padding(.bottom, 46)
+            } else {
+                ProfileAvatar(photoData: profile?.photoData, size: 92)
+            }
             Text(profile?.displayName ?? (isOwnProfile ? "Din profil" : "Profil"))
                 .font(.title2.bold())
             if let handle = profile?.handle {
                 Text("@\(handle)")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
+            }
+            if let bio = profile?.bio, !bio.isEmpty {
+                Text(bio)
+                    .font(Theme.Typography.caption)
+                    .foregroundStyle(Theme.Colors.textPrimary.opacity(0.9))
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, Theme.Spacing.xl)
+                    .padding(.top, 2)
             }
             if isOwnProfile {
                 Button {
@@ -343,6 +402,7 @@ struct ProfileView: View {
         var sexName: String?
         var isAngel: Bool = false
         var deceasedDate: Date?
+        var badges: [DogBadge] = []
     }
 }
 
@@ -388,6 +448,13 @@ struct DogSummarySheet: View {
                     }
                     if let deceasedDate = dog.deceasedDate {
                         LabeledContent("Gick bort", value: deceasedDate.formatted(date: .long, time: .omitted))
+                    }
+                }
+
+                if !dog.badges.isEmpty {
+                    Section("Meriter") {
+                        DogBadgeRow(badges: dog.badges)
+                            .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
                     }
                 }
             }

@@ -53,11 +53,21 @@ final class CurrentUserStore {
     }
 
     /// Uppdatera lokalt direkt efter en lyckad redigering (optimistiskt).
-    func apply(displayName: String? = nil, handle: String? = nil, photoData: Data?? = nil) {
+    func apply(
+        displayName: String? = nil,
+        handle: String? = nil,
+        photoData: Data?? = nil,
+        coverPhotoData: Data?? = nil,
+        bio: String?? = nil,
+        favoritePhotoDatas: [Data]?? = nil
+    ) {
         guard var updated = profile else { return }
         if let displayName { updated.displayName = displayName }
         if let handle { updated.handle = handle }
         if let photoData { updated.photoData = photoData }
+        if let coverPhotoData { updated.coverPhotoData = coverPhotoData }
+        if let bio { updated.bio = bio }
+        if let favoritePhotoDatas { updated.favoritePhotoDatas = favoritePhotoDatas }
         profile = updated
     }
 
