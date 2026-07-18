@@ -361,19 +361,37 @@ service cloud.firestore {
                     && request.auth.uid == resource.data.ownerUid;
 
       match /{module}/{entryId} {
+        // Subkollektionerna heter t.ex. "healthEvents" men share-dokumentets
+        // modules-lista lagrar nycklarna ("health" …) — översätt innan jämförelse.
+        function moduleKey() {
+          return module == 'healthEvents' ? 'health'
+               : module == 'heatCycles' ? 'heat'
+               : module == 'diaryEntries' ? 'diary'
+               : module == 'mealEntries' ? 'meals'
+               : module == 'trainingSessions' ? 'training'
+               : module;
+        }
+
         // Ägaren läser/skriver allt; mottagare läser moduler i sin share,
         // och skriver bara med readWrite + eget författarskap.
         // Share-grenen utvärderas FÖRST: dogOwnerUid() kraschar (→ deny)
         // om hunddokumentet saknas, och fel i OR-grenar smittar i regler.
         allow read: if request.auth != null
-                    && ((myShareExists() && module in myShare().modules)
+                    && ((myShareExists() && moduleKey() in myShare().modules)
                         || request.auth.uid == dogOwnerUid());
-        allow write: if request.auth != null
-                     && ((myShareExists()
-                          && myShare().permission == 'readWrite'
-                          && module in myShare().modules
-                          && request.resource.data.createdByUid == request.auth.uid)
-                         || request.auth.uid == dogOwnerUid());
+        allow create, update: if request.auth != null
+                              && ((myShareExists()
+                                   && myShare().permission == 'readWrite'
+                                   && moduleKey() in myShare().modules
+                                   && request.resource.data.createdByUid == request.auth.uid)
+                                  || request.auth.uid == dogOwnerUid());
+        // Delete saknar request.resource — författarskapet läses från resource.
+        allow delete: if request.auth != null
+                      && ((myShareExists()
+                           && myShare().permission == 'readWrite'
+                           && moduleKey() in myShare().modules
+                           && resource.data.createdByUid == request.auth.uid)
+                          || request.auth.uid == dogOwnerUid());
       }
     }
   }
