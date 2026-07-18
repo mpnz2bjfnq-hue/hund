@@ -67,6 +67,10 @@ struct ContentView: View {
                 if let uid = authService.currentUserID {
                     await NotificationService.syncMeetupReminders(for: uid)
                 }
+                await WidgetDataService.refresh(
+                    activeDog: activeDogStore.activeDog,
+                    uid: authService.currentUserID
+                )
             }
         }
         .onChange(of: dogs.count) {
@@ -94,10 +98,21 @@ struct ContentView: View {
                         await ProfilePublisher.publish(dogs: AccountScope.ownDogs(for: uid, in: dogs), uid: uid)
                         await NotificationService.syncMeetupReminders(for: uid)
                     }
+                    await WidgetDataService.refresh(
+                        activeDog: activeDogStore.activeDog,
+                        uid: authService.currentUserID
+                    )
                 }
             case .background:
                 // Bästa försök — Firestore köar offline-skrivningar ändå.
-                Task { await SyncCoordinator.shared.pushDirtyDogs() }
+                Task {
+                    await SyncCoordinator.shared.pushDirtyDogs()
+                    // Widgeten ska spegla det som loggades under sessionen.
+                    await WidgetDataService.refresh(
+                        activeDog: activeDogStore.activeDog,
+                        uid: authService.currentUserID
+                    )
+                }
             default:
                 break
             }
@@ -108,6 +123,7 @@ struct ContentView: View {
                 // här är auth redan borta och skrivningar nekas av reglerna.
                 SessionCleanupService.handleSignOut(context: modelContext, activeDogStore: activeDogStore)
                 ensureActiveDogSelected()
+                Task { await WidgetDataService.refresh(activeDog: nil, uid: nil) }
             }
         }
     }

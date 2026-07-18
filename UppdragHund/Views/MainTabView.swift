@@ -9,9 +9,26 @@ private enum MainTab: Hashable {
     case hem, flode, kalender, profil
 }
 
+/// Snapplogga-flöden som widgetens djuplänkar (canine360://logga/…) öppnar.
+private enum QuickLogRoute: String, Identifiable {
+    case halsa, foder, traning, dagbok
+
+    var id: String { rawValue }
+
+    var module: SharedModule {
+        switch self {
+        case .halsa: .health
+        case .foder: .meals
+        case .traning: .training
+        case .dagbok: .diary
+        }
+    }
+}
+
 struct MainTabView: View {
     @Environment(ActiveDogStore.self) private var activeDogStore
     @State private var selectedTab: MainTab = .hem
+    @State private var quickLogRoute: QuickLogRoute?
 
     var body: some View {
         TabView(selection: $selectedTab) {
@@ -67,6 +84,40 @@ struct MainTabView: View {
             if activeDogStore.activeDog == nil {
                 selectedTab = .profil
             }
+        }
+        .onOpenURL { url in
+            handleDeepLink(url)
+        }
+        .sheet(item: $quickLogRoute) { route in
+            if let dog = activeDogStore.activeDog {
+                switch route {
+                case .halsa: NewHealthEventView(dog: dog)
+                case .foder: NewMealEntryView(dog: dog)
+                case .traning: NewTrainingSessionView(dog: dog)
+                case .dagbok: NewDiaryEntryView(dog: dog)
+                }
+            }
+        }
+    }
+
+    /// Widget-djuplänkar: canine360://hem och canine360://logga/{halsa|foder|traning|dagbok}.
+    private func handleDeepLink(_ url: URL) {
+        guard url.scheme == WidgetDeepLink.scheme else { return }
+        switch url.host() {
+        case "hem":
+            selectedTab = .hem
+        case "logga":
+            guard let dog = activeDogStore.activeDog,
+                  let route = QuickLogRoute(rawValue: url.lastPathComponent),
+                  DogAccess(dog: dog, currentUid: AuthService.shared.currentUserID)
+                      .canLog(in: route.module) else {
+                selectedTab = .hem
+                return
+            }
+            selectedTab = .hem
+            quickLogRoute = route
+        default:
+            break
         }
     }
 }
