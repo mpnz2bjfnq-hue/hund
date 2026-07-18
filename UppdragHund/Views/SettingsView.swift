@@ -9,6 +9,10 @@
 import SwiftUI
 import SwiftData
 import LocalAuthentication
+#if DEBUG
+import FirebaseCore
+import FirebaseAppCheck
+#endif
 
 struct SettingsView: View {
     @AppStorage("trainingReminderEnabled") private var trainingReminderEnabled = true
@@ -41,6 +45,29 @@ struct SettingsView: View {
             } header: {
                 Text("Socialt")
             }
+
+            #if DEBUG
+            // Endast utvecklingsbyggen: token som ska godkännas i Firebase-
+            // konsolen (App Check → Debug tokens) innan enforcement slås på.
+            Section {
+                if let app = FirebaseApp.app() {
+                    let token = AppCheckDebugProvider(app: app)?.currentDebugToken() ?? "–"
+                    Button {
+                        UIPasteboard.general.string = token
+                    } label: {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("App Check debug-token (tryck för att kopiera)")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            Text(token)
+                                .font(.caption2.monospaced())
+                        }
+                    }
+                }
+            } header: {
+                Text("Utveckling")
+            }
+            #endif
 
             Section {
                 Button(role: .destructive) {
