@@ -10,7 +10,7 @@
 import SwiftUI
 
 enum HomeShortcut: String, CaseIterable, Identifiable {
-    case health, stats, training, food, profile, export, reminders, diary, places, sitter
+    case health, stats, training, food, profile, export, reminders, diary
 
     var id: String { rawValue }
 
@@ -24,8 +24,6 @@ enum HomeShortcut: String, CaseIterable, Identifiable {
         case .export:   String(localized: "Exportera PDF")
         case .reminders: String(localized: "Påminnelser")
         case .diary:    String(localized: "Dagbok")
-        case .places:   String(localized: "Nära dig")
-        case .sitter:   String(localized: "Hundvakt")
         }
     }
 
@@ -39,8 +37,6 @@ enum HomeShortcut: String, CaseIterable, Identifiable {
         case .export:   "doc.text"
         case .reminders: "bell.badge"
         case .diary:    "list.clipboard"
-        case .places:   "mappin.and.ellipse"
-        case .sitter:   "hand.wave.fill"
         }
     }
 
@@ -55,8 +51,6 @@ enum HomeShortcut: String, CaseIterable, Identifiable {
         case .export:   ExportPDFView(dog: dog)
         case .reminders: NotificationsCenterView(dog: dog)
         case .diary:    DagbokView(dog: dog)
-        case .places:   NearbyPlacesView()
-        case .sitter:   SitterHandoverView(dog: dog)
         }
     }
 
