@@ -94,14 +94,20 @@ struct TeamPageView: View {
                 }
                 .pickerStyle(.segmented)
 
-                switch segment {
-                case .posts:   postsSection
-                case .tasks:   tasksSection
-                case .meetups: meetupsSection
-                case .members: membersSection
+                // Mjuk växling mellan segmenten i stället för hårt byte.
+                Group {
+                    switch segment {
+                    case .posts:   postsSection
+                    case .tasks:   tasksSection
+                    case .meetups: meetupsSection
+                    case .members: membersSection
+                    }
                 }
+                .id(segment)
+                .transition(.opacity.combined(with: .move(edge: .bottom)))
             }
             .padding(Theme.Spacing.l)
+            .animation(.spring(duration: 0.35), value: segment)
         }
         .frame(maxWidth: .infinity)
         .background(Theme.screenSurface)
@@ -178,33 +184,74 @@ struct TeamPageView: View {
 
     // MARK: - Header
 
+    /// Hero-header i samma stil som hundkortet på Hem: teamfotot som
+    /// bakgrund med gradient och stort namn; brandtonad platta utan foto.
     private var header: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.m) {
-            HStack(spacing: Theme.Spacing.m) {
+            ZStack(alignment: .bottomLeading) {
+                if let data = team.photoData, let image = UIImage(data: data) {
+                    Color.clear
+                        .overlay(
+                            Image(uiImage: image)
+                                .resizable()
+                                .scaledToFill()
+                        )
+                } else {
+                    LinearGradient(
+                        colors: [Theme.Colors.brand.opacity(0.35), Theme.Colors.cardBackground],
+                        startPoint: .topLeading, endPoint: .bottomTrailing
+                    )
+                    .overlay(alignment: .topTrailing) {
+                        Image(systemName: "person.3.fill")
+                            .font(.system(size: 56))
+                            .foregroundStyle(Theme.Colors.brand.opacity(0.25))
+                            .padding(Theme.Spacing.xl)
+                    }
+                }
+
+                LinearGradient(
+                    stops: [
+                        .init(color: .clear, location: 0),
+                        .init(color: .clear, location: 0.4),
+                        .init(color: .black.opacity(0.35), location: 0.7),
+                        .init(color: .black.opacity(0.9), location: 1),
+                    ],
+                    startPoint: .top, endPoint: .bottom
+                )
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(team.name)
+                        .font(.system(size: 28, weight: .bold, design: .rounded))
+                        .foregroundStyle(.white)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.6)
+                    Text("\(team.memberCount) medlemmar · Ägare: \(team.memberNames[team.ownerUid] ?? team.ownerName)")
+                        .font(Theme.Typography.footnote)
+                        .foregroundStyle(.white.opacity(0.8))
+                }
+                .padding(Theme.Spacing.l)
+            }
+            .frame(height: 150)
+            .frame(maxWidth: .infinity)
+            .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.large, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: Theme.Radius.large, style: .continuous)
+                    .strokeBorder(.white.opacity(0.08), lineWidth: 0.5)
+            )
+            .shadow(color: .black.opacity(0.3), radius: 12, y: 5)
+            .overlay(alignment: .topTrailing) {
                 if isOwner {
                     PhotosPicker(selection: $teamPhotoItem, matching: .images) {
-                        teamAvatar
-                            .overlay(alignment: .bottomTrailing) {
-                                Image(systemName: "camera.fill")
-                                    .font(.system(size: 9))
-                                    .foregroundStyle(.white)
-                                    .padding(4)
-                                    .background(Circle().fill(Theme.Colors.brand))
-                            }
+                        Image(systemName: "camera.fill")
+                            .font(.caption)
+                            .foregroundStyle(.white)
+                            .padding(8)
+                            .background(.black.opacity(0.35), in: Circle())
+                            .padding(Theme.Spacing.m)
                     }
                     .buttonStyle(.plain)
-                } else {
-                    teamAvatar
+                    .accessibilityLabel("Byt bild")
                 }
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(team.name)
-                        .font(Theme.Typography.sectionTitle)
-                        .foregroundStyle(Theme.Colors.textPrimary)
-                    Text("\(team.memberCount) medlemmar · Ägare: \(team.memberNames[team.ownerUid] ?? team.ownerName)")
-                        .font(.caption)
-                        .foregroundStyle(Theme.Colors.textSecondary)
-                }
-                Spacer(minLength: 0)
             }
 
             ScrollView(.horizontal, showsIndicators: false) {
@@ -214,11 +261,10 @@ struct TeamPageView: View {
                             .overlay(Circle().stroke(Theme.Colors.cardBackground, lineWidth: 2))
                     }
                 }
-                .padding(.trailing, 8)
+                .padding(.horizontal, Theme.Spacing.xs)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .cardStyle()
         .onChange(of: teamPhotoItem) {
             Task {
                 guard let item = teamPhotoItem,

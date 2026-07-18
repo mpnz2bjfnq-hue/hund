@@ -66,11 +66,26 @@ struct SelectDogIntent: WidgetConfigurationIntent {
 // MARK: - Gemensamt
 
 enum WidgetTheme {
-    static let background = Color(red: 0.07, green: 0.09, blue: 0.08)
+    static let base = Color(red: 0.07, green: 0.09, blue: 0.08)
     static let brand = Color(red: 52 / 255, green: 199 / 255, blue: 89 / 255)
-    static let heat = Color(red: 0.72, green: 0.47, blue: 0.24)
+    static let heat = Color.pink
     static let textPrimary = Color.white
     static let textSecondary = Color.white.opacity(0.6)
+
+    /// Samma yta som appens skärmar: mörk bas med svag brandglöd i hörnet.
+    static var background: some View {
+        ZStack {
+            base
+            RadialGradient(
+                colors: [brand.opacity(0.14), .clear],
+                center: .topLeading, startRadius: 0, endRadius: 260
+            )
+            LinearGradient(
+                colors: [.white.opacity(0.04), .clear],
+                startPoint: .top, endPoint: .bottom
+            )
+        }
+    }
 }
 
 struct SnapshotEntry: TimelineEntry {
@@ -246,7 +261,7 @@ struct KommandeView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .containerBackground(WidgetTheme.background, for: .widget)
+        .containerBackground(for: .widget) { WidgetTheme.background }
     }
 
     private var medium: some View {
@@ -287,7 +302,7 @@ struct KommandeView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .containerBackground(WidgetTheme.background, for: .widget)
+        .containerBackground(for: .widget) { WidgetTheme.background }
     }
 
     private var emptyState: some View {
@@ -399,13 +414,14 @@ struct SnapploggaView: View {
         let icon: String
         /// SharedModule-rawValue som styr om knappen visas för vald hund.
         let module: String
+        let tint: Color
     }
 
     private let actions: [Action] = [
-        Action(id: "halsa", title: String(localized: "Hälsa"), icon: "heart.text.square.fill", module: "health"),
-        Action(id: "foder", title: String(localized: "Foder"), icon: "fork.knife", module: "meals"),
-        Action(id: "traning", title: String(localized: "Träning"), icon: "figure.run", module: "training"),
-        Action(id: "dagbok", title: String(localized: "Dagbok"), icon: "book.fill", module: "diary"),
+        Action(id: "halsa", title: String(localized: "Hälsa"), icon: "heart.text.square.fill", module: "health", tint: WidgetTheme.brand),
+        Action(id: "foder", title: String(localized: "Foder"), icon: "fork.knife", module: "meals", tint: .orange),
+        Action(id: "traning", title: String(localized: "Träning"), icon: "figure.run", module: "training", tint: .blue),
+        Action(id: "dagbok", title: String(localized: "Dagbok"), icon: "book.fill", module: "diary", tint: .purple),
     ]
 
     private var allowedActions: [Action] {
@@ -437,7 +453,7 @@ struct SnapploggaView: View {
                             VStack(spacing: 6) {
                                 Image(systemName: action.icon)
                                     .font(.title3)
-                                    .foregroundStyle(WidgetTheme.brand)
+                                    .foregroundStyle(action.tint)
                                 Text(action.title)
                                     .font(.caption2.weight(.medium))
                                     .foregroundStyle(WidgetTheme.textPrimary)
@@ -446,14 +462,21 @@ struct SnapploggaView: View {
                             }
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
                             .background(
-                                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                    .fill(Color.white.opacity(0.08))
+                                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                    .fill(LinearGradient(
+                                        colors: [action.tint.opacity(0.22), action.tint.opacity(0.07)],
+                                        startPoint: .topLeading, endPoint: .bottomTrailing
+                                    ))
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                    .strokeBorder(action.tint.opacity(0.25), lineWidth: 0.5)
                             )
                         }
                     }
                 }
             }
         }
-        .containerBackground(WidgetTheme.background, for: .widget)
+        .containerBackground(for: .widget) { WidgetTheme.background }
     }
 }
