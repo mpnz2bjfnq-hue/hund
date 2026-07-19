@@ -180,6 +180,14 @@ final class FriendsRepository {
         }
     }
 
+    /// Tar bort vänskapen åt båda håll. Vänräknarna läker via onFriendsChanged.
+    func removeFriend(myUid: String, friendUid: String) async throws {
+        try await db.collection("users").document(myUid)
+            .collection("friends").document(friendUid).delete()
+        try await db.collection("users").document(friendUid)
+            .collection("friends").document(myUid).delete()
+    }
+
     func friends(for uid: String) async throws -> [UserProfile] {
         let snapshot = try await db.collection("users").document(uid).collection("friends").getDocuments()
         var profiles: [UserProfile] = []

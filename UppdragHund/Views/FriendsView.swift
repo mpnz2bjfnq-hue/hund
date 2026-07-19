@@ -11,6 +11,7 @@ struct FriendsView: View {
     @State private var authService = AuthService.shared
     @State private var friends: [UserProfile] = []
     @State private var pendingRequests: [FriendRequest] = []
+    @State private var friendPendingRemoval: UserProfile?
     @State private var errorMessage: String?
 
     var body: some View {
@@ -64,6 +65,20 @@ struct FriendsView: View {
                                             }
                                         }
                                     }
+                                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                        Button(role: .destructive) {
+                                            friendPendingRemoval = friend
+                                        } label: {
+                                            Label("Ta bort vän", systemImage: "person.badge.minus")
+                                        }
+                                    }
+                                    .contextMenu {
+                                        Button(role: .destructive) {
+                                            friendPendingRemoval = friend
+                                        } label: {
+                                            Label("Ta bort vän", systemImage: "person.badge.minus")
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -78,6 +93,26 @@ struct FriendsView: View {
                     }
                 .refreshable {
                     await loadData()
+                }
+                // Bekräftelsen ligger på listan, inte per rad — så den överlever
+                // att raden slutar renderas medan svepet stänger.
+                .confirmationDialog(
+                    "Ta bort \(friendPendingRemoval?.displayName ?? "vännen") som vän?",
+                    isPresented: Binding(
+                        get: { friendPendingRemoval != nil },
+                        set: { if !$0 { friendPendingRemoval = nil } }
+                    ),
+                    titleVisibility: .visible
+                ) {
+                    Button("Ta bort vän", role: .destructive) {
+                        if let friend = friendPendingRemoval {
+                            removeFriend(friend)
+                        }
+                        friendPendingRemoval = nil
+                    }
+                    Button("Avbryt", role: .cancel) { friendPendingRemoval = nil }
+                } message: {
+                    Text("Ni slutar se varandras inlägg och profiler. Delade hundar påverkas inte.")
                 }
             }
             .navigationTitle("Vänner")
@@ -111,6 +146,18 @@ struct FriendsView: View {
         Task {
             try? await FriendsRepository.shared.respondToRequest(request, accept: accept)
             await loadData()
+        }
+    }
+
+    private func removeFriend(_ friend: UserProfile) {
+        guard let myUid = authService.currentUserID, let friendUid = friend.id else { return }
+        Task {
+            do {
+                try await FriendsRepository.shared.removeFriend(myUid: myUid, friendUid: friendUid)
+                await loadData()
+            } catch {
+                errorMessage = error.localizedDescription
+            }
         }
     }
 }
