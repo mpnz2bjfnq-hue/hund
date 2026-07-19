@@ -2,16 +2,6 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>NSSupportsLiveActivities</key>
-	<true/>
-	<key>ITSAppUsesNonExemptEncryption</key>
-	<false/>
-	<key>NSMotionUsageDescription</key>
-	<string>Stegräknaren kombineras med GPS så att promenadens sträcka blir mer exakt.</string>
-	<key>NSHealthShareUsageDescription</key>
-	<string>Läser promenader och pass från Apple Hälsa (t.ex. från Garmin eller Apple Watch) så du kan importera dem som träning för din hund.</string>
-	<key>NSHealthUpdateUsageDescription</key>
-	<string>Canine360 skriver inte till Apple Hälsa; beskrivningen krävs ändå eftersom appen använder HealthKit för att läsa promenader.</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -23,5 +13,11 @@
 			</array>
 		</dict>
 	</array>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+	<key>NSMotionUsageDescription</key>
+	<string>Stegräknaren kombineras med GPS så att promenadens sträcka blir mer exakt.</string>
+	<key>NSSupportsLiveActivities</key>
+	<true/>
 </dict>
 </plist>
