@@ -109,12 +109,12 @@ private struct WidgetSurface: View {
                 colors: [WidgetTheme.brand.opacity(colorScheme == .dark ? 0.14 : 0.07), .clear],
                 center: .topLeading, startRadius: 0, endRadius: 260
             )
-            if colorScheme == .dark {
-                LinearGradient(
-                    colors: [.white.opacity(0.04), .clear],
-                    startPoint: .top, endPoint: .bottom
-                )
-            }
+            // Konstant lagerstruktur, bara värdet skiljer (samma skäl som
+            // ScreenSurface i appen).
+            LinearGradient(
+                colors: [.white.opacity(colorScheme == .dark ? 0.04 : 0), .clear],
+                startPoint: .top, endPoint: .bottom
+            )
         }
     }
 }

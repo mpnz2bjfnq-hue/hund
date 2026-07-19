@@ -193,20 +193,26 @@ private struct ScreenSurface: View {
 
     private var isDark: Bool { colorScheme == .dark }
 
+    // VIKTIGT: lagren måste ALLTID finnas, bara värdena får skilja mellan
+    // lägena. Med `if isDark { … }` ändras vyträdets struktur vid lägesbyte,
+    // och att infoga lager mitt under UIKits trait-övergång låste appen
+    // (mörkt→ljust frös; ljust→mörkt tog bara bort lager och klarade sig).
     var body: some View {
         ZStack {
             Theme.Colors.screenBackground
 
             // Ljuskälla uppifrån: ljust läge får en vit ton som klingar av mot
             // botten, så ytan inte blir en död grå platta. Mörkt läge har redan
-            // sin djupverkan av svärtan och behöver den inte.
-            if !isDark {
-                LinearGradient(
-                    colors: [.white.opacity(0.85), .white.opacity(0.15), .clear],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-            }
+            // sin djupverkan av svärtan — därav noll opacitet där.
+            LinearGradient(
+                colors: [
+                    .white.opacity(isDark ? 0 : 0.85),
+                    .white.opacity(isDark ? 0 : 0.15),
+                    .clear
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
 
             // Brandglöd i hörnet — svagare i ljust läge, annars blir den dis.
             RadialGradient(
@@ -218,13 +224,11 @@ private struct ScreenSurface: View {
 
             // Ljust läge: en aning djupare mot nederkanten ger skärmen en
             // riktning och får korten att läsa som lyfta ur ytan.
-            if !isDark {
-                LinearGradient(
-                    colors: [.clear, .black.opacity(0.035)],
-                    startPoint: .center,
-                    endPoint: .bottom
-                )
-            }
+            LinearGradient(
+                colors: [.clear, .black.opacity(isDark ? 0 : 0.035)],
+                startPoint: .center,
+                endPoint: .bottom
+            )
         }
         .ignoresSafeArea()
     }
