@@ -10,6 +10,7 @@ import SwiftData
 import UIKit
 
 struct HemView: View {
+    @Environment(\.colorScheme) private var colorScheme
     let dog: Dog
 
     private let calendar = Calendar.current
@@ -172,7 +173,7 @@ struct HemView: View {
             RoundedRectangle(cornerRadius: Theme.Radius.large, style: .continuous)
                 .strokeBorder(.white.opacity(0.08), lineWidth: 0.5)
         )
-        .shadow(color: .black.opacity(0.35), radius: 14, y: 6)
+        .shadow(color: Theme.Colors.cardShadow(colorScheme, dark: 0.35), radius: 14, y: 6)
         .overlay(alignment: .topTrailing) {
             Image(systemName: "chevron.right")
                 .font(.footnote.weight(.semibold))
@@ -609,6 +610,7 @@ struct HemView: View {
 // MARK: - Stat-kort
 
 private struct StatTile: View {
+    @Environment(\.colorScheme) private var colorScheme
     let icon: String
     let category: String
     let value: String
@@ -667,7 +669,7 @@ private struct StatTile: View {
                         .strokeBorder(tint.opacity(0.22), lineWidth: 0.5)
                 )
         )
-        .shadow(color: .black.opacity(0.22), radius: 8, y: 3)
+        .shadow(color: Theme.Colors.cardShadow(colorScheme, dark: 0.22), radius: 8, y: 3)
     }
 }
 

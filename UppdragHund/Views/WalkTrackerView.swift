@@ -12,6 +12,7 @@ import Combine
 import MapKit
 
 struct WalkTrackerView: View {
+    @Environment(\.colorScheme) private var colorScheme
     let dog: Dog
     /// Startar spårningen direkt när vyn visas — för widget/kontroll-flödet
     /// där användaren redan tryckt "starta" på låsskärmen.
@@ -136,7 +137,7 @@ struct WalkTrackerView: View {
                                 startPoint: .topLeading, endPoint: .bottomTrailing
                             ))
                             .frame(width: 78, height: 78)
-                            .shadow(color: Theme.Colors.brand.opacity(0.4), radius: 14, y: 5)
+                            .shadow(color: Theme.Colors.brand.opacity(colorScheme == .dark ? 0.4 : 0.25), radius: 14, y: 5)
                         Image(systemName: tracker.isTracking ? "pause.fill" : "play.fill")
                             .font(.system(size: 28, weight: .bold))
                             .foregroundStyle(.white)

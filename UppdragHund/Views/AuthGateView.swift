@@ -15,6 +15,7 @@ struct AuthGateView: View {
         case signUp = "Skapa konto"
     }
 
+    @Environment(\.colorScheme) private var colorScheme
     @State private var mode: Mode = .signUp
     @State private var name = ""
     @State private var email = ""
@@ -43,7 +44,6 @@ struct AuthGateView: View {
             }
             .scrollDismissesKeyboard(.interactively)
         }
-        .preferredColorScheme(.dark)
     }
 
     // MARK: - Hero
@@ -54,7 +54,13 @@ struct AuthGateView: View {
                 .resizable()
                 .scaledToFit()
                 .frame(maxWidth: 190)
-                .shadow(color: Theme.Colors.brand.opacity(0.35), radius: 24, y: 8)
+                // Neonglöden lyfter loggan mot svart, men blir en grön dis
+                // mot ljus botten — dämpas kraftigt där.
+                .shadow(
+                    color: Theme.Colors.brand.opacity(colorScheme == .dark ? 0.35 : 0.12),
+                    radius: colorScheme == .dark ? 24 : 12,
+                    y: 8
+                )
                 .accessibilityLabel("Canine360")
             Text("Håll koll på din hunds hälsa, löp, träning och vardag — och dela med vänner.")
                 .font(Theme.Typography.caption)
@@ -93,7 +99,7 @@ struct AuthGateView: View {
         }
         .padding(4)
         .background(.ultraThinMaterial, in: Capsule())
-        .overlay(Capsule().strokeBorder(.white.opacity(0.08), lineWidth: 0.5))
+        .overlay(Capsule().strokeBorder(Theme.Colors.hairline, lineWidth: 0.5))
     }
 
     @Namespace private var pillNamespace
@@ -180,11 +186,11 @@ struct AuthGateView: View {
         .padding(.vertical, 14)
         .background(
             RoundedRectangle(cornerRadius: Theme.Radius.small, style: .continuous)
-                .fill(.white.opacity(0.06))
+                .fill(Theme.Colors.fieldFill)
         )
         .overlay(
             RoundedRectangle(cornerRadius: Theme.Radius.small, style: .continuous)
-                .strokeBorder(.white.opacity(0.10), lineWidth: 0.5)
+                .strokeBorder(Theme.Colors.hairline, lineWidth: 0.5)
         )
     }
 
@@ -200,11 +206,11 @@ struct AuthGateView: View {
 
     private var dividerRow: some View {
         HStack(spacing: Theme.Spacing.m) {
-            Rectangle().fill(.white.opacity(0.12)).frame(height: 0.5)
+            Rectangle().fill(Theme.Colors.hairline).frame(height: 0.5)
             Text("eller")
                 .font(.caption)
                 .foregroundStyle(Theme.Colors.textSecondary)
-            Rectangle().fill(.white.opacity(0.12)).frame(height: 0.5)
+            Rectangle().fill(Theme.Colors.hairline).frame(height: 0.5)
         }
     }
 
@@ -214,7 +220,11 @@ struct AuthGateView: View {
         } onCompletion: { result in
             handleApple(result)
         }
-        .signInWithAppleButtonStyle(.white)
+        // Apples riktlinje: svart knapp på ljus bakgrund, vit på mörk.
+        .signInWithAppleButtonStyle(colorScheme == .dark ? .white : .black)
+        // Knappen är en UIKit-kontroll som inte byter stil av sig själv när
+        // färgläget ändras — id:t tvingar SwiftUI att skapa om den.
+        .id(colorScheme)
         .frame(height: 52)
         .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
         .disabled(isWorking)

@@ -12,6 +12,7 @@ import SwiftData
 import UIKit
 
 struct MinProfilView: View {
+    @Environment(\.colorScheme) private var colorScheme
     @Environment(ActiveDogStore.self) private var activeDogStore
     @Environment(\.modelContext) private var modelContext
     @State private var isSyncingShared = false
@@ -216,7 +217,7 @@ struct MinProfilView: View {
                 .foregroundStyle(.white)
                 .frame(width: 52, height: 52)
                 .background(Circle().fill(Theme.Colors.brand))
-                .shadow(color: .black.opacity(0.3), radius: 5, y: 2)
+                .shadow(color: Theme.Colors.cardShadow(colorScheme), radius: 5, y: 2)
         }
         .accessibilityLabel("Feedback och support")
         .padding(.trailing, Theme.Spacing.l)

@@ -2411,6 +2411,16 @@
         }
       }
     },
+    "Färgläge": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Appearance"
+          }
+        }
+      }
+    },
     "Född": {
       "localizations": {
         "en": {
@@ -4355,6 +4365,16 @@
         }
       }
     },
+    "Ljust": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Light"
+          }
+        }
+      }
+    },
     "Logg": {
       "localizations": {
         "en": {
@@ -5280,6 +5300,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Meal"
+          }
+        }
+      }
+    },
+    "Mörkt": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dark"
           }
         }
       }
@@ -7036,6 +7066,26 @@
         }
       }
     },
+    "System": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "System"
+          }
+        }
+      }
+    },
+    "System följer telefonens ljusa eller mörka läge automatiskt.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "System follows your phone's light or dark setting automatically."
+          }
+        }
+      }
+    },
     "SÖKER GPS": {
       "localizations": {
         "en": {
@@ -7930,6 +7980,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Achievements"
+          }
+        }
+      }
+    },
+    "Utseende": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Appearance"
           }
         }
       }

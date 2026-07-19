@@ -12,6 +12,7 @@ import FirebaseCore
 @main
 struct UppdragHundApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
+    @AppStorage(AppearanceMode.storageKey) private var appearanceRaw = AppearanceMode.system.rawValue
     private let container: ModelContainer
 
     init() {
@@ -34,7 +35,10 @@ struct UppdragHundApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .preferredColorScheme(.dark)
+                // nil = följ systemet; annars användarens val i Inställningar.
+                .preferredColorScheme(
+                    AppearanceMode(rawValue: appearanceRaw)?.colorScheme
+                )
         }
         .modelContainer(container)
     }

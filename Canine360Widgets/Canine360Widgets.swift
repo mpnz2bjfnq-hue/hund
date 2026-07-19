@@ -71,24 +71,50 @@ struct SelectDogIntent: WidgetConfigurationIntent {
 // MARK: - Gemensamt
 
 enum WidgetTheme {
-    static let base = Color(red: 0.07, green: 0.09, blue: 0.08)
-    static let brand = Color(red: 52 / 255, green: 199 / 255, blue: 89 / 255)
-    static let heat = Color.pink
-    static let textPrimary = Color.white
-    static let textSecondary = Color.white.opacity(0.6)
+    /// Widgets följer systemets färgläge (inte appens inställning), så
+    /// färgerna byggs som dynamiska UIColor:er i stället för fasta toner.
+    private static func dynamic(light: UIColor, dark: UIColor) -> Color {
+        Color(uiColor: UIColor { $0.userInterfaceStyle == .dark ? dark : light })
+    }
 
-    /// Samma yta som appens skärmar: mörk bas med svag brandglöd i hörnet.
-    static var background: some View {
+    static let base = dynamic(
+        light: UIColor(red: 0.95, green: 0.95, blue: 0.97, alpha: 1),
+        dark: UIColor(red: 0.07, green: 0.09, blue: 0.08, alpha: 1)
+    )
+    // Mörkare grön i ljust läge — den ljusa brandgrönen når inte kontrastkravet
+    // som text mot vitt (samma val som appens AccentColor).
+    static let brand = dynamic(
+        light: UIColor(red: 33 / 255, green: 135 / 255, blue: 57 / 255, alpha: 1),
+        dark: UIColor(red: 52 / 255, green: 199 / 255, blue: 89 / 255, alpha: 1)
+    )
+    static let heat = Color.pink
+    static let textPrimary = dynamic(light: .black, dark: .white)
+    static let textSecondary = dynamic(
+        light: UIColor.black.withAlphaComponent(0.55),
+        dark: UIColor.white.withAlphaComponent(0.6)
+    )
+
+    /// Samma yta som appens skärmar: bas med svag brandglöd i hörnet.
+    static var background: some View { WidgetSurface() }
+}
+
+/// Egen vy så glansen och glöden kan dämpas i ljust läge.
+private struct WidgetSurface: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
         ZStack {
-            base
+            WidgetTheme.base
             RadialGradient(
-                colors: [brand.opacity(0.14), .clear],
+                colors: [WidgetTheme.brand.opacity(colorScheme == .dark ? 0.14 : 0.07), .clear],
                 center: .topLeading, startRadius: 0, endRadius: 260
             )
-            LinearGradient(
-                colors: [.white.opacity(0.04), .clear],
-                startPoint: .top, endPoint: .bottom
-            )
+            if colorScheme == .dark {
+                LinearGradient(
+                    colors: [.white.opacity(0.04), .clear],
+                    startPoint: .top, endPoint: .bottom
+                )
+            }
         }
     }
 }

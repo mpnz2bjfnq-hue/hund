@@ -26,6 +26,18 @@ enum Theme {
         static let heat = Color("Heat")          // löp
         static let verified = Color("Verified")  // verifierad-bock
         static let warning = Color("Warning")    // varningar/påminnelser
+
+        /// Tonad fyllnad för inmatningsfält på glasytor. Ljus i mörkt läge,
+        /// mörk i ljust — en fast vit ton blir osynlig mot ljus bakgrund.
+        static let fieldFill = Color("FieldFill")
+        /// Hårfin avgränsning (fältkanter, avdelare) som vänder med färgläget.
+        static let hairline = Color("Hairline")
+
+        /// Kortskugga. Mörkt läge tål en djup skugga; på ljus yta blir samma
+        /// styrka smutsig, så den dämpas kraftigt där.
+        static func cardShadow(_ scheme: ColorScheme, dark: Double = 0.30) -> Color {
+            .black.opacity(scheme == .dark ? dark : 0.07)
+        }
     }
 
     // MARK: - Spacing (8pt-baserad skala)
@@ -71,28 +83,40 @@ enum Theme {
 private struct CardStyle: ViewModifier {
     var padding: CGFloat
     var radius: CGFloat
+    @Environment(\.colorScheme) private var colorScheme
+
+    private var isDark: Bool { colorScheme == .dark }
+
+    /// Mörkt läge får djup av en ljus glans uppifrån; på ljus yta blir samma
+    /// glans osynlig, så där bär en mjuk skugga + svag mörk kant djupet.
+    private var sheenOpacity: Double { isDark ? 0.06 : 0 }
+    private var strokeColor: Color {
+        isDark ? .white.opacity(0.07) : .black.opacity(0.08)
+    }
+    private var shadowColor: Color {
+        .black.opacity(isDark ? 0.25 : 0.07)
+    }
+    private var shadowRadius: CGFloat { isDark ? 10 : 8 }
 
     func body(content: Content) -> some View {
         content
             .padding(padding)
             .background(
-                // Subtil ljus-till-mörk-gradient i stället för platt fyllnad,
-                // plus hårfin kantlinje — ger djup utan att skrika.
                 RoundedRectangle(cornerRadius: radius, style: .continuous)
                     .fill(Theme.Colors.cardBackground)
                     .overlay(
                         RoundedRectangle(cornerRadius: radius, style: .continuous)
                             .fill(LinearGradient(
-                                colors: [.white.opacity(0.06), .clear],
+                                colors: [.white.opacity(sheenOpacity), .clear],
                                 startPoint: .top, endPoint: .bottom
                             ))
                     )
                     .overlay(
                         RoundedRectangle(cornerRadius: radius, style: .continuous)
-                            .strokeBorder(.white.opacity(0.07), lineWidth: 0.5)
+                            .strokeBorder(strokeColor, lineWidth: 0.5)
                     )
             )
-            .shadow(color: .black.opacity(0.25), radius: 10, y: 4)
+            .shadow(color: shadowColor, radius: shadowRadius, y: 4)
     }
 }
 
@@ -135,10 +159,21 @@ extension View {
 extension Theme {
     /// Skärmbakgrund med en svag brandglöd upptill i stället för platt färg.
     static var screenSurface: some View {
+        ScreenSurface()
+    }
+}
+
+/// Skärmbakgrunden. Egen vy (inte en `some View`-getter) så den kan läsa
+/// färgläget: glöden måste vara betydligt svagare på ljus yta, annars ser
+/// den ut som en grön smuts i hörnet i stället för en subtil ton.
+private struct ScreenSurface: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
         ZStack {
-            Colors.screenBackground
+            Theme.Colors.screenBackground
             RadialGradient(
-                colors: [Colors.brand.opacity(0.09), .clear],
+                colors: [Theme.Colors.brand.opacity(colorScheme == .dark ? 0.09 : 0.045), .clear],
                 center: .topLeading,
                 startRadius: 0,
                 endRadius: 460
@@ -164,6 +199,7 @@ private struct TintedCardStyle: ViewModifier {
     var tint: Color
     var padding: CGFloat
     var radius: CGFloat
+    @Environment(\.colorScheme) private var colorScheme
 
     func body(content: Content) -> some View {
         content
@@ -183,7 +219,7 @@ private struct TintedCardStyle: ViewModifier {
                             .strokeBorder(tint.opacity(0.20), lineWidth: 0.5)
                     )
             )
-            .shadow(color: .black.opacity(0.22), radius: 8, y: 3)
+            .shadow(color: .black.opacity(colorScheme == .dark ? 0.22 : 0.06), radius: 8, y: 3)
     }
 }
 

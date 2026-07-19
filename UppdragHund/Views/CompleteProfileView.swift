@@ -113,7 +113,6 @@ struct CompleteProfileView: View {
             .scrollDismissesKeyboard(.interactively)
             .onChange(of: photoItem) { loadPickedPhoto() }
         }
-        .preferredColorScheme(.dark)
     }
 
     /// Tonat inmatningsfält med ikon — samma som inloggningsskärmen.
@@ -130,11 +129,11 @@ struct CompleteProfileView: View {
         .padding(.vertical, 14)
         .background(
             RoundedRectangle(cornerRadius: Theme.Radius.small, style: .continuous)
-                .fill(.white.opacity(0.06))
+                .fill(Theme.Colors.fieldFill)
         )
         .overlay(
             RoundedRectangle(cornerRadius: Theme.Radius.small, style: .continuous)
-                .strokeBorder(.white.opacity(0.10), lineWidth: 0.5)
+                .strokeBorder(Theme.Colors.hairline, lineWidth: 0.5)
         )
     }
 

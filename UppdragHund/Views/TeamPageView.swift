@@ -11,6 +11,7 @@ import PhotosUI
 import SwiftData
 
 struct TeamPageView: View {
+    @Environment(\.colorScheme) private var colorScheme
     @State private var team: Team
     var onChanged: () -> Void = {}
 
@@ -254,7 +255,7 @@ struct TeamPageView: View {
                 RoundedRectangle(cornerRadius: Theme.Radius.large, style: .continuous)
                     .strokeBorder(.white.opacity(0.08), lineWidth: 0.5)
             )
-            .shadow(color: .black.opacity(0.3), radius: 12, y: 5)
+            .shadow(color: Theme.Colors.cardShadow(colorScheme), radius: 12, y: 5)
             .overlay(alignment: .topTrailing) {
                 if isOwner {
                     PhotosPicker(selection: $teamPhotoItem, matching: .images) {
@@ -372,11 +373,13 @@ struct TeamPageView: View {
                             }
                         }
                         if index < posts.count - 1 {
-                            Divider().overlay(Theme.Colors.textSecondary.opacity(0.2))
+                            Divider()
+                                .overlay(Theme.Colors.textSecondary.opacity(0.2))
+                                .padding(.vertical, Theme.Spacing.m)
                         }
                     }
                 }
-                .cardStyle()
+                .cardStyle(padding: Theme.Spacing.m)
             }
         }
     }

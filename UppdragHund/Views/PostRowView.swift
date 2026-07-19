@@ -96,7 +96,8 @@ struct PostRowView: View {
             .padding(.top, 2)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.vertical, Theme.Spacing.s)
+        // Ingen egen vertikal padding — kortet respektive avdelaren äger
+        // avstånden, annars dubbleras luften mot kortkanten.
         .contentShape(Rectangle())
     }
 }
