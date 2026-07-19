@@ -36,8 +36,27 @@ enum ShareMapping {
             mentalTestDone: dog.mentalTestDone,
             showMerit: dog.showMerit,
             vaccinated: dog.vaccinated,
-            photoData: dog.photoData
+            photoData: dog.photoData,
+            skills: dog.trainingSkills
+                .sorted { $0.order < $1.order }
+                .map { SharedSkill(name: $0.name, levelRaw: $0.levelRaw, order: $0.order, createdAt: $0.createdAt) }
         )
+    }
+
+    /// Skapar TrainingSkill-objekt från ett hunddokuments backup (anroparen
+    /// äger insättningen i ModelContext). Egen funktion eftersom `apply` är
+    /// context-fri och inte kan skapa relaterade objekt.
+    static func makeSkills(from doc: SharedDogDoc, dog: Dog) -> [TrainingSkill] {
+        (doc.skills ?? []).map { dto in
+            let skill = TrainingSkill(
+                name: dto.name,
+                level: SkillLevel(rawValue: dto.levelRaw) ?? .notStarted,
+                order: dto.order,
+                dog: dog
+            )
+            skill.createdAt = dto.createdAt
+            return skill
+        }
     }
 
     static func apply(_ doc: SharedDogDoc, to dog: Dog) {
@@ -239,5 +258,56 @@ enum ShareMapping {
         session.remoteID = remoteID
         apply(dto, to: session)
         return session
+    }
+
+    // MARK: - TrainingPlan (bibliotek)
+
+    static func dto(from plan: TrainingPlan) -> TrainingPlanDTO {
+        TrainingPlanDTO(
+            title: plan.title,
+            note: plan.note,
+            createdAt: plan.createdAt,
+            authorUid: plan.authorUid,
+            authorName: plan.authorName,
+            exercises: plan.sortedExercises.map {
+                TrainingPlanExerciseDTO(
+                    name: $0.name,
+                    activityRaw: $0.activityRaw,
+                    targetMinutes: $0.targetMinutes,
+                    reps: $0.reps,
+                    targetMeters: $0.targetMeters,
+                    instruction: $0.instruction,
+                    order: $0.order
+                )
+            }
+        )
+    }
+
+    /// Bygger en TrainingPlan med övningar från backup. Anroparen sätter in
+    /// både passet och varje övning (plan.exercises) i sin ModelContext.
+    static func makePlan(from dto: TrainingPlanDTO, remoteID: UUID) -> TrainingPlan {
+        let plan = TrainingPlan(
+            title: dto.title,
+            note: dto.note,
+            createdAt: dto.createdAt,
+            authorUid: dto.authorUid,
+            authorName: dto.authorName
+        )
+        plan.remoteID = remoteID
+        let exercises = dto.exercises.map {
+            TrainingPlanExercise(
+                name: $0.name,
+                activityRaw: $0.activityRaw,
+                targetMinutes: $0.targetMinutes,
+                reps: $0.reps,
+                targetMeters: $0.targetMeters,
+                instruction: $0.instruction,
+                order: $0.order
+            )
+        }
+        // Sätt båda relationssidorna (samma mönster som övrig pass-kod).
+        for exercise in exercises { exercise.plan = plan }
+        plan.exercises = exercises
+        return plan
     }
 }

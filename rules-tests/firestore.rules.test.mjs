@@ -103,6 +103,11 @@ beforeEach(async () => {
       createdByUid: OWNER, createdByName: "Alex", createdAt: TASK_CREATED,
       completedUids: [],
     });
+    // Privat molnbackup: ett träningspass i ägarens eget område.
+    await setDoc(doc(db, "userBackups", OWNER, "trainingPlans", "plan-1"), {
+      title: "Morgonpass", note: null, createdAt: new Date(),
+      authorUid: OWNER, authorName: "Alex", exercises: [],
+    });
   });
 });
 
@@ -299,6 +304,29 @@ test("medlem kan fortfarande bocka av sig själv", async () => {
       createdByUid: OWNER, createdByName: "Alex", createdAt: TASK_CREATED,
       completedUids: [FRIEND],
     })
+  );
+});
+
+// ===== Privat molnbackup (userBackups) =====
+
+test("ägaren kan läsa och skriva sin egen backup", async () => {
+  await assertSucceeds(getDoc(doc(asUser(OWNER), "userBackups", OWNER, "trainingPlans", "plan-1")));
+  await assertSucceeds(
+    setDoc(doc(asUser(OWNER), "userBackups", OWNER, "trainingPlans", "plan-2"), {
+      title: "Kvällspass", note: null, createdAt: new Date(),
+      authorUid: OWNER, authorName: "Alex", exercises: [],
+    })
+  );
+  await assertSucceeds(deleteDoc(doc(asUser(OWNER), "userBackups", OWNER, "trainingPlans", "plan-1")));
+});
+
+test("ingen annan kan läsa eller skriva någons backup", async () => {
+  await assertFails(getDoc(doc(asUser(STRANGER), "userBackups", OWNER, "trainingPlans", "plan-1")));
+  await assertFails(
+    setDoc(doc(asUser(STRANGER), "userBackups", OWNER, "trainingPlans", "evil"), { title: "x" })
+  );
+  await assertFails(
+    getDocs(collection(asUser(FRIEND), "userBackups", OWNER, "trainingPlans"))
   );
 });
 

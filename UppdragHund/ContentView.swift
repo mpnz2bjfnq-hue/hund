@@ -69,6 +69,11 @@ struct ContentView: View {
                     // Säkerställ molnbackup av alla egna hundar (även de som
                     // fanns före backup-funktionen).
                     await SyncCoordinator.shared.backupAllOwnDogs(uid: uid)
+                    // Träningspass-biblioteket: återställ saknade pass, spegla
+                    // sedan alla lokala till molnet (restore före backup så en
+                    // annan enhets pass inte skrivs över).
+                    await TrainingPlanBackupService.restore(context: modelContext, uid: uid)
+                    await TrainingPlanBackupService.backupAll(context: modelContext, uid: uid)
                 }
                 // Hämta delade hundar direkt efter inloggning (scenePhase .active
                 // hinner köras före inloggning på första sign-in, annars missas de).

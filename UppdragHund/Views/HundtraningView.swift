@@ -231,10 +231,18 @@ struct HundtraningView: View {
     }
 
     private func deletePlans(at offsets: IndexSet) {
+        let uid = AuthService.shared.currentUserID
+        let removedIDs = offsets.compactMap { plans[$0].remoteID }
         for index in offsets {
             modelContext.delete(plans[index])
         }
         try? modelContext.save()
+        // Ta bort passen ur molnbackupen så de inte återuppstår vid nästa synk.
+        if let uid {
+            Task {
+                for id in removedIDs { await TrainingPlanBackupService.deleteBackup(planRemoteID: id, uid: uid) }
+            }
+        }
     }
 }
 

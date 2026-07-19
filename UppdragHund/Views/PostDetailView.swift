@@ -257,6 +257,9 @@ struct PostDetailView: View {
             modelContext.insert(entity)
         }
         try? modelContext.save()
+        if let uid = authService.currentUserID {
+            Task { await TrainingPlanBackupService.backup(plan, uid: uid) }
+        }
         savedPlan = true
     }
 

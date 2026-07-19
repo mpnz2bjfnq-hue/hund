@@ -167,6 +167,49 @@ struct ShareMappingTests {
         #expect(!badges.contains { $0.id == "vaccine" })
     }
 
+    @Test func trainingPlanRoundTrip() {
+        let plan = TrainingPlan(title: "Morgonpass", note: "Fokus", authorUid: "owner-uid", authorName: "Alex")
+        plan.exercises = [
+            TrainingPlanExercise(name: "Inkallning", targetMinutes: 10, order: 0),
+            TrainingPlanExercise(name: "Fot", reps: 15, order: 1),
+        ]
+        let id = UUID()
+
+        let dto = ShareMapping.dto(from: plan)
+        #expect(dto.exercises.count == 2)
+
+        let restored = ShareMapping.makePlan(from: dto, remoteID: id)
+        #expect(restored.remoteID == id)
+        #expect(restored.title == "Morgonpass")
+        #expect(restored.note == "Fokus")
+        #expect(restored.authorUid == "owner-uid")
+        #expect(restored.sortedExercises.map(\.name) == ["Inkallning", "Fot"])
+        #expect(restored.sortedExercises[0].targetMinutes == 10)
+        #expect(restored.sortedExercises[1].reps == 15)
+    }
+
+    @Test func dogSkillsRoundTrip() {
+        let dog = Dog(name: "Sixten", breed: "Malinois", birthDate: .now, sex: .male)
+        let sit = TrainingSkill(name: "Sitt", level: .mastered, order: 0, dog: dog)
+        let roll = TrainingSkill(name: "Rulla", level: .inProgress, order: 1, dog: dog)
+        dog.trainingSkills = [roll, sit]  // avsiktligt osorterad — dogDoc ska ordna
+
+        let doc = ShareMapping.dogDoc(from: dog, owner: author)
+        #expect(doc.skills?.count == 2)
+        #expect(doc.skills?.first?.name == "Sitt", "Sorteras på order")
+
+        let target = Dog(name: "", breed: "", birthDate: .now, sex: .female)
+        let restored = ShareMapping.makeSkills(from: doc, dog: target)
+        #expect(restored.count == 2)
+        #expect(restored.contains { $0.name == "Sitt" && $0.level == .mastered })
+        #expect(restored.contains { $0.name == "Rulla" && $0.level == .inProgress })
+
+        // Äldre dokument utan skills-fältet ger inga färdigheter, ingen krasch.
+        var legacy = doc
+        legacy.skills = nil
+        #expect(ShareMapping.makeSkills(from: legacy, dog: target).isEmpty)
+    }
+
     @Test func dogPhotoRoundTrips() {
         let photo = Data([0xFF, 0xD8, 0xFF])
         let dog = Dog(name: "Sixten", breed: "Malinois", birthDate: .now, sex: .male)

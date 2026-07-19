@@ -332,16 +332,19 @@ struct TrainingOverview: View {
         let skill = TrainingSkill(name: name, order: sortedSkills.count, dog: dog)
         modelContext.insert(skill)
         try? modelContext.save()
+        SyncCoordinator.shared.dogProfileTouched(dog)
         newSkillName = ""
     }
 
     private func cycle(_ skill: TrainingSkill) {
         skill.level = skill.level.next
         try? modelContext.save()
+        SyncCoordinator.shared.dogProfileTouched(dog)
     }
 
     private func delete(_ skill: TrainingSkill) {
         modelContext.delete(skill)
         try? modelContext.save()
+        SyncCoordinator.shared.dogProfileTouched(dog)
     }
 }

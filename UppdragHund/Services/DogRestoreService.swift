@@ -99,6 +99,12 @@ enum DogRestoreService {
         dog.isShared = false          // Detta är ägarens egen hund.
         dog.ownerUid = ownerUid
 
+        // Färdigheter/trick ligger inbäddade i hunddokumentet (context-fri apply
+        // kan inte skapa dem, så det görs här).
+        for skill in ShareMapping.makeSkills(from: doc, dog: dog) {
+            context.insert(skill)
+        }
+
         for module in SharedModule.allCases {
             guard let documents = try? await repository.fetchEntryDocuments(dogRemoteID: remoteID, module: module) else { continue }
             for (id, snapshot) in documents {

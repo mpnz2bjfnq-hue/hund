@@ -625,6 +625,9 @@ struct TeamPageView: View {
             modelContext.insert(entity)
         }
         try? modelContext.save()
+        if let uid = authService.currentUserID {
+            Task { await TrainingPlanBackupService.backup(plan, uid: uid) }
+        }
         if let id = task.id {
             savedPlanTaskIDs.insert(id)
         }

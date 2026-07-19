@@ -148,6 +148,10 @@ struct NewTrainingPlanView: View {
             modelContext.insert(exercise)
         }
         try? modelContext.save()
+        // Spegla passet till molnbackupen.
+        if let uid = authService.currentUserID {
+            Task { await TrainingPlanBackupService.backup(plan, uid: uid) }
+        }
         dismiss()
     }
 

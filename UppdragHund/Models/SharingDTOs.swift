@@ -49,6 +49,38 @@ struct SharedDogDoc: Codable, Equatable {
     var vaccinated: Bool? = nil
     // Liten JPEG-thumbnail (~256px). Firestore lagrar som Blob; ryms i dokumentet.
     var photoData: Data? = nil
+    // Färdigheter/trick (namn + nivå). Bäddas i hunddokumentet — få per hund och
+    // små, så ingen egen subkollektion behövs. Valfri → äldre dokument avkodas nil.
+    var skills: [SharedSkill]? = nil
+}
+
+/// En färdighet/trick för molnbackup. Del av SharedDogDoc.skills.
+struct SharedSkill: Codable, Equatable {
+    var name: String
+    var levelRaw: String
+    var order: Int
+    var createdAt: Date
+}
+
+/// Träningspass-mall (bibliotek) för molnbackup. Inte bunden till en hund, så
+/// den lagras privat under userBackups/{uid}/trainingPlans/{planId}.
+struct TrainingPlanDTO: Codable, Equatable {
+    var title: String
+    var note: String?
+    var createdAt: Date
+    var authorUid: String?
+    var authorName: String?
+    var exercises: [TrainingPlanExerciseDTO]
+}
+
+struct TrainingPlanExerciseDTO: Codable, Equatable {
+    var name: String
+    var activityRaw: String?
+    var targetMinutes: Int?
+    var reps: Int?
+    var targetMeters: Int?
+    var instruction: String?
+    var order: Int
 }
 
 struct HealthEventDTO: Codable, Equatable {
