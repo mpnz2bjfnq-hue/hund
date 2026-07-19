@@ -127,17 +127,13 @@ private struct CardStyle: ViewModifier {
                             .strokeBorder(edgeGradient, lineWidth: 0.5)
                     )
             )
-            // Två lager: en tät kontaktskugga som förankrar kortet mot ytan,
-            // och en vid diffus som ger höjd. En ensam skugga ser billig ut.
+            // BISEKTION: tillbaka till EN skugga. Två skuggor per kort betyder
+            // två separata renderingspass för varje kort på skärmen, och det
+            // är den kostnaden som misstänks låsa huvudtråden vid lägesbytet.
             .shadow(
-                color: .black.opacity(isDark ? 0.22 : 0.055),
-                radius: isDark ? 3 : 2,
-                y: 1
-            )
-            .shadow(
-                color: .black.opacity(isDark ? 0.26 : 0.065),
-                radius: isDark ? 14 : 16,
-                y: isDark ? 6 : 9
+                color: .black.opacity(isDark ? 0.25 : 0.06),
+                radius: isDark ? 10 : 10,
+                y: 4
             )
     }
 }
@@ -194,25 +190,14 @@ private struct ScreenSurface: View {
     private var isDark: Bool { colorScheme == .dark }
 
     // VIKTIGT: lagren måste ALLTID finnas, bara värdena får skilja mellan
-    // lägena. Med `if isDark { … }` ändras vyträdets struktur vid lägesbyte,
-    // och att infoga lager mitt under UIKits trait-övergång låste appen
-    // (mörkt→ljust frös; ljust→mörkt tog bara bort lager och klarade sig).
+    // lägena — `if isDark { … }` ändrar vyträdets struktur vid lägesbyte.
+    //
+    // BISEKTION: de två extra ljusgradienterna är borttagna. De komposierades
+    // över HELA skärmen på varje vy, och skärmytan ligger som bakgrund överallt.
+    // Kan läggas tillbaka om det visar sig att de inte var problemet.
     var body: some View {
         ZStack {
             Theme.Colors.screenBackground
-
-            // Ljuskälla uppifrån: ljust läge får en vit ton som klingar av mot
-            // botten, så ytan inte blir en död grå platta. Mörkt läge har redan
-            // sin djupverkan av svärtan — därav noll opacitet där.
-            LinearGradient(
-                colors: [
-                    .white.opacity(isDark ? 0 : 0.85),
-                    .white.opacity(isDark ? 0 : 0.15),
-                    .clear
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
 
             // Brandglöd i hörnet — svagare i ljust läge, annars blir den dis.
             RadialGradient(
@@ -220,14 +205,6 @@ private struct ScreenSurface: View {
                 center: .topLeading,
                 startRadius: 0,
                 endRadius: 460
-            )
-
-            // Ljust läge: en aning djupare mot nederkanten ger skärmen en
-            // riktning och får korten att läsa som lyfta ur ytan.
-            LinearGradient(
-                colors: [.clear, .black.opacity(isDark ? 0 : 0.035)],
-                startPoint: .center,
-                endPoint: .bottom
             )
         }
         .ignoresSafeArea()
@@ -295,8 +272,7 @@ private struct TintedCardStyle: ViewModifier {
                             )
                     )
             )
-            .shadow(color: .black.opacity(isDark ? 0.20 : 0.05), radius: isDark ? 3 : 2, y: 1)
-            .shadow(color: .black.opacity(isDark ? 0.22 : 0.06), radius: isDark ? 10 : 14, y: isDark ? 4 : 8)
+            .shadow(color: .black.opacity(isDark ? 0.22 : 0.06), radius: isDark ? 10 : 12, y: 4)
     }
 }
 

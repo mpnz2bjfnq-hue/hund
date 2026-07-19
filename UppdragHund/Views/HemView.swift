@@ -683,8 +683,7 @@ private struct StatTile: View {
                         )
                 )
         )
-        .shadow(color: .black.opacity(colorScheme == .dark ? 0.20 : 0.05), radius: colorScheme == .dark ? 3 : 2, y: 1)
-        .shadow(color: Theme.Colors.cardShadow(colorScheme, dark: 0.22), radius: colorScheme == .dark ? 10 : 14, y: colorScheme == .dark ? 4 : 8)
+        .shadow(color: Theme.Colors.cardShadow(colorScheme, dark: 0.22), radius: colorScheme == .dark ? 10 : 12, y: 4)
     }
 }
 
