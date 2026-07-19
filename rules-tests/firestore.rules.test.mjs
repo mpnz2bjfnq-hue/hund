@@ -24,6 +24,10 @@ const OWNER = "owner-uid";
 const FRIEND = "friend-uid";     // mottagare av delningen
 const STRANGER = "stranger-uid"; // inloggad men ej delaktig
 const DOG = "11111111-2222-3333-4444-555555555555";
+const TEAM = "team-1";
+const TASK = "task-1";
+// Fast skapelsedatum så uppgiftstester kan bevara createdAt oförändrat.
+const TASK_CREATED = new Date("2026-01-01T00:00:00Z");
 
 let env;
 
@@ -87,6 +91,17 @@ beforeEach(async () => {
     });
     await setDoc(doc(db, "deviceTokens", "token-friend"), {
       uid: FRIEND, updatedAt: new Date(),
+    });
+    // Team: OWNER äger, FRIEND är vanlig medlem. En uppgift skapad av ägaren.
+    await setDoc(doc(db, "teams", TEAM), {
+      name: "Valpkurs", ownerUid: OWNER, ownerName: "Alex",
+      memberUids: [OWNER, FRIEND], memberNames: { [OWNER]: "Alex", [FRIEND]: "Vän" },
+      consultantUids: [], teamType: "course", createdAt: new Date(),
+    });
+    await setDoc(doc(db, "teams", TEAM, "tasks", TASK), {
+      title: "Träna inkallning", note: null, dueDate: null,
+      createdByUid: OWNER, createdByName: "Alex", createdAt: TASK_CREATED,
+      completedUids: [],
     });
   });
 });
@@ -243,6 +258,51 @@ test("man kan inte skriva någon annans profil", async () => {
     setDoc(doc(asUser(STRANGER), "users", OWNER), { displayName: "Hackad" }, { merge: true })
   );
 });
+
+// ===== Team-uppgifter: redigering =====
+
+test("ägaren kan redigera uppgiftens innehåll", async () => {
+  await assertSucceeds(
+    setDoc(doc(asUser(OWNER), "teams", TEAM, "tasks", TASK), {
+      title: "Träna platsliggning", note: "5 min/dag", dueDate: new Date(),
+      createdByUid: OWNER, createdByName: "Alex", createdAt: TASK_CREATED,
+      completedUids: [],
+    })
+  );
+});
+
+test("vanlig medlem kan INTE redigera uppgiftens innehåll", async () => {
+  await assertFails(
+    setDoc(doc(asUser(FRIEND), "teams", TEAM, "tasks", TASK), {
+      title: "Kapad titel", note: null, dueDate: null,
+      createdByUid: OWNER, createdByName: "Alex", createdAt: TASK_CREATED,
+      completedUids: [],
+    })
+  );
+});
+
+test("redigering kan inte ändra skaparfält eller andras avbockningar", async () => {
+  // Ägaren försöker skriva om createdByUid — ska nekas.
+  await assertFails(
+    setDoc(doc(asUser(OWNER), "teams", TEAM, "tasks", TASK), {
+      title: "Träna inkallning", note: null, dueDate: null,
+      createdByUid: FRIEND, createdByName: "Vän", createdAt: TASK_CREATED,
+      completedUids: [],
+    })
+  );
+});
+
+test("medlem kan fortfarande bocka av sig själv", async () => {
+  await assertSucceeds(
+    setDoc(doc(asUser(FRIEND), "teams", TEAM, "tasks", TASK), {
+      title: "Träna inkallning", note: null, dueDate: null,
+      createdByUid: OWNER, createdByName: "Alex", createdAt: TASK_CREATED,
+      completedUids: [FRIEND],
+    })
+  );
+});
+
+// ===== users: profiler =====
 
 test("man kan inte sätta instructor-flaggan på sin egen profil", async () => {
   await assertFails(

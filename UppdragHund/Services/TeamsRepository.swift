@@ -133,6 +133,33 @@ final class TeamsRepository {
         _ = try tasksCollection(teamID: teamID).addDocument(from: task)
     }
 
+    /// Redigerar en befintlig uppgift. Bevarar completedUids (avbockningar)
+    /// och skaparen — bara innehållet och kopplingarna uppdateras.
+    func updateTask(
+        teamID: String,
+        taskID: String,
+        title: String,
+        note: String?,
+        dueDate: Date?,
+        trainingPlan: SharedTrainingPlan? = nil,
+        meetup: Meetup? = nil
+    ) async throws {
+        var data: [String: Any] = [
+            "title": title,
+            "note": note ?? FieldValue.delete(),
+            "dueDate": dueDate.map { Timestamp(date: $0) } ?? FieldValue.delete(),
+            "meetupId": meetup?.id ?? FieldValue.delete(),
+            "meetupTitle": meetup?.title ?? FieldValue.delete(),
+            "meetupDate": meetup.map { Timestamp(date: $0.date) } ?? FieldValue.delete()
+        ]
+        if let trainingPlan, let encoded = try? Firestore.Encoder().encode(trainingPlan) {
+            data["trainingPlan"] = encoded
+        } else {
+            data["trainingPlan"] = FieldValue.delete()
+        }
+        try await tasksCollection(teamID: teamID).document(taskID).updateData(data)
+    }
+
     func deleteTask(teamID: String, taskID: String) async throws {
         try await tasksCollection(teamID: teamID).document(taskID).delete()
     }

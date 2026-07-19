@@ -15,7 +15,7 @@ struct HintBubble: View {
     private let storageKey: String
 
     @AppStorage private var dismissed: Bool
-    @State private var pulse = false
+    @State private var shown = false
 
     init(_ text: LocalizedStringKey, key: String) {
         self.text = text
@@ -26,7 +26,7 @@ struct HintBubble: View {
     var body: some View {
         if !dismissed {
             Button {
-                withAnimation(.spring(duration: 0.3)) { dismissed = true }
+                withAnimation(.easeOut(duration: 0.25)) { dismissed = true }
             } label: {
                 HStack(spacing: 6) {
                     Text(text)
@@ -39,12 +39,16 @@ struct HintBubble: View {
                 .padding(.horizontal, 10)
                 .padding(.vertical, 5)
                 .background(Theme.Colors.brand.opacity(0.15), in: Capsule())
+                .overlay(Capsule().strokeBorder(Theme.Colors.brand.opacity(0.25), lineWidth: 0.5))
             }
             .buttonStyle(.plain)
-            .scaleEffect(pulse ? 1.06 : 1)
-            .animation(.easeInOut(duration: 1.2).repeatForever(autoreverses: true), value: pulse)
-            .onAppear { pulse = true }
-            .transition(.opacity.combined(with: .scale(scale: 0.9)))
+            // Lugn intoning en gång — ingen evig puls.
+            .opacity(shown ? 1 : 0)
+            .scaleEffect(shown ? 1 : 0.92)
+            .onAppear {
+                withAnimation(.spring(duration: 0.45, bounce: 0.3)) { shown = true }
+            }
+            .transition(.opacity)
         }
     }
 

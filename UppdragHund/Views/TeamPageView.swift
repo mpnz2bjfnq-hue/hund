@@ -56,6 +56,8 @@ struct TeamPageView: View {
     @State private var moderationMessage: String?
     @State private var isPresentingNewPost = false
     @State private var isPresentingNewTask = false
+    /// Uppgift som redigeras (öppnar redigeringsvyn).
+    @State private var taskToEdit: TeamTask?
     @State private var isPresentingJoinCode = false
     /// Medlem som ägaren är på väg att ta bort (bekräftas först).
     @State private var memberPendingRemoval: String?
@@ -122,6 +124,9 @@ struct TeamPageView: View {
         }
         .sheet(isPresented: $isPresentingNewTask, onDismiss: { Task { await load() } }) {
             NewTeamTaskView(team: team, meetups: meetups)
+        }
+        .sheet(item: $taskToEdit, onDismiss: { Task { await load() } }) { task in
+            NewTeamTaskView(team: team, meetups: meetups, editingTask: task)
         }
         .sheet(item: $taskMeetup) { meetup in
             MeetupDetailView(meetup: meetup, onChanged: { Task { await load() } })
@@ -469,6 +474,11 @@ struct TeamPageView: View {
         .cardStyle()
         .contextMenu {
             if team.canManageTasks(myUid) || task.createdByUid == myUid {
+                Button {
+                    taskToEdit = task
+                } label: {
+                    Label("Redigera uppgiften", systemImage: "pencil")
+                }
                 Button(role: .destructive) {
                     deleteTask(task)
                 } label: {
@@ -984,6 +994,8 @@ struct NewTeamTaskView: View {
     let team: Team
     /// Teamets träffar — för att kunna koppla uppgiften till en träff.
     var meetups: [Meetup] = []
+    /// Satt när vi redigerar en befintlig uppgift i stället för att skapa ny.
+    var editingTask: TeamTask? = nil
 
     @Environment(\.dismiss) private var dismiss
     @State private var authService = AuthService.shared
@@ -997,6 +1009,12 @@ struct NewTeamTaskView: View {
     @State private var selectedPlanID: PersistentIdentifier?
     @State private var selectedMeetupID: String?
     @State private var isSaving = false
+    @State private var didPrefill = false
+    /// Uppgiften har ett kopplat pass som inte finns i mitt lokala bibliotek —
+    /// då kan jag inte välja om det i listan, men det ska bevaras vid sparning.
+    @State private var keepOriginalPlan = false
+
+    private var isEditing: Bool { editingTask != nil }
 
     /// Bara mina egna pass kan kopplas.
     private var myPlans: [TrainingPlan] {
@@ -1067,38 +1085,80 @@ struct NewTeamTaskView: View {
                     }
                 }
             }
-            .navigationTitle("Ny uppgift")
+            .navigationTitle(isEditing ? "Redigera uppgift" : "Ny uppgift")
             .navigationBarTitleDisplayMode(.inline)
             .tint(Theme.Colors.brand)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Avbryt") { dismiss() } }
             }
             .bottomActionButton(
-                "Lägg ut",
+                isEditing ? "Spara ändringar" : "Lägg ut",
                 disabled: title.trimmingCharacters(in: .whitespaces).isEmpty,
                 isBusy: isSaving
             ) {
                 save()
             }
+            .onAppear(perform: prefillIfNeeded)
         }
+    }
+
+    /// Fyll i fälten från den uppgift som redigeras (en gång).
+    private func prefillIfNeeded() {
+        guard let task = editingTask, !didPrefill else { return }
+        didPrefill = true
+        title = task.title
+        note = task.note ?? ""
+        if let due = task.dueDate {
+            hasDueDate = true
+            dueDate = due
+        }
+        if let plan = task.trainingPlan {
+            if let local = myPlans.first(where: { $0.title == plan.title }) {
+                selectedPlanID = local.persistentModelID
+            } else {
+                keepOriginalPlan = true
+            }
+        }
+        selectedMeetupID = task.meetupId
+    }
+
+    /// Kopplat pass som ska sparas: valt lokalt pass, annars det ursprungliga
+    /// om det inte gick att välja i listan.
+    private var resolvedPlan: SharedTrainingPlan? {
+        if let selectedPlan { return selectedPlan.asShared() }
+        if keepOriginalPlan, selectedPlanID == nil { return editingTask?.trainingPlan }
+        return nil
     }
 
     private func save() {
         guard let teamID = team.id, let uid = authService.currentUserID else { return }
+        let trimmedTitle = title.trimmingCharacters(in: .whitespaces)
+        let trimmedNote = note.trimmingCharacters(in: .whitespacesAndNewlines)
+        let noteValue = trimmedNote.isEmpty ? nil : trimmedNote
         isSaving = true
         Task {
-            try? await TeamsRepository.shared.createTask(
-                teamID: teamID,
-                title: title.trimmingCharacters(in: .whitespaces),
-                note: note.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                    ? nil
-                    : note.trimmingCharacters(in: .whitespacesAndNewlines),
-                dueDate: hasDueDate ? dueDate : nil,
-                byUid: uid,
-                byName: currentUser.profile?.displayName ?? "Hundägare",
-                trainingPlan: selectedPlan?.asShared(),
-                meetup: selectedMeetup
-            )
+            if let task = editingTask, let taskID = task.id {
+                try? await TeamsRepository.shared.updateTask(
+                    teamID: teamID,
+                    taskID: taskID,
+                    title: trimmedTitle,
+                    note: noteValue,
+                    dueDate: hasDueDate ? dueDate : nil,
+                    trainingPlan: resolvedPlan,
+                    meetup: selectedMeetup
+                )
+            } else {
+                try? await TeamsRepository.shared.createTask(
+                    teamID: teamID,
+                    title: trimmedTitle,
+                    note: noteValue,
+                    dueDate: hasDueDate ? dueDate : nil,
+                    byUid: uid,
+                    byName: currentUser.profile?.displayName ?? "Hundägare",
+                    trainingPlan: resolvedPlan,
+                    meetup: selectedMeetup
+                )
+            }
             dismiss()
         }
     }

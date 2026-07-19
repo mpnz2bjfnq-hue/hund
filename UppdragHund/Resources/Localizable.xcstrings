@@ -6224,6 +6224,26 @@
         }
       }
     },
+    "Redigera uppgift": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Edit task"
+          }
+        }
+      }
+    },
+    "Redigera uppgiften": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Edit the task"
+          }
+        }
+      }
+    },
     "Redigera vaktinfo": {
       "extractionState": "stale",
       "localizations": {

@@ -209,6 +209,11 @@ service cloud.firestore {
                       && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['completedUids'])
                       && request.resource.data.completedUids.toSet().difference(resource.data.completedUids.toSet()).hasOnly([request.auth.uid])
                       && resource.data.completedUids.toSet().difference(request.resource.data.completedUids.toSet()).hasOnly([request.auth.uid]);
+        // Ägare/konsulenter (eller skaparen) får redigera innehållet, men aldrig
+        // skaparfälten eller andras avbockningar.
+        allow update: if (canManageTasks() || resource.data.createdByUid == request.auth.uid)
+                      && !request.resource.data.diff(resource.data).affectedKeys()
+                            .hasAny(['createdByUid', 'createdByName', 'createdAt', 'completedUids']);
         allow delete: if canManageTasks()
                       || (request.auth != null && resource.data.createdByUid == request.auth.uid)
                       || isAdmin();
