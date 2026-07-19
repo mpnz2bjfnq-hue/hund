@@ -304,7 +304,12 @@ final class SyncCoordinator {
         case .heat:
             return dog.heatCycles.map { ($0, ShareMapping.dto(from: $0, fallbackAuthor: owner)) }
         case .diary:
-            return dog.diaryEntries.map { ($0, ShareMapping.dto(from: $0, fallbackAuthor: owner)) }
+            return dog.diaryEntries.map { entry in
+                var dto = ShareMapping.dto(from: entry, fallbackAuthor: owner)
+                // Skyddsnät: skala ned äldre fullstora foton så dokumentet ryms.
+                dto.photoData = BackupImage.fitted(dto.photoData)
+                return (entry, dto)
+            }
         case .meals:
             return dog.mealEntries.map { ($0, ShareMapping.dto(from: $0, fallbackAuthor: owner)) }
         case .training:

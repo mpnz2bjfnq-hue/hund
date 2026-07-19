@@ -59,6 +59,11 @@ struct HealthEventDTO: Codable, Equatable {
     var bodyLocation: String?
     var weightKg: Double?
     var temperatureCelsius: Double?
+    // Skademarkör på kroppskartan. Valfria → äldre dokument avkodas som nil.
+    var injuryViewRaw: String? = nil
+    var injuryX: Double? = nil
+    var injuryY: Double? = nil
+    var injuryStatusRaw: String? = nil
     var createdByUid: String
     var createdByName: String
     var updatedAt: Date
@@ -79,7 +84,9 @@ struct DiaryEntryDTO: Codable, Equatable {
     var appetiteLevel: Int
     var energyLevel: Int
     var mood: String
-    // photoData delas medvetet inte i v1.
+    // Dagboksfoto (komprimerad JPEG ≤ ~600 KB, ryms i dokumentet). Valfri →
+    // äldre dokument utan foto avkodas som nil.
+    var photoData: Data? = nil
     var createdByUid: String
     var createdByName: String
     var updatedAt: Date
@@ -100,6 +107,13 @@ struct TrainingSessionDTO: Codable, Equatable {
     var activity: String
     var durationMinutes: Int?
     var note: String?
+    // GPS-promenad: rutt (JSON av [[lat, lon], …]), steg och distans. Valfria →
+    // äldre dokument och icke-promenadpass avkodas som nil.
+    var distanceMeters: Double? = nil
+    var steps: Int? = nil
+    var routeData: Data? = nil
+    // HKWorkout-UUID hindrar dubbelimport från Apple Hälsa efter återställning.
+    var healthKitUUID: String? = nil
     var createdByUid: String
     var createdByName: String
     var updatedAt: Date

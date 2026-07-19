@@ -180,19 +180,58 @@ struct ShareMappingTests {
 
     // MARK: - Foton
 
-    @Test func diaryMappingNeverTouchesPhotoData() {
+    @Test func diaryPhotoIsBackedUpAndRestored() {
         let photo = Data([0xFF, 0xD8, 0xFF])
         let source = DiaryEntry(date: stamp, photoData: photo)
         let dto = ShareMapping.dto(from: source, fallbackAuthor: author)
+        #expect(dto.photoData == photo, "Fotot ska med i backupen")
 
-        // Applicering på en post som redan har ett (lokalt) foto lämnar fotot ifred.
-        let target = DiaryEntry(date: .now, photoData: photo)
-        ShareMapping.apply(dto, to: target)
-        #expect(target.photoData == photo)
-
-        // Nyskapade poster från DTO har inget foto.
+        // Återställd post får tillbaka fotot.
         let created = ShareMapping.makeDiaryEntry(from: dto, remoteID: UUID(), dog: makeDog())
-        #expect(created.photoData == nil)
+        #expect(created.photoData == photo)
+    }
+
+    @Test func diaryRestoreKeepsLocalPhotoWhenCloudLacksIt() {
+        // Äldre backup utan foto ska inte radera ett lokalt foto.
+        var dto = ShareMapping.dto(from: DiaryEntry(date: stamp), fallbackAuthor: author)
+        dto.photoData = nil
+        let local = DiaryEntry(date: .now, photoData: Data([0x01, 0x02]))
+        ShareMapping.apply(dto, to: local)
+        #expect(local.photoData == Data([0x01, 0x02]))
+    }
+
+    // MARK: - Nya fält (skademarkör, GPS-promenad)
+
+    @Test func healthInjuryMarkerRoundTrips() {
+        let event = HealthEvent(type: .injury, title: "Tass", date: stamp)
+        event.injuryViewRaw = "frontRight"
+        event.injuryX = 0.42
+        event.injuryY = 0.71
+        event.injuryStatusRaw = "healing"
+
+        let dto = ShareMapping.dto(from: event, fallbackAuthor: author)
+        let restored = ShareMapping.makeHealthEvent(from: dto, remoteID: UUID(), dog: makeDog())
+
+        #expect(restored.injuryViewRaw == "frontRight")
+        #expect(restored.injuryX == 0.42)
+        #expect(restored.injuryY == 0.71)
+        #expect(restored.injuryStatusRaw == "healing")
+    }
+
+    @Test func trainingWalkDataRoundTrips() {
+        let session = TrainingSession(date: stamp, activity: "Promenad")
+        session.distanceMeters = 3450.5
+        session.steps = 4820
+        session.routeData = Data([0x5B, 0x5D])
+        session.healthKitUUID = "HK-123"
+
+        let dto = ShareMapping.dto(from: session, fallbackAuthor: author)
+        let restored = ShareMapping.makeTrainingSession(from: dto, remoteID: UUID(), dog: makeDog())
+
+        #expect(restored.distanceMeters == 3450.5)
+        #expect(restored.steps == 4820)
+        #expect(restored.routeData == Data([0x5B, 0x5D]))
+        #expect(restored.healthKitUUID == "HK-123")
     }
 
     // MARK: - Författare

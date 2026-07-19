@@ -68,8 +68,11 @@ struct NewDiaryEntryView: View {
             }
             .onChange(of: photoPickerItem) { _, newValue in
                 Task {
-                    if let data = try? await newValue?.loadTransferable(type: Data.self) {
-                        photoData = data
+                    if let data = try? await newValue?.loadTransferable(type: Data.self),
+                       let image = UIImage(data: data) {
+                        // Komprimera direkt så fotot ryms i molnbackupen och inte
+                        // sväller den lokala databasen.
+                        photoData = PostImage.makeData(from: image) ?? data
                     }
                 }
             }

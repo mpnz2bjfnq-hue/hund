@@ -70,6 +70,10 @@ enum ShareMapping {
             bodyLocation: event.bodyLocation?.rawValue,
             weightKg: event.weightKg,
             temperatureCelsius: event.temperatureCelsius,
+            injuryViewRaw: event.injuryViewRaw,
+            injuryX: event.injuryX,
+            injuryY: event.injuryY,
+            injuryStatusRaw: event.injuryStatusRaw,
             createdByUid: event.createdByUid ?? fallbackAuthor.uid,
             createdByName: event.createdByName ?? fallbackAuthor.name,
             updatedAt: event.updatedAt ?? .now
@@ -85,6 +89,10 @@ enum ShareMapping {
         event.bodyLocation = dto.bodyLocation.flatMap(BodyLocation.init(rawValue:))
         event.weightKg = dto.weightKg
         event.temperatureCelsius = dto.temperatureCelsius
+        event.injuryViewRaw = dto.injuryViewRaw
+        event.injuryX = dto.injuryX
+        event.injuryY = dto.injuryY
+        event.injuryStatusRaw = dto.injuryStatusRaw
         event.createdByUid = dto.createdByUid
         event.createdByName = dto.createdByName
         event.updatedAt = dto.updatedAt
@@ -134,6 +142,7 @@ enum ShareMapping {
             appetiteLevel: entry.appetiteLevel,
             energyLevel: entry.energyLevel,
             mood: entry.mood.rawValue,
+            photoData: entry.photoData,
             createdByUid: entry.createdByUid ?? fallbackAuthor.uid,
             createdByName: entry.createdByName ?? fallbackAuthor.name,
             updatedAt: entry.updatedAt ?? .now
@@ -147,7 +156,9 @@ enum ShareMapping {
         entry.appetiteLevel = dto.appetiteLevel
         entry.energyLevel = dto.energyLevel
         entry.mood = DiaryMood(rawValue: dto.mood) ?? .neutral
-        // photoData rörs aldrig av synk — foton delas inte i v1.
+        // Behåll ett befintligt lokalt foto om molnkopian saknar det (t.ex.
+        // äldre backup), men skriv annars över med molnets foto.
+        if let photo = dto.photoData { entry.photoData = photo }
         entry.createdByUid = dto.createdByUid
         entry.createdByName = dto.createdByName
         entry.updatedAt = dto.updatedAt
@@ -199,6 +210,10 @@ enum ShareMapping {
             activity: session.activity,
             durationMinutes: session.durationMinutes,
             note: session.note,
+            distanceMeters: session.distanceMeters,
+            steps: session.steps,
+            routeData: session.routeData,
+            healthKitUUID: session.healthKitUUID,
             createdByUid: session.createdByUid ?? fallbackAuthor.uid,
             createdByName: session.createdByName ?? fallbackAuthor.name,
             updatedAt: session.updatedAt ?? .now
@@ -210,6 +225,10 @@ enum ShareMapping {
         session.activity = dto.activity
         session.durationMinutes = dto.durationMinutes
         session.note = dto.note
+        session.distanceMeters = dto.distanceMeters
+        session.steps = dto.steps
+        session.routeData = dto.routeData
+        session.healthKitUUID = dto.healthKitUUID
         session.createdByUid = dto.createdByUid
         session.createdByName = dto.createdByName
         session.updatedAt = dto.updatedAt
