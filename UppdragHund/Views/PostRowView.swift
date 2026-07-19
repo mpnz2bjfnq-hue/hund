@@ -12,6 +12,10 @@ struct PostRowView: View {
     var authorPhoto: Data? = nil
     /// Döljs på teamsidan där alla inlägg hör till samma team.
     var showsTeamChip = true
+    /// Gilla-/kommentarsantal. Noll visar orden i stället för siffror.
+    var counts = PostCounts()
+    /// Tryck på fotot — öppnar helskärmsvisning hos föräldern.
+    var onPhotoTap: ((UIImage) -> Void)? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -47,6 +51,11 @@ struct PostRowView: View {
                     .frame(maxWidth: .infinity)
                     .frame(height: 200)
                     .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    // Innersta tryckytan vinner över kortets tryck.
+                    .onTapGesture { onPhotoTap?(uiImage) }
+                    .accessibilityAddTraits(.isButton)
+                    .accessibilityLabel("Visa foto i helskärm")
             }
             if let dogName = post.dogName {
                 Label(dogName, systemImage: "pawprint.fill")
@@ -71,8 +80,16 @@ struct PostRowView: View {
                 .background(Theme.Colors.brand.opacity(0.12), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
             }
             HStack(spacing: Theme.Spacing.l) {
-                Label("Gilla", systemImage: "pawprint")
-                Label("Kommentera", systemImage: "bubble.right")
+                Label(
+                    counts.reactions > 0 ? "\(counts.reactions)" : String(localized: "Gilla"),
+                    systemImage: counts.reactions > 0 ? "pawprint.fill" : "pawprint"
+                )
+                .foregroundStyle(counts.reactions > 0 ? Theme.Colors.brand : Theme.Colors.textSecondary)
+
+                Label(
+                    counts.comments > 0 ? "\(counts.comments)" : String(localized: "Kommentera"),
+                    systemImage: "bubble.right"
+                )
             }
             .font(.caption2)
             .foregroundStyle(Theme.Colors.textSecondary)

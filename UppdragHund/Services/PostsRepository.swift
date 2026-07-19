@@ -8,6 +8,12 @@
 import Foundation
 import FirebaseFirestore
 
+/// Antal gillamarkeringar och kommentarer på ett inlägg.
+struct PostCounts: Equatable {
+    var reactions = 0
+    var comments = 0
+}
+
 final class PostsRepository {
     static let shared = PostsRepository()
 
@@ -109,6 +115,30 @@ final class PostsRepository {
         guard let doc = postDocument(for: post) else { return 0 }
         let snap = try? await doc.collection("reactions").count.getAggregation(source: .server)
         return snap.map { Int(truncating: $0.count) } ?? 0
+    }
+
+    func commentCount(post: ProfilePost) async -> Int {
+        guard let doc = postDocument(for: post) else { return 0 }
+        let snap = try? await doc.collection("comments").count.getAggregation(source: .server)
+        return snap.map { Int(truncating: $0.count) } ?? 0
+    }
+
+    /// Gilla- och kommentarsantal för en lista inlägg, hämtade parallellt.
+    /// Aggregeringsfrågor räknas på servern — inga dokument läses.
+    func counts(for posts: [ProfilePost]) async -> [String: PostCounts] {
+        await withTaskGroup(of: (String, PostCounts).self) { group in
+            for post in posts {
+                guard let id = post.id else { continue }
+                group.addTask {
+                    async let reactions = self.reactionCount(post: post)
+                    async let comments = self.commentCount(post: post)
+                    return (id, PostCounts(reactions: await reactions, comments: await comments))
+                }
+            }
+            var result: [String: PostCounts] = [:]
+            for await (id, counts) in group { result[id] = counts }
+            return result
+        }
     }
 
     // MARK: - Kommentarer

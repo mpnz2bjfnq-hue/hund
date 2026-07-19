@@ -517,6 +517,7 @@ struct DogSummarySheet: View {
 
 private struct PostRow: View {
     let post: ProfilePost
+    @State private var fullScreenPhoto: FullScreenPhoto?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -529,6 +530,10 @@ private struct PostRow: View {
                     .frame(maxWidth: .infinity)
                     .frame(height: 180)
                     .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .onTapGesture { fullScreenPhoto = FullScreenPhoto(image: uiImage) }
+                    .accessibilityAddTraits(.isButton)
+                    .accessibilityLabel("Visa foto i helskärm")
             }
             if let plan = post.trainingPlan {
                 Label("\(plan.title) · \(plan.summaryLine)", systemImage: "list.bullet.rectangle.portrait")
@@ -545,6 +550,9 @@ private struct PostRow: View {
             .foregroundStyle(.secondary)
         }
         .padding(.vertical, 2)
+        .fullScreenCover(item: $fullScreenPhoto) { photo in
+            FullScreenPhotoView(image: photo.image)
+        }
     }
 }
 

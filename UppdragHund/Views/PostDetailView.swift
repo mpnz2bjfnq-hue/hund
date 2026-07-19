@@ -24,6 +24,8 @@ struct PostDetailView: View {
     @State private var comments: [PostComment] = []
     @State private var newComment = ""
     @State private var isSending = false
+    /// Foto öppnat i helskärm.
+    @State private var fullScreenPhoto: FullScreenPhoto?
 
     var body: some View {
         NavigationStack {
@@ -41,6 +43,9 @@ struct PostDetailView: View {
                                 .scaledToFit()
                                 .frame(maxWidth: .infinity)
                                 .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                                .onTapGesture { fullScreenPhoto = FullScreenPhoto(image: uiImage) }
+                                .accessibilityAddTraits(.isButton)
+                                .accessibilityLabel("Visa foto i helskärm")
                         }
                         if let plan = post.trainingPlan {
                             planCard(plan)
@@ -92,6 +97,9 @@ struct PostDetailView: View {
             }
         }
         .task { await load() }
+        .fullScreenCover(item: $fullScreenPhoto) { photo in
+            FullScreenPhotoView(image: photo.image)
+        }
     }
 
     private var postHeader: some View {

@@ -52,6 +52,10 @@ struct TeamPageView: View {
     @State private var isLoading = true
 
     @State private var selectedPost: ProfilePost?
+    /// Gilla-/kommentarsantal per inläggs-id.
+    @State private var postCounts: [String: PostCounts] = [:]
+    /// Foto öppnat i helskärm.
+    @State private var fullScreenPhoto: FullScreenPhoto?
     @State private var postPendingDelete: ProfilePost?
     @State private var moderationMessage: String?
     @State private var isPresentingNewPost = false
@@ -137,8 +141,14 @@ struct TeamPageView: View {
         .sheet(isPresented: $isPresentingNewMeetup, onDismiss: { Task { await load() } }) {
             NewMeetupView(teams: [team], initialTeamID: team.id)
         }
-        .sheet(item: $selectedPost) { post in
+        // Efter gilla/kommentera i detaljvyn ska siffrorna på kortet stämma.
+        .sheet(item: $selectedPost, onDismiss: {
+            Task { postCounts = await PostsRepository.shared.counts(for: posts) }
+        }) { post in
             PostDetailView(post: post, authorPhoto: memberPhotos[post.authorUid])
+        }
+        .fullScreenCover(item: $fullScreenPhoto) { photo in
+            FullScreenPhotoView(image: photo.image)
         }
         .sheet(isPresented: $isPresentingAdd) {
             inviteSheet
@@ -337,16 +347,15 @@ struct TeamPageView: View {
             } else {
                 VStack(spacing: 0) {
                     ForEach(Array(posts.enumerated()), id: \.element.id) { index, post in
-                        Button {
-                            selectedPost = post
-                        } label: {
-                            PostRowView(
-                                post: post,
-                                authorPhoto: memberPhotos[post.authorUid],
-                                showsTeamChip: false
-                            )
-                        }
-                        .buttonStyle(.plain)
+                        PostRowView(
+                            post: post,
+                            authorPhoto: memberPhotos[post.authorUid],
+                            showsTeamChip: false,
+                            counts: postCounts[post.id ?? ""] ?? PostCounts(),
+                            onPhotoTap: { fullScreenPhoto = FullScreenPhoto(image: $0) }
+                        )
+                        .contentShape(Rectangle())
+                        .onTapGesture { selectedPost = post }
                         .contextMenu {
                             if post.authorUid == authService.currentUserID {
                                 Button(role: .destructive) {
@@ -863,6 +872,7 @@ struct TeamPageView: View {
         }
         memberPhotos = photos
         isLoading = false
+        postCounts = await PostsRepository.shared.counts(for: posts)
         await NotificationService.syncMeetupReminders(for: uid)
     }
 

@@ -8262,6 +8262,16 @@
         }
       }
     },
+    "Visa foto i helskärm": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "View photo full screen"
+          }
+        }
+      }
+    },
     "Visa hundprofil": {
       "localizations": {
         "en": {
