@@ -13,7 +13,7 @@ import SwiftData
 
 /// Ren push-planering: vad ska upp och vad ska bort, givet lokala poster,
 /// tombstones och senaste lyckade synk.
-enum PushPlanner {
+nonisolated enum PushPlanner {
     struct PushPlan: Equatable {
         var upserts: Set<UUID> = []
         var deletes: Set<UUID> = []

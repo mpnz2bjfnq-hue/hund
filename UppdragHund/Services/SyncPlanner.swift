@@ -8,7 +8,7 @@
 
 import Foundation
 
-struct MergePlan: Equatable {
+nonisolated struct MergePlan: Equatable {
     var insert: Set<UUID> = []
     var update: Set<UUID> = []
     var deleteLocal: Set<UUID> = []

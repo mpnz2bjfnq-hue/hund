@@ -13,7 +13,7 @@ enum BreedSizeCategory: String, Codable {
     case unknown
 }
 
-struct BreedReference: Codable, Equatable {
+nonisolated struct BreedReference: Codable, Equatable {
     let breedName: String
     let sizeCategory: BreedSizeCategory
     let averageCycleIntervalDays: Int

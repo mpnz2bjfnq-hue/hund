@@ -5,7 +5,7 @@
 
 import Foundation
 
-enum PredictionBasis: Equatable {
+nonisolated enum PredictionBasis: Equatable {
     case breedReference
     case ownHistory
 }

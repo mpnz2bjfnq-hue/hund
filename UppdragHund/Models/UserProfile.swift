@@ -45,7 +45,7 @@ extension UserProfile {
     }
 }
 
-struct DogSummary: Codable, Equatable, Identifiable {
+nonisolated struct DogSummary: Codable, Equatable, Identifiable {
     var remoteID: String
     var name: String
     var breed: String
