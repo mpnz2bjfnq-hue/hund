@@ -42,4 +42,29 @@ enum AppearanceMode: String, CaseIterable, Identifiable {
         case .dark: .dark
         }
     }
+
+    var interfaceStyle: UIUserInterfaceStyle {
+        switch self {
+        case .system: .unspecified
+        case .light: .light
+        case .dark: .dark
+        }
+    }
+
+    /// Sätter läget på själva fönstret i stället för via SwiftUI:s
+    /// `preferredColorScheme`. Skälet: preferredColorScheme på rotvyn river och
+    /// bygger om HELA vytärdet vid varje byte — står man då i en pushad vy
+    /// (t.ex. Inställningar) kan navigeringen hänga sig. Med
+    /// overrideUserInterfaceStyle sköter UIKit övergången och SwiftUI plockar
+    /// bara upp den nya colorScheme ur miljön.
+    @MainActor
+    static func apply(_ raw: String) {
+        let mode = AppearanceMode(rawValue: raw) ?? .system
+        for scene in UIApplication.shared.connectedScenes {
+            guard let windowScene = scene as? UIWindowScene else { continue }
+            for window in windowScene.windows {
+                window.overrideUserInterfaceStyle = mode.interfaceStyle
+            }
+        }
+    }
 }

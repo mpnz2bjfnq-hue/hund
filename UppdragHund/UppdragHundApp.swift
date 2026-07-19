@@ -35,10 +35,12 @@ struct UppdragHundApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
-                // nil = följ systemet; annars användarens val i Inställningar.
-                .preferredColorScheme(
-                    AppearanceMode(rawValue: appearanceRaw)?.colorScheme
-                )
+                // Färgläget sätts på fönstret (AppearanceMode.apply), inte via
+                // preferredColorScheme — se motiveringen där.
+                .onAppear { AppearanceMode.apply(appearanceRaw) }
+                .onChange(of: appearanceRaw) { _, new in
+                    AppearanceMode.apply(new)
+                }
         }
         .modelContainer(container)
     }
