@@ -146,6 +146,32 @@ extension View {
     ) -> some View {
         modifier(CardStyle(padding: padding, radius: radius))
     }
+
+    /// Skugga som följer färgläget.
+    ///
+    /// VIKTIGT: läs ALDRIG `@Environment(\.colorScheme)` direkt i en stor vy
+    /// bara för att välja en skuggfärg. Vyn börjar då bero på färgläget och
+    /// HELA dess body omvärderas vid varje byte — med några tusen rader vyer
+    /// och snabb växling mättas huvudtråden och watchdogen dödar appen.
+    /// Den här modifieraren håller beroendet i ett litet löv i stället.
+    func adaptiveShadow(dark: Double = 0.30, radius: CGFloat, y: CGFloat) -> some View {
+        modifier(AdaptiveShadow(dark: dark, radius: radius, y: y))
+    }
+}
+
+private struct AdaptiveShadow: ViewModifier {
+    var dark: Double
+    var radius: CGFloat
+    var y: CGFloat
+    @Environment(\.colorScheme) private var colorScheme
+
+    func body(content: Content) -> some View {
+        content.shadow(
+            color: .black.opacity(colorScheme == .dark ? dark : 0.07),
+            radius: radius,
+            y: y
+        )
+    }
 }
 
 // MARK: - Zoom-övergång (iOS 18+), tyst no-op på iOS 17

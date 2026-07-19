@@ -10,7 +10,6 @@ import SwiftData
 import UIKit
 
 struct HemView: View {
-    @Environment(\.colorScheme) private var colorScheme
     let dog: Dog
 
     private let calendar = Calendar.current
@@ -173,7 +172,7 @@ struct HemView: View {
             RoundedRectangle(cornerRadius: Theme.Radius.large, style: .continuous)
                 .strokeBorder(.white.opacity(0.08), lineWidth: 0.5)
         )
-        .shadow(color: Theme.Colors.cardShadow(colorScheme, dark: 0.35), radius: 14, y: 6)
+        .adaptiveShadow(dark: 0.35, radius: 14, y: 6)
         .overlay(alignment: .topTrailing) {
             Image(systemName: "chevron.right")
                 .font(.footnote.weight(.semibold))

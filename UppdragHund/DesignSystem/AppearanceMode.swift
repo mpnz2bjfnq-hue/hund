@@ -58,15 +58,25 @@ enum AppearanceMode: String, CaseIterable, Identifiable {
     /// overrideUserInterfaceStyle sköter UIKit övergången och SwiftUI plockar
     /// bara upp den nya colorScheme ur miljön.
     @MainActor
+    private static var pendingApply: DispatchWorkItem?
+
+    @MainActor
     static func apply(_ raw: String) {
         let mode = AppearanceMode(rawValue: raw) ?? .system
         let style = mode.interfaceStyle
 
-        // Skjut fram till nästa varv i runloopen. Anropas detta direkt ur
-        // .onChange sker mutationen MITT I SwiftUI:s uppdateringspass; UIKit
-        // postar då en trait-ändring som får SwiftUI att gå in i sig självt
-        // igen — återinträde som kan låsa uppdateringen.
-        DispatchQueue.main.async {
+        // Slå ihop snabba byten. Varje ändring av overrideUserInterfaceStyle
+        // startar en trait-övergång där UIKit snapshottar hela fönstret och
+        // tonar över. Växlar man fram och tillbaka snabbare än övergångarna
+        // hinner bli klara staplas de på varandra, huvudtråden mättas och
+        // watchdogen dödar appen. Bara det sista valet i en snabb serie
+        // appliceras; fördröjningen är omärklig vid ett enstaka tryck.
+        //
+        // Att gå via kön löser också ett andra problem: anropas detta direkt
+        // ur .onChange sker mutationen mitt i SwiftUI:s uppdateringspass, och
+        // trait-ändringen får då SwiftUI att gå in i sig självt igen.
+        pendingApply?.cancel()
+        let work = DispatchWorkItem {
             for scene in UIApplication.shared.connectedScenes {
                 guard let windowScene = scene as? UIWindowScene else { continue }
                 for window in windowScene.windows {
@@ -75,5 +85,7 @@ enum AppearanceMode: String, CaseIterable, Identifiable {
                 }
             }
         }
+        pendingApply = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2, execute: work)
     }
 }
