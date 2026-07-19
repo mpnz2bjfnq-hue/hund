@@ -87,16 +87,30 @@ private struct CardStyle: ViewModifier {
 
     private var isDark: Bool { colorScheme == .dark }
 
-    /// Mörkt läge får djup av en ljus glans uppifrån; på ljus yta blir samma
-    /// glans osynlig, så där bär en mjuk skugga + svag mörk kant djupet.
-    private var sheenOpacity: Double { isDark ? 0.06 : 0 }
-    private var strokeColor: Color {
-        isDark ? .white.opacity(0.07) : .black.opacity(0.08)
+    /// Ytans egen lutning. Mörkt läge lägger en ljus glans uppifrån; ljust läge
+    /// kan inte lysa upp en redan vit yta, så där skuggas botten i stället —
+    /// samma intryck av ljus uppifrån, motsatt verktyg.
+    private var surfaceGradient: LinearGradient {
+        LinearGradient(
+            colors: isDark
+                ? [.white.opacity(0.07), .clear]
+                : [.clear, .black.opacity(0.030)],
+            startPoint: .top,
+            endPoint: .bottom
+        )
     }
-    private var shadowColor: Color {
-        .black.opacity(isDark ? 0.25 : 0.07)
+
+    /// Kantljus: ljus överkant och mörkare underkant ger kortet en fysisk
+    /// fasett i stället för en platt ram i en enda ton.
+    private var edgeGradient: LinearGradient {
+        LinearGradient(
+            colors: isDark
+                ? [.white.opacity(0.14), .white.opacity(0.03)]
+                : [.white.opacity(0.95), .black.opacity(0.10)],
+            startPoint: .top,
+            endPoint: .bottom
+        )
     }
-    private var shadowRadius: CGFloat { isDark ? 10 : 8 }
 
     func body(content: Content) -> some View {
         content
@@ -106,17 +120,25 @@ private struct CardStyle: ViewModifier {
                     .fill(Theme.Colors.cardBackground)
                     .overlay(
                         RoundedRectangle(cornerRadius: radius, style: .continuous)
-                            .fill(LinearGradient(
-                                colors: [.white.opacity(sheenOpacity), .clear],
-                                startPoint: .top, endPoint: .bottom
-                            ))
+                            .fill(surfaceGradient)
                     )
                     .overlay(
                         RoundedRectangle(cornerRadius: radius, style: .continuous)
-                            .strokeBorder(strokeColor, lineWidth: 0.5)
+                            .strokeBorder(edgeGradient, lineWidth: 0.5)
                     )
             )
-            .shadow(color: shadowColor, radius: shadowRadius, y: 4)
+            // Två lager: en tät kontaktskugga som förankrar kortet mot ytan,
+            // och en vid diffus som ger höjd. En ensam skugga ser billig ut.
+            .shadow(
+                color: .black.opacity(isDark ? 0.22 : 0.055),
+                radius: isDark ? 3 : 2,
+                y: 1
+            )
+            .shadow(
+                color: .black.opacity(isDark ? 0.26 : 0.065),
+                radius: isDark ? 14 : 16,
+                y: isDark ? 6 : 9
+            )
     }
 }
 
@@ -169,15 +191,40 @@ extension Theme {
 private struct ScreenSurface: View {
     @Environment(\.colorScheme) private var colorScheme
 
+    private var isDark: Bool { colorScheme == .dark }
+
     var body: some View {
         ZStack {
             Theme.Colors.screenBackground
+
+            // Ljuskälla uppifrån: ljust läge får en vit ton som klingar av mot
+            // botten, så ytan inte blir en död grå platta. Mörkt läge har redan
+            // sin djupverkan av svärtan och behöver den inte.
+            if !isDark {
+                LinearGradient(
+                    colors: [.white.opacity(0.85), .white.opacity(0.15), .clear],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            }
+
+            // Brandglöd i hörnet — svagare i ljust läge, annars blir den dis.
             RadialGradient(
-                colors: [Theme.Colors.brand.opacity(colorScheme == .dark ? 0.09 : 0.045), .clear],
+                colors: [Theme.Colors.brand.opacity(isDark ? 0.09 : 0.055), .clear],
                 center: .topLeading,
                 startRadius: 0,
                 endRadius: 460
             )
+
+            // Ljust läge: en aning djupare mot nederkanten ger skärmen en
+            // riktning och får korten att läsa som lyfta ur ytan.
+            if !isDark {
+                LinearGradient(
+                    colors: [.clear, .black.opacity(0.035)],
+                    startPoint: .center,
+                    endPoint: .bottom
+                )
+            }
         }
         .ignoresSafeArea()
     }
@@ -201,25 +248,45 @@ private struct TintedCardStyle: ViewModifier {
     var radius: CGFloat
     @Environment(\.colorScheme) private var colorScheme
 
+    private var isDark: Bool { colorScheme == .dark }
+
     func body(content: Content) -> some View {
         content
             .padding(padding)
             .background(
                 RoundedRectangle(cornerRadius: radius, style: .continuous)
                     .fill(.ultraThinMaterial)
+                    // Ljust läge: en vit grund under tonen, annars slår
+                    // materialet igenom mot skärmytan och kortet blir grumligt.
+                    .overlay(
+                        RoundedRectangle(cornerRadius: radius, style: .continuous)
+                            .fill(isDark ? Color.clear : Color.white.opacity(0.55))
+                    )
                     .overlay(
                         RoundedRectangle(cornerRadius: radius, style: .continuous)
                             .fill(LinearGradient(
-                                colors: [tint.opacity(0.20), tint.opacity(0.05)],
+                                colors: isDark
+                                    ? [tint.opacity(0.20), tint.opacity(0.05)]
+                                    : [tint.opacity(0.16), tint.opacity(0.04)],
                                 startPoint: .topLeading, endPoint: .bottomTrailing
                             ))
                     )
+                    // Samma kantljus som vanliga kort, men i kategorins ton.
                     .overlay(
                         RoundedRectangle(cornerRadius: radius, style: .continuous)
-                            .strokeBorder(tint.opacity(0.20), lineWidth: 0.5)
+                            .strokeBorder(
+                                LinearGradient(
+                                    colors: isDark
+                                        ? [tint.opacity(0.34), tint.opacity(0.10)]
+                                        : [.white.opacity(0.90), tint.opacity(0.28)],
+                                    startPoint: .top, endPoint: .bottom
+                                ),
+                                lineWidth: 0.5
+                            )
                     )
             )
-            .shadow(color: .black.opacity(colorScheme == .dark ? 0.22 : 0.06), radius: 8, y: 3)
+            .shadow(color: .black.opacity(isDark ? 0.20 : 0.05), radius: isDark ? 3 : 2, y: 1)
+            .shadow(color: .black.opacity(isDark ? 0.22 : 0.06), radius: isDark ? 10 : 14, y: isDark ? 4 : 8)
     }
 }
 

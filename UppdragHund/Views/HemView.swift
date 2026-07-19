@@ -659,17 +659,32 @@ private struct StatTile: View {
                 .fill(.ultraThinMaterial)
                 .overlay(
                     RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous)
+                        .fill(colorScheme == .dark ? Color.clear : Color.white.opacity(0.55))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous)
                         .fill(LinearGradient(
-                            colors: [tint.opacity(0.24), tint.opacity(0.06)],
+                            colors: colorScheme == .dark
+                                ? [tint.opacity(0.24), tint.opacity(0.06)]
+                                : [tint.opacity(0.18), tint.opacity(0.05)],
                             startPoint: .topLeading, endPoint: .bottomTrailing
                         ))
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous)
-                        .strokeBorder(tint.opacity(0.22), lineWidth: 0.5)
+                        .strokeBorder(
+                            LinearGradient(
+                                colors: colorScheme == .dark
+                                    ? [tint.opacity(0.36), tint.opacity(0.12)]
+                                    : [.white.opacity(0.90), tint.opacity(0.30)],
+                                startPoint: .top, endPoint: .bottom
+                            ),
+                            lineWidth: 0.5
+                        )
                 )
         )
-        .shadow(color: Theme.Colors.cardShadow(colorScheme, dark: 0.22), radius: 8, y: 3)
+        .shadow(color: .black.opacity(colorScheme == .dark ? 0.20 : 0.05), radius: colorScheme == .dark ? 3 : 2, y: 1)
+        .shadow(color: Theme.Colors.cardShadow(colorScheme, dark: 0.22), radius: colorScheme == .dark ? 10 : 14, y: colorScheme == .dark ? 4 : 8)
     }
 }
 
