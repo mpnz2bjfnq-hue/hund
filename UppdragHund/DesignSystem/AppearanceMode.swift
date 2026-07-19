@@ -60,10 +60,19 @@ enum AppearanceMode: String, CaseIterable, Identifiable {
     @MainActor
     static func apply(_ raw: String) {
         let mode = AppearanceMode(rawValue: raw) ?? .system
-        for scene in UIApplication.shared.connectedScenes {
-            guard let windowScene = scene as? UIWindowScene else { continue }
-            for window in windowScene.windows {
-                window.overrideUserInterfaceStyle = mode.interfaceStyle
+        let style = mode.interfaceStyle
+
+        // Skjut fram till nästa varv i runloopen. Anropas detta direkt ur
+        // .onChange sker mutationen MITT I SwiftUI:s uppdateringspass; UIKit
+        // postar då en trait-ändring som får SwiftUI att gå in i sig självt
+        // igen — återinträde som kan låsa uppdateringen.
+        DispatchQueue.main.async {
+            for scene in UIApplication.shared.connectedScenes {
+                guard let windowScene = scene as? UIWindowScene else { continue }
+                for window in windowScene.windows {
+                    guard window.overrideUserInterfaceStyle != style else { continue }
+                    window.overrideUserInterfaceStyle = style
+                }
             }
         }
     }

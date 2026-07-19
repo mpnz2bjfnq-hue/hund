@@ -254,18 +254,24 @@ private struct TintedCardStyle: ViewModifier {
 
     private var isDark: Bool { colorScheme == .dark }
 
+    /// Mörkt läge använder glas; ljust läge en solid yta.
+    ///
+    /// PRESTANDA: materialet var täckt av en vit grund i ljust läge — det
+    /// kostade full blur för nästan ingen synlig effekt. Värre: en skugga
+    /// ovanpå ett material tvingar offscreen-rendering, och med flera sådana
+    /// kort per skärm fastnade huvudtråden vid lägesbytet tills watchdogen
+    /// dödade appen (SIGKILL). Solid fyllning i ljust läge ser i praktiken
+    /// likadan ut och är dramatiskt billigare.
+    private var surfaceFill: AnyShapeStyle {
+        isDark ? AnyShapeStyle(.ultraThinMaterial) : AnyShapeStyle(Theme.Colors.cardBackground)
+    }
+
     func body(content: Content) -> some View {
         content
             .padding(padding)
             .background(
                 RoundedRectangle(cornerRadius: radius, style: .continuous)
-                    .fill(.ultraThinMaterial)
-                    // Ljust läge: en vit grund under tonen, annars slår
-                    // materialet igenom mot skärmytan och kortet blir grumligt.
-                    .overlay(
-                        RoundedRectangle(cornerRadius: radius, style: .continuous)
-                            .fill(isDark ? Color.clear : Color.white.opacity(0.55))
-                    )
+                    .fill(surfaceFill)
                     .overlay(
                         RoundedRectangle(cornerRadius: radius, style: .continuous)
                             .fill(LinearGradient(

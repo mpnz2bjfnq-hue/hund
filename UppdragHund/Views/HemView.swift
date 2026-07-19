@@ -656,11 +656,11 @@ private struct StatTile: View {
         // kant — ögat hittar rätt bricka utan att färgen skriker.
         .background(
             RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous)
-                .fill(.ultraThinMaterial)
-                .overlay(
-                    RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous)
-                        .fill(colorScheme == .dark ? Color.clear : Color.white.opacity(0.55))
-                )
+                // Glas i mörkt läge, solid yta i ljust — se motiveringen i
+                // TintedCardStyle (skugga över material låste huvudtråden).
+                .fill(colorScheme == .dark
+                      ? AnyShapeStyle(.ultraThinMaterial)
+                      : AnyShapeStyle(Theme.Colors.cardBackground))
                 .overlay(
                     RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous)
                         .fill(LinearGradient(
