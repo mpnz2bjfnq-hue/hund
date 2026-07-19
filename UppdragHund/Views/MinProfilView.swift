@@ -46,9 +46,6 @@ struct MinProfilView: View {
     @State private var isPresentingAngels = false
     @State private var sectionsAppeared = false
     @State private var dogForDetails: Dog?
-    @State private var restorableCount = 0
-    @State private var isRestoring = false
-    @State private var restoreMessage: String?
 
     var body: some View {
         ScrollView {
@@ -443,65 +440,8 @@ struct MinProfilView: View {
                 }
                 .padding(.vertical, Theme.Spacing.xs)
             }
-
-            // Återställning: syns om molnprofilen har fler hundar än vad som
-            // finns lokalt (t.ex. efter ominstallation).
-            if restorableCount > 0 {
-                Button {
-                    restoreDogs()
-                } label: {
-                    HStack(spacing: 6) {
-                        if isRestoring {
-                            ProgressView().controlSize(.small)
-                        } else {
-                            Image(systemName: "arrow.clockwise.icloud")
-                        }
-                        Text(isRestoring
-                             ? "Återställer…"
-                             : "Återställ \(restorableCount) hund(ar) från molnet")
-                    }
-                    .font(.footnote.weight(.medium))
-                    .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
-                .tint(Theme.Colors.brand)
-                .disabled(isRestoring)
-                .padding(.top, Theme.Spacing.s)
-            }
-            if let restoreMessage {
-                Text(restoreMessage)
-                    .font(.caption)
-                    .foregroundStyle(Theme.Colors.textSecondary)
-            }
         }
         .cardStyle()
-        .task { await checkRestorable() }
-    }
-
-    /// Hur många hundar molnprofilen har som saknas lokalt.
-    private func checkRestorable() async {
-        guard let uid = authService.currentUserID else { return }
-        let localIDs = Set(ownDogs.compactMap { $0.remoteID?.uuidString })
-        restorableCount = await DogRestoreService.restorableIDs(uid: uid, localRemoteIDs: localIDs).count
-    }
-
-    private func restoreDogs() {
-        guard let uid = authService.currentUserID else { return }
-        isRestoring = true
-        restoreMessage = nil
-        Task {
-            defer { isRestoring = false }
-            do {
-                let result = try await DogRestoreService.restore(context: modelContext, uid: uid)
-                restorableCount = 0
-                restoreMessage = result.enrichedFromShare > 0
-                    ? "Återställde \(result.created) hund(ar), varav \(result.enrichedFromShare) med full loggdata."
-                    : "Återställde \(result.created) hund(ar)."
-            } catch {
-                restoreMessage = "Kunde inte återställa: \(error.localizedDescription)"
-            }
-        }
     }
 
     /// Ett tryck väljer hunden som aktiv; ett tryck till på den redan valda

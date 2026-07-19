@@ -19,26 +19,17 @@ enum DogRestoreService {
         var enrichedFromShare: Int = 0
     }
 
-    /// Alla hund-remoteID:n som går att återställa från molnet men saknas
-    /// lokalt — union av profilens summeringar och hundar man delat ut.
-    static func restorableIDs(uid: String, localRemoteIDs: Set<String>) async -> Set<String> {
-        var ids = Set<String>()
-        // Molnbackupen: alla hunddokument ägaren speglat till sharedDogs.
-        if let backedUp = try? await SharingRepository.shared.ownDogDocIDs(ownerUid: uid) {
-            ids.formUnion(backedUp)
-        }
-        if let summaries = try? await FriendsRepository.shared.fetchMyProfile(uid: uid)?.dogSummaries {
-            ids.formUnion(summaries.map(\.remoteID))
-        }
-        if let shares = try? await SharingRepository.shared.sharesIOwn(ownerUid: uid) {
-            ids.formUnion(shares.map(\.dogRemoteID))
-        }
-        return ids.subtracting(localRemoteIDs)
+    /// Kör automatiskt vid inloggning: återställer tyst det som saknas.
+    /// Fel sväljs (offline etc.) — knappen/nästa start försöker igen.
+    @discardableResult
+    static func autoRestore(context: ModelContext, uid: String) async -> Result {
+        (try? await restore(context: context, uid: uid)) ?? Result()
     }
 
     /// Återskapar hundar som finns i molnet men saknas lokalt. Bevarar
     /// remoteID så delningskopplingar hålls intakta. Delade hundar får
     /// full loggdata; övriga får grunduppgifter från summeringen.
+    /// Hundar med en väntande radering (dog-tombstone) återuppstår ALDRIG.
     static func restore(context: ModelContext, uid: String) async throws -> Result {
         let summaries = (try? await FriendsRepository.shared.fetchMyProfile(uid: uid)?.dogSummaries) ?? []
         let summaryByID = Dictionary(summaries.map { ($0.remoteID, $0) }, uniquingKeysWith: { first, _ in first })
@@ -47,8 +38,14 @@ enum DogRestoreService {
 
         let existing = try context.fetch(FetchDescriptor<Dog>(predicate: #Predicate { !$0.isShared }))
         let existingIDs = Set(existing.compactMap { $0.remoteID?.uuidString })
+        // Hundar som väntar på radering ska inte återuppstå.
+        let tombstoned = Set(try context.fetch(FetchDescriptor<SyncTombstone>())
+            .filter { $0.module == "dog" }
+            .map { $0.dogRemoteID.uuidString })
 
-        let allIDs = Set(backedUp).union(summaries.map(\.remoteID)).union(shares.map(\.dogRemoteID)).subtracting(existingIDs)
+        let allIDs = Set(backedUp).union(summaries.map(\.remoteID)).union(shares.map(\.dogRemoteID))
+            .subtracting(existingIDs)
+            .subtracting(tombstoned)
 
         var result = Result()
 

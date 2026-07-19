@@ -61,9 +61,13 @@ struct ContentView: View {
                 }
                 ensureActiveDogSelected()
                 await loadProfile()
-                // Säkerställ molnbackup av alla egna hundar (även de som fanns
-                // före backup-funktionen) — markera dirty och pusha.
                 if let uid = authService.currentUserID {
+                    // Återställ automatiskt egna hundar som finns i molnet men
+                    // saknas lokalt (ny enhet / ominstallation) — tyst.
+                    await DogRestoreService.autoRestore(context: modelContext, uid: uid)
+                    ensureActiveDogSelected()
+                    // Säkerställ molnbackup av alla egna hundar (även de som
+                    // fanns före backup-funktionen).
                     await SyncCoordinator.shared.backupAllOwnDogs(uid: uid)
                 }
                 // Hämta delade hundar direkt efter inloggning (scenePhase .active
