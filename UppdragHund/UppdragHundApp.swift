@@ -12,7 +12,6 @@ import FirebaseCore
 @main
 struct UppdragHundApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
-    @AppStorage(AppearanceMode.storageKey) private var appearanceRaw = AppearanceMode.system.rawValue
     private let container: ModelContainer
 
     init() {
@@ -35,12 +34,13 @@ struct UppdragHundApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
-                // Färgläget sätts på fönstret (AppearanceMode.apply), inte via
-                // preferredColorScheme — se motiveringen där.
-                .onAppear { AppearanceMode.apply(appearanceRaw) }
-                .onChange(of: appearanceRaw) { _, new in
-                    AppearanceMode.apply(new)
-                }
+                // Appen är låst till mörkt läge. Ljust läge är byggt (adaptiva
+                // färger, .adaptiveShadow, kortens ljusvarianter) men väljaren
+                // är borttagen inför App Store-inlämningen: snabb växling fram
+                // och tillbaka kunde låsa huvudtråden tills watchdogen dödade
+                // appen. Låst läge betyder ingen övergång alls, alltså ingen
+                // risk. Slås på igen i 1.1 när växlingen är verifierad.
+                .preferredColorScheme(.dark)
         }
         .modelContainer(container)
     }

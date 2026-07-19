@@ -17,7 +17,6 @@ import FirebaseAppCheck
 struct SettingsView: View {
     @AppStorage("trainingReminderEnabled") private var trainingReminderEnabled = true
     @AppStorage("heatRemindersEnabled") private var heatRemindersEnabled = true
-    @AppStorage(AppearanceMode.storageKey) private var appearanceRaw = AppearanceMode.system.rawValue
 
     @Environment(\.modelContext) private var modelContext
     @State private var authService = AuthService.shared
@@ -28,20 +27,6 @@ struct SettingsView: View {
 
     var body: some View {
         List {
-            Section {
-                Picker("Färgläge", selection: $appearanceRaw) {
-                    ForEach(AppearanceMode.allCases) { mode in
-                        Label(mode.displayName, systemImage: mode.icon).tag(mode.rawValue)
-                    }
-                }
-                .pickerStyle(.inline)
-                .labelsHidden()
-            } header: {
-                Text("Utseende")
-            } footer: {
-                Text("System följer telefonens ljusa eller mörka läge automatiskt.")
-            }
-
             Section {
                 Toggle("Träningspåminnelse", isOn: $trainingReminderEnabled)
                 Toggle("Löp-påminnelser", isOn: $heatRemindersEnabled)
