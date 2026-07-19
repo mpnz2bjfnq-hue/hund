@@ -1129,6 +1129,7 @@
       }
     },
     "Badplats": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -1365,6 +1366,7 @@
       }
     },
     "Butik": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -1395,6 +1397,7 @@
       }
     },
     "Café": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -1705,6 +1708,7 @@
       }
     },
     "Dela med hundvakt": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -1886,6 +1890,7 @@
       }
     },
     "Djuraffär": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -2803,6 +2808,7 @@
       }
     },
     "Hotell": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -2963,6 +2969,7 @@
       }
     },
     "Hundvakt": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -2973,6 +2980,7 @@
       }
     },
     "Hundvaktsläge": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -3094,6 +3102,7 @@
       }
     },
     "Här": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -3394,6 +3403,7 @@
       }
     },
     "Inga platser hittades": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -3424,6 +3434,7 @@
       }
     },
     "Inga tips än": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -3910,6 +3921,7 @@
       }
     },
     "Kategori": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -4010,6 +4022,7 @@
       }
     },
     "Kommandon hunden kan": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -4020,6 +4033,7 @@
       }
     },
     "Kommandon: %@": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -4100,6 +4114,7 @@
       }
     },
     "Kontakter": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -4260,6 +4275,7 @@
       }
     },
     "Känner du till ett hundvänligt ställe? Tryck på + och dela det med andra hundägare.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -4571,6 +4587,7 @@
       }
     },
     "Lägg till matschema, rutiner och allergier under Redigera.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -4955,6 +4972,7 @@
       }
     },
     "Matschema, rutiner, allergier…": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -5005,6 +5023,7 @@
       }
     },
     "Mediciner": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -5015,6 +5034,7 @@
       }
     },
     "Mediciner:": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -5275,6 +5295,7 @@
       }
     },
     "Namn på stället": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -5285,6 +5306,7 @@
       }
     },
     "Namn/klinik": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -5515,6 +5537,7 @@
       }
     },
     "Nära dig": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -5605,6 +5628,7 @@
       }
     },
     "Nödkontakt": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -5615,6 +5639,7 @@
       }
     },
     "Nödkontakt: %@ %@": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -5741,6 +5766,7 @@
       }
     },
     "Park": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -5877,6 +5903,7 @@
       }
     },
     "Prova en annan kategori, eller flytta dig till ett område med fler platser.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -6137,6 +6164,7 @@
       }
     },
     "Rastgård": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -6197,6 +6225,7 @@
       }
     },
     "Redigera vaktinfo": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -6267,6 +6296,7 @@
       }
     },
     "Restaurang": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -6287,6 +6317,7 @@
       }
     },
     "Rutiner & att tänka på": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -6297,6 +6328,7 @@
       }
     },
     "Rutiner:": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -6894,6 +6926,7 @@
       }
     },
     "Stället granskas av en moderator. Tack för att du hjälper till.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -7144,6 +7177,7 @@
       }
     },
     "Ta bort ditt tips?": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -7334,6 +7368,7 @@
       }
     },
     "Telefon": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -7430,6 +7465,7 @@
       }
     },
     "Tips (valfritt) — t.ex. vattenskål ute, hundgodis i disken": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -7440,6 +7476,7 @@
       }
     },
     "Tips 🐾": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -7520,6 +7557,7 @@
       }
     },
     "Tipsa om ställe": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -7630,6 +7668,7 @@
       }
     },
     "Tryck på kartan för att flytta nålen till rätt ställe.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -8096,6 +8135,7 @@
       }
     },
     "Veterinär": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -8106,6 +8146,7 @@
       }
     },
     "Veterinär: %@ %@": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -8793,6 +8834,26 @@
         }
       }
     },
+    "Återställ %lld hund(ar) från molnet": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restore %lld dog(s) from the cloud"
+          }
+        }
+      }
+    },
+    "Återställer…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restoring…"
+          }
+        }
+      }
+    },
     "Öppet": {
       "localizations": {
         "en": {
@@ -8918,6 +8979,7 @@
       }
     },
     "🐾 Hundvakt-info för %@": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {

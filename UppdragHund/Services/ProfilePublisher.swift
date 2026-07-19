@@ -41,6 +41,13 @@ enum ProfilePublisher {
             }
             .sorted { $0.name < $1.name }
 
+        // SKYDD: publicera ALDRIG en tom lista. Tomt betyder nästan alltid att
+        // den lokala storen inte hunnit laddas (t.ex. direkt efter inloggning
+        // eller ominstallation) — inte att användaren raderat alla hundar. Att
+        // skriva tomt skulle radera molnbackupen. Riktig radering av sista
+        // hunden hanteras separat vid själva raderingen.
+        guard !summaries.isEmpty else { return }
+
         guard summaries != lastPublished[uid] else { return }
 
         do {
