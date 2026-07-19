@@ -74,6 +74,15 @@ final class SharingRepository {
         return try? snapshot.data(as: SharedDogDoc.self)
     }
 
+    /// Alla hunddokument som ägaren backat upp (ownerUid-filtret krävs — det
+    /// är det reglerna kan bevisa för en list-fråga). För molnåterställning.
+    func ownDogDocIDs(ownerUid: String) async throws -> [String] {
+        let snapshot = try await db.collection("sharedDogs")
+            .whereField("ownerUid", isEqualTo: ownerUid)
+            .getDocuments()
+        return snapshot.documents.map(\.documentID)
+    }
+
     /// Firestore-klienten har ingen rekursiv delete — subkollektionerna
     /// måste tömmas explicit innan hunddokumentet och dess shares tas bort.
     func deleteDogCompletely(dogRemoteID: String, ownerUid: String) async throws {

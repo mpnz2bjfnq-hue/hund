@@ -23,6 +23,10 @@ enum DogRestoreService {
     /// lokalt — union av profilens summeringar och hundar man delat ut.
     static func restorableIDs(uid: String, localRemoteIDs: Set<String>) async -> Set<String> {
         var ids = Set<String>()
+        // Molnbackupen: alla hunddokument ägaren speglat till sharedDogs.
+        if let backedUp = try? await SharingRepository.shared.ownDogDocIDs(ownerUid: uid) {
+            ids.formUnion(backedUp)
+        }
         if let summaries = try? await FriendsRepository.shared.fetchMyProfile(uid: uid)?.dogSummaries {
             ids.formUnion(summaries.map(\.remoteID))
         }
@@ -39,11 +43,12 @@ enum DogRestoreService {
         let summaries = (try? await FriendsRepository.shared.fetchMyProfile(uid: uid)?.dogSummaries) ?? []
         let summaryByID = Dictionary(summaries.map { ($0.remoteID, $0) }, uniquingKeysWith: { first, _ in first })
         let shares = (try? await SharingRepository.shared.sharesIOwn(ownerUid: uid)) ?? []
+        let backedUp = (try? await SharingRepository.shared.ownDogDocIDs(ownerUid: uid)) ?? []
 
         let existing = try context.fetch(FetchDescriptor<Dog>(predicate: #Predicate { !$0.isShared }))
         let existingIDs = Set(existing.compactMap { $0.remoteID?.uuidString })
 
-        let allIDs = Set(summaries.map(\.remoteID)).union(shares.map(\.dogRemoteID)).subtracting(existingIDs)
+        let allIDs = Set(backedUp).union(summaries.map(\.remoteID)).union(shares.map(\.dogRemoteID)).subtracting(existingIDs)
 
         var result = Result()
 

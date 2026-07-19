@@ -63,9 +63,11 @@ final class DogShareService {
         dog.lastSyncedAt = .now
     }
 
-    /// Uppdaterar en befintlig delning. Borttagna modulers data raderas från
-    /// servern (integritet: det som slutar delas ska inte ligga kvar), om inte
-    /// någon annan delning av samma hund fortfarande omfattar modulen.
+    /// Uppdaterar en befintlig delning (moduler/behörighet). Data raderas
+    /// INTE när en modul slutar delas — sharedDogs är numera även ägarens
+    /// molnbackup, och reglerna hindrar ändå mottagare från att läsa moduler
+    /// utanför sin delning. Backupen ska aldrig städas bort av en delnings-
+    /// ändring; bara när hunden faktiskt raderas.
     func updateShare(
         _ existing: ShareDoc,
         dog: Dog,
@@ -85,11 +87,6 @@ final class DogShareService {
         if !added.isEmpty {
             try await push(modules: added, of: dog, owner: owner)
         }
-
-        let removed = ShareDiff.modulesToRemove(old: oldModules, new: newModules)
-        for module in removed where !(try await moduleStillShared(module, dogRemoteID: existing.dogRemoteID)) {
-            try await repository.deleteAllEntries(dogRemoteID: existing.dogRemoteID, module: module)
-        }
     }
 
     /// Mottagaren tar bort en delning från sin sida: share-dokumentet raderas
@@ -104,13 +101,11 @@ final class DogShareService {
         try context.save()
     }
 
-    /// Återkallar en delning. Var det hundens sista delning städas allt på servern.
+    /// Återkallar en delning: bara share-dokumentet tas bort, så mottagaren
+    /// förlorar åtkomsten. Hundens data under sharedDogs/ ligger kvar som
+    /// ägarens molnbackup (raderas först när ägaren raderar hunden).
     func revoke(_ share: ShareDoc) async throws {
         try await repository.deleteShare(dogRemoteID: share.dogRemoteID, recipientUid: share.recipientUid)
-        let remaining = try await repository.shares(forDog: share.dogRemoteID, ownerUid: share.ownerUid)
-        if remaining.isEmpty {
-            try await repository.deleteDogCompletely(dogRemoteID: share.dogRemoteID, ownerUid: share.ownerUid)
-        }
     }
 
     /// Full push av angivna modulers samtliga poster.
@@ -155,12 +150,6 @@ final class DogShareService {
             }
             try await repository.upsertEntries(dogRemoteID: dogRemoteID, module: module, docs: docs)
         }
-    }
-
-    private func moduleStillShared(_ module: SharedModule, dogRemoteID: String) async throws -> Bool {
-        guard let uid = AuthService.shared.currentUserID else { return false }
-        return try await repository.shares(forDog: dogRemoteID, ownerUid: uid)
-            .contains { $0.modules.contains(module.rawValue) }
     }
 
     private func stampIfNeeded(_ updatedAt: inout Date?) {

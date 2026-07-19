@@ -131,6 +131,24 @@ final class SyncCoordinator {
         schedulePush()
     }
 
+    // MARK: - Molnbackup
+
+    /// Markerar alla egna hundar för uppladdning och pushar — säkerställer att
+    /// hundar som fanns före backup-funktionen (eller inte ändrats på länge)
+    /// ändå speglas till molnet. Körs vid inloggning.
+    func backupAllOwnDogs(uid: String) async {
+        guard let container else { return }
+        let context = container.mainContext
+        let ownDogs = (try? context.fetch(
+            FetchDescriptor<Dog>(predicate: #Predicate { !$0.isShared })
+        )) ?? []
+        let mine = ownDogs.filter { $0.ownerUid == uid }
+        guard !mine.isEmpty else { return }
+        for dog in mine { dog.needsUpload = true }
+        try? context.save()
+        await pushDirtyDogs()
+    }
+
     // MARK: - Push
 
     /// Svep: anropas från scenePhase-hanteringen och efter debounce.
@@ -165,20 +183,16 @@ final class SyncCoordinator {
 
             for dog in dirtyDogs {
                 guard let dogRemoteID = dog.remoteID else { continue }
-                let shares = try await repository.shares(forDog: dogRemoteID.uuidString, ownerUid: uid)
-                guard !shares.isEmpty else {
-                    // Hunden delas inte (längre) — inget att pusha.
-                    dog.needsUpload = false
-                    continue
-                }
 
+                // Molnbackup: ägaren speglar ALLTID hela hunden (dokument +
+                // ALLA moduler) till sharedDogs, oavsett om den är delad.
+                // Reglerna gör backupen privat — bara ägaren läser den, och
+                // ev. mottagare ser bara modulerna i sin egen delning.
                 try await repository.upsertDogDoc(
                     dogRemoteID: dogRemoteID.uuidString,
                     doc: ShareMapping.dogDoc(from: dog, owner: owner)
                 )
-
-                let sharedModules = Set(shares.flatMap(\.modules).compactMap(SharedModule.init(rawValue:)))
-                try await push(modules: sharedModules, of: dog, dogRemoteID: dogRemoteID, owner: owner, context: context)
+                try await push(modules: Set(SharedModule.allCases), of: dog, dogRemoteID: dogRemoteID, owner: owner, context: context)
 
                 dog.needsUpload = false
                 dog.lastSyncedAt = .now

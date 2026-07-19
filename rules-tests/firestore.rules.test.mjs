@@ -120,6 +120,15 @@ test("mottagare kan läsa hunddokumentet, ägaren likaså", async () => {
   await assertSucceeds(getDoc(doc(asUser(OWNER), "sharedDogs", DOG)));
 });
 
+test("ägaren kan lista sina egna backup-hundar; främling kan inte lista alla", async () => {
+  // Molnbackup-frågan: sharedDogs filtrerat på ownerUid.
+  await assertSucceeds(
+    getDocs(query(collection(asUser(OWNER), "sharedDogs"), where("ownerUid", "==", OWNER)))
+  );
+  // Ofiltrerad list (försök skörda andras hundar) ska nekas.
+  await assertFails(getDocs(collection(asUser(STRANGER), "sharedDogs")));
+});
+
 // ===== Delade hundar: skrivningar =====
 
 test("readWrite-mottagare kan skapa egen post i delad modul", async () => {
