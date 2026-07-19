@@ -3,10 +3,10 @@
 ## Att göra i App Store Connect (manuellt)
 
 1. **Integritetspolicy-URL** (App Information → Privacy Policy URL)
-   - Aktivera GitHub Pages: repo → Settings → Pages → Source: `main`-branch, mapp `/docs` → Save.
-   - URL blir: `https://<ditt-github-namn>.github.io/UppdragHund/privacy.html`
+   - ✅ Live: `https://mpnz2bjfnq-hue.github.io/canine360-site/privacy.html` (kanonisk — separat publikt repo `canine360-site`, verifierad 200 OK 2026-07-19)
+   - (Spegel med identiskt innehåll finns även på `https://mpnz2bjfnq-hue.github.io/hund/privacy.html` — Pages aktiverat från main /docs 2026-07-19.)
 2. **Support-URL** (App Information)
-   - `https://<ditt-github-namn>.github.io/UppdragHund/` (supportsidan i /docs)
+   - ✅ Live: `https://mpnz2bjfnq-hue.github.io/canine360-site/` (verifierad 200 OK)
 3. **Demo-konto** (App Review Information)
    - Skapa ett testkonto i appen (e-post + lösenord), lägg gärna in en hund
      och lite data. Fyll i uppgifterna under "Sign-in required".
