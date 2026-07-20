@@ -354,6 +354,7 @@ struct MeetupDetailView: View {
     @State private var isCommunityMember = false
     @State private var confirmReport = false
     @State private var reportMessage: String?
+    @State private var errorMessage: String?
     /// Teamuppgifter som är kopplade till den här träffen.
     @State private var linkedTasks: [TeamTask] = []
 
@@ -477,6 +478,14 @@ struct MeetupDetailView: View {
                 Button("OK", role: .cancel) {}
             } message: {
                 Text(reportMessage ?? "")
+            }
+            .alert(
+                "Kunde inte spara",
+                isPresented: Binding(get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } })
+            ) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(errorMessage ?? "")
             }
             .task { await loadLinkedTasks() }
             .task { await loadMembership() }
@@ -711,13 +720,19 @@ struct MeetupDetailView: View {
         let attended = !meetup.didAttend(uid)
         isWorking = true
         Task {
-            try? await TeamsRepository.shared.setAttendance(meetupID: id, uid: uid, attended: attended)
+            defer { isWorking = false }
+            do {
+                // Skriv först — den lokala listan speglar bara det servern accepterat.
+                try await TeamsRepository.shared.setAttendance(meetupID: id, uid: uid, attended: attended)
+            } catch {
+                errorMessage = String(localized: "Närvaron kunde inte sparas. Kontrollera din anslutning och försök igen.")
+                return
+            }
             var list = meetup.attendedUids ?? []
             list.removeAll { $0 == uid }
             if attended { list.append(uid) }
             meetup.attendedUids = list
             onChanged()
-            isWorking = false
         }
     }
 
@@ -726,7 +741,14 @@ struct MeetupDetailView: View {
         let myName = currentUser.profile?.displayName ?? "Hundägare"
         isWorking = true
         Task {
-            try? await TeamsRepository.shared.setRSVP(meetupID: id, uid: uid, name: myName, going: going)
+            defer { isWorking = false }
+            do {
+                // Skriv först — annars visas "Kommer" lokalt utan att arrangören ser det.
+                try await TeamsRepository.shared.setRSVP(meetupID: id, uid: uid, name: myName, going: going)
+            } catch {
+                errorMessage = String(localized: "Ditt svar kunde inte sparas. Kontrollera din anslutning och försök igen.")
+                return
+            }
             meetup.goingUids.removeAll { $0 == uid }
             meetup.declinedUids.removeAll { $0 == uid }
             if going {
@@ -736,7 +758,6 @@ struct MeetupDetailView: View {
             }
             // Så deltagarlistan visar mitt namn direkt, utan omladdning.
             meetup.invitedNames[uid] = myName
-            isWorking = false
             onChanged()
         }
     }

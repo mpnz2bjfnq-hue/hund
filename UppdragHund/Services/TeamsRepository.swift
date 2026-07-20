@@ -70,6 +70,12 @@ final class TeamsRepository {
         return snapshot.flatMap { try? $0.data(as: Team.self) }
     }
 
+    /// Enskild träff — används av notisdjuplänkarna (canine360://meetup?id=…).
+    func meetup(id: String) async -> Meetup? {
+        let snapshot = try? await db.collection("meetups").document(id).getDocument()
+        return snapshot.flatMap { try? $0.data(as: Meetup.self) }
+    }
+
     func myTeams(uid: String) async -> [Team] {
         let snapshot = try? await db.collection("teams")
             .whereField("memberUids", arrayContains: uid)

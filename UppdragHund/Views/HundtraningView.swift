@@ -23,6 +23,7 @@ struct HundtraningView: View {
     @State private var isPresentingWalk = false
     @State private var sessionPendingDelete: TrainingSession?
     @State private var sessionShowingRoute: TrainingSession?
+    @State private var saveError: String?
 
     private enum TrainingTab: Hashable { case overview, log, plans }
 
@@ -58,6 +59,7 @@ struct HundtraningView: View {
         }
         .navigationTitle("Hundträning")
         .navigationBarTitleDisplayMode(.inline)
+        .saveErrorAlert($saveError)
         .toolbar {
             ToolbarItem(placement: .primaryAction) { primaryActionButton }
         }
@@ -227,7 +229,10 @@ struct HundtraningView: View {
         for index in offsets {
             modelContext.delete(plans[index])
         }
-        try? modelContext.save()
+        if let message = modelContext.saveOrMessage() {
+            saveError = message
+            return
+        }
         // Ta bort passen ur molnbackupen så de inte återuppstår vid nästa synk.
         if let uid {
             Task {

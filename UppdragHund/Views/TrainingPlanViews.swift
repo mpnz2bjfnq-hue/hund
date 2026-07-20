@@ -22,6 +22,7 @@ struct NewTrainingPlanView: View {
     @State private var title: String
     @State private var note: String
     @State private var exercises: [ExerciseDraft]
+    @State private var saveError: String?
 
     init(plan: TrainingPlan? = nil) {
         planToEdit = plan
@@ -74,6 +75,7 @@ struct NewTrainingPlanView: View {
             }
             .navigationTitle(planToEdit == nil ? "Nytt pass" : "Redigera pass")
             .navigationBarTitleDisplayMode(.inline)
+            .saveErrorAlert($saveError)
             .tint(Theme.Colors.brand)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Avbryt") { dismiss() } }
@@ -147,7 +149,10 @@ struct NewTrainingPlanView: View {
             exercise.plan = plan
             modelContext.insert(exercise)
         }
-        try? modelContext.save()
+        if let message = modelContext.saveOrMessage() {
+            saveError = message
+            return
+        }
         // Spegla passet till molnbackupen.
         if let uid = authService.currentUserID {
             Task { await TrainingPlanBackupService.backup(plan, uid: uid) }
@@ -328,6 +333,10 @@ struct RunTrainingPlanView: View {
                                     .font(.title3)
                             }
                             .buttonStyle(.plain)
+                            .accessibilityLabel(exercise.name)
+                            .accessibilityAddTraits(
+                                completed.contains(exercise.persistentModelID) ? [.isSelected] : []
+                            )
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(exercise.name)
                                     .foregroundStyle(Theme.Colors.textPrimary)

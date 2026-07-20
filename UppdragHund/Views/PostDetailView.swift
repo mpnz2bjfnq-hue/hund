@@ -18,6 +18,7 @@ struct PostDetailView: View {
     @State private var currentUser = CurrentUserStore.shared
 
     @State private var savedPlan = false
+    @State private var saveError: String?
     @State private var liked = false
     @State private var moderationMessage: String?
     @State private var reactionCount = 0
@@ -95,6 +96,7 @@ struct PostDetailView: View {
             } message: {
                 Text(moderationMessage ?? "")
             }
+            .saveErrorAlert($saveError)
         }
         .task { await load() }
         .fullScreenCover(item: $fullScreenPhoto) { photo in
@@ -191,6 +193,7 @@ struct PostDetailView: View {
                     .font(.title2)
                     .foregroundStyle(canSend ? Theme.Colors.brand : Theme.Colors.textSecondary)
             }
+            .accessibilityLabel("Skicka kommentar")
             .disabled(!canSend || isSending)
         }
         .padding(Theme.Spacing.m)
@@ -264,7 +267,10 @@ struct PostDetailView: View {
             entity.plan = plan
             modelContext.insert(entity)
         }
-        try? modelContext.save()
+        if let message = modelContext.saveOrMessage() {
+            saveError = message
+            return
+        }
         if let uid = authService.currentUserID {
             Task { await TrainingPlanBackupService.backup(plan, uid: uid) }
         }

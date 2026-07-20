@@ -14,7 +14,7 @@ struct ContentView: View {
     @Environment(\.scenePhase) private var scenePhase
     @Query(sort: \Dog.name) private var dogs: [Dog]
     @State private var activeDogStore = ActiveDogStore()
-    @State private var deepLinks = DeepLinkStore()
+    @State private var deepLinks = DeepLinkStore.shared
     @State private var authService = AuthService.shared
     @State private var currentUser = CurrentUserStore.shared
     @State private var isLoadingProfile = false
@@ -62,6 +62,8 @@ struct ContentView: View {
                 ensureActiveDogSelected()
                 await loadProfile()
                 if let uid = authService.currentUserID {
+                    // Så server-pusharna skickas på användarens språk.
+                    await FriendsRepository.shared.updateLanguage(uid: uid)
                     // Återställ automatiskt egna hundar som finns i molnet men
                     // saknas lokalt (ny enhet / ominstallation) — tyst.
                     await DogRestoreService.autoRestore(context: modelContext, uid: uid)

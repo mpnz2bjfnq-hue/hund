@@ -20,6 +20,7 @@ struct TrainingOverview: View {
 
     @State private var showAddSkill = false
     @State private var newSkillName = ""
+    @State private var saveError: String?
 
     private let calendar = Calendar.current
 
@@ -45,6 +46,7 @@ struct TrainingOverview: View {
             Button("Lägg till") { addSkill() }
             Button("Avbryt", role: .cancel) { newSkillName = "" }
         }
+        .saveErrorAlert($saveError)
     }
 
     // MARK: - Veckomål + streak
@@ -331,20 +333,30 @@ struct TrainingOverview: View {
         guard !name.isEmpty else { return }
         let skill = TrainingSkill(name: name, order: sortedSkills.count, dog: dog)
         modelContext.insert(skill)
-        try? modelContext.save()
+        guard persist() else { return }
         SyncCoordinator.shared.dogProfileTouched(dog)
         newSkillName = ""
     }
 
     private func cycle(_ skill: TrainingSkill) {
         skill.level = skill.level.next
-        try? modelContext.save()
+        guard persist() else { return }
         SyncCoordinator.shared.dogProfileTouched(dog)
     }
 
     private func delete(_ skill: TrainingSkill) {
         modelContext.delete(skill)
-        try? modelContext.save()
+        guard persist() else { return }
         SyncCoordinator.shared.dogProfileTouched(dog)
+    }
+
+    /// Sparar och visar felruta vid misslyckande. Returnerar false om ändringen
+    /// rullades tillbaka, så att synken inte flaggar hunden i onödan.
+    private func persist() -> Bool {
+        if let message = modelContext.saveOrMessage() {
+            saveError = message
+            return false
+        }
+        return true
     }
 }

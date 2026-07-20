@@ -16,6 +16,8 @@ struct AuthGateView: View {
     }
 
     @Environment(\.colorScheme) private var colorScheme
+    /// Apple-knappen är en UIKit-kontroll med fast text — låt ramen växa i stället.
+    @ScaledMetric(relativeTo: .body) private var appleButtonHeight: CGFloat = 52
     @State private var mode: Mode = .signUp
     @State private var name = ""
     @State private var email = ""
@@ -225,7 +227,7 @@ struct AuthGateView: View {
         // Knappen är en UIKit-kontroll som inte byter stil av sig själv när
         // färgläget ändras — id:t tvingar SwiftUI att skapa om den.
         .id(colorScheme)
-        .frame(height: 52)
+        .frame(height: appleButtonHeight)
         .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
         .disabled(isWorking)
     }

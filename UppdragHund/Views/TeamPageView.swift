@@ -615,7 +615,7 @@ struct TeamPageView: View {
 
     /// Kopierar passet till mitt bibliotek (samma mönster som PostDetailView).
     @discardableResult
-    private func savePlan(_ shared: SharedTrainingPlan, from task: TeamTask) -> TrainingPlan {
+    private func savePlan(_ shared: SharedTrainingPlan, from task: TeamTask) -> TrainingPlan? {
         let plan = TrainingPlan(
             title: shared.title,
             note: shared.note,
@@ -635,7 +635,10 @@ struct TeamPageView: View {
             entity.plan = plan
             modelContext.insert(entity)
         }
-        try? modelContext.save()
+        if let message = modelContext.saveOrMessage() {
+            errorMessage = message
+            return nil
+        }
         if let uid = authService.currentUserID {
             Task { await TrainingPlanBackupService.backup(plan, uid: uid) }
         }

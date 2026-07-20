@@ -11,7 +11,12 @@
 import Foundation
 import Observation
 
+@MainActor
 @Observable
 final class DeepLinkStore {
+    /// Delad instans så att AppDelegate (som ligger utanför SwiftUI-hierarkin
+    /// och därmed inte når @Environment) kan lämna ifrån sig notistryck.
+    static let shared = DeepLinkStore()
+
     var pending: URL?
 }

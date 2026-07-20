@@ -20,6 +20,7 @@ struct NewTrainingSessionView: View {
     @State private var durationText = ""
     @State private var distanceText = ""
     @State private var note = ""
+    @State private var saveError: String?
 
     private var isCustomActivity: Bool {
         selectedActivity == Self.otherOption
@@ -74,6 +75,7 @@ struct NewTrainingSessionView: View {
             .bottomActionButton("Spara", disabled: !isValid, celebratesSave: true) {
                 save()
             }
+            .saveErrorAlert($saveError)
         }
     }
 
@@ -87,7 +89,10 @@ struct NewTrainingSessionView: View {
             dog: dog
         )
         modelContext.insert(session)
-        try? modelContext.save()
+        if let message = modelContext.saveOrMessage() {
+            saveError = message
+            return
+        }
         SyncCoordinator.shared.entryTouched(session, dog: dog)
         dismiss()
     }

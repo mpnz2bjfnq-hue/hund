@@ -16,6 +16,8 @@ struct MonthCalendarView: View {
 
     private let calendar = Calendar.current
     private let columns = Array(repeating: GridItem(.flexible()), count: 7)
+    /// Dagsrutan växer med textstorleken i stället för att klippa datumsiffran.
+    @ScaledMetric(relativeTo: .body) private var dayCellHeight: CGFloat = 44
 
     var body: some View {
         VStack(spacing: 12) {
@@ -153,7 +155,7 @@ struct MonthCalendarView: View {
                 }
             }
             .frame(maxWidth: .infinity)
-            .frame(height: 44)
+            .frame(minHeight: dayCellHeight)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

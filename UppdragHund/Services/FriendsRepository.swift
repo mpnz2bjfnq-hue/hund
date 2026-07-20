@@ -43,6 +43,17 @@ final class FriendsRepository {
         try ref.setData(from: profile, merge: true)
     }
 
+    /// Speglar appens språk till profilen så Cloud Functions kan skicka pushar
+    /// på rätt språk (utan fältet faller servern tillbaka på svenska).
+    /// Skrivs vid varje inloggning — språket kan bytas i iOS-inställningarna.
+    func updateLanguage(uid: String) async {
+        // Bundle.main, inte Locale.current: vi vill ha språket appen faktiskt
+        // körs på, inte enhetens regioninställning.
+        let code = Bundle.main.preferredLocalizations.first?.prefix(2).lowercased() ?? "sv"
+        let language = code == "en" ? "en" : "sv"
+        try? await db.collection("users").document(uid).setData(["language": language], merge: true)
+    }
+
     func fetchMyProfile(uid: String) async throws -> UserProfile? {
         let snapshot = try await db.collection("users").document(uid).getDocument()
         guard snapshot.exists else { return nil }

@@ -16,6 +16,7 @@ struct NewMealEntryView: View {
     @State private var name = ""
     @State private var time = Date.now
     @State private var note = ""
+    @State private var saveError: String?
 
     private var isValid: Bool {
         !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
@@ -44,6 +45,7 @@ struct NewMealEntryView: View {
             .bottomActionButton("Spara", disabled: !isValid, celebratesSave: true) {
                 save()
             }
+            .saveErrorAlert($saveError)
         }
     }
 
@@ -56,7 +58,10 @@ struct NewMealEntryView: View {
             dog: dog
         )
         modelContext.insert(entry)
-        try? modelContext.save()
+        if let message = modelContext.saveOrMessage() {
+            saveError = message
+            return
+        }
         SyncCoordinator.shared.entryTouched(entry, dog: dog)
         dismiss()
     }

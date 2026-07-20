@@ -62,11 +62,48 @@ extension AppDelegate: UNUserNotificationCenterDelegate {
         [.banner, .sound, .badge]
     }
 
-    // Plats för framtida djuplänkning när användaren trycker på en notis.
+    // Notistryck → djuplänk. Cloud Functions skickar redan med ett `type` och
+    // ett id i data-payloaden; här översätts det till en canine360://-URL som
+    // MainTabView routar (samma väg som widgetarnas länkar).
     func userNotificationCenter(
         _ center: UNUserNotificationCenter,
         didReceive response: UNNotificationResponse
     ) async {
-        // TODO: navigera till rätt vy (flöde, delad hund, vänförfrågan).
+        let info = response.notification.request.content.userInfo
+        guard let url = PushRoute.deepLink(for: info) else { return }
+        await MainActor.run { DeepLinkStore.shared.pending = url }
+    }
+}
+
+// MARK: - Notis → djuplänk
+
+enum PushRoute {
+    /// Översätter FCM-payloadens `type` (+ tillhörande id) till en djuplänk.
+    /// Returnerar nil för notiser utan egen destination — då öppnas appen bara.
+    static func deepLink(for userInfo: [AnyHashable: Any]) -> URL? {
+        guard let type = userInfo["type"] as? String else { return nil }
+        let scheme = WidgetDeepLink.scheme
+
+        func string(_ key: String) -> String? {
+            guard let value = userInfo[key] as? String, !value.isEmpty else { return nil }
+            return value
+        }
+
+        switch type {
+        case "teamInvite", "teamPost", "teamTask", "teamMemberJoined":
+            guard let id = string("teamId") else { return nil }
+            return URL(string: "\(scheme)://team?id=\(id)")
+        case "meetup":
+            guard let id = string("meetupId") else { return nil }
+            return URL(string: "\(scheme)://meetup?id=\(id)")
+        case "friendRequest":
+            return URL(string: "\(scheme)://vanner")
+        case "post":
+            return URL(string: "\(scheme)://socialt")
+        case "share":
+            return URL(string: "\(scheme)://hem")
+        default:
+            return nil
+        }
     }
 }

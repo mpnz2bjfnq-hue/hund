@@ -56,6 +56,9 @@ private struct BottomActionButtonBody: View {
                 // Låt ✓:et hinna landa innan formuläret stängs.
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
                     action()
+                    // Stängde inte åtgärden vyn (t.ex. sparfel) måste knappen
+                    // gå att trycka igen — annars fastnar den som ✓.
+                    withAnimation { showingCheckmark = false }
                 }
             } else {
                 action()

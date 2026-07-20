@@ -40,6 +40,8 @@ struct EditHomeView: View {
                                     .foregroundStyle(enabled.contains(block) ? Theme.Colors.brand : Theme.Colors.textSecondary)
                             }
                             .buttonStyle(.plain)
+                            .accessibilityLabel(block.title)
+                            .accessibilityAddTraits(enabled.contains(block) ? [.isSelected] : [])
                         }
                     }
                     .onMove { from, to in

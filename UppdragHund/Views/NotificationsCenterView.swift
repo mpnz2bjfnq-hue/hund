@@ -301,6 +301,7 @@ struct AddVetVisitView: View {
     @State private var title = ""
     @State private var date = Calendar.current.date(byAdding: .day, value: 7, to: .now) ?? .now
     @State private var note = ""
+    @State private var saveError: String?
 
     var body: some View {
         NavigationStack {
@@ -323,6 +324,7 @@ struct AddVetVisitView: View {
                     Button("Spara") { save() }.disabled(!canSave)
                 }
             }
+            .saveErrorAlert($saveError)
         }
     }
 
@@ -339,7 +341,10 @@ struct AddVetVisitView: View {
             dog: dog
         )
         modelContext.insert(event)
-        try? modelContext.save()
+        if let message = modelContext.saveOrMessage() {
+            saveError = message
+            return
+        }
         Task { await NotificationService.scheduleHealthEventNotification(for: event) }
         dismiss()
     }

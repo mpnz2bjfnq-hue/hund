@@ -18,6 +18,8 @@ struct HemView: View {
     @AppStorage(HomeBlockStore.storageKey) private var blocksRaw = HomeBlockStore.defaultRaw
     @AppStorage("home.todayInserted") private var todayInserted = false
     @State private var authService = AuthService.shared
+    /// Skalar med textstorleken så genvägsikonen inte krymper ihop mot etiketten.
+    @ScaledMetric(relativeTo: .title2) private var shortcutIconHeight: CGFloat = 28
     @State private var isEditingShortcuts = false
     @State private var isEditingHome = false
 
@@ -238,11 +240,12 @@ struct HemView: View {
             Image(systemName: shortcut.icon)
                 .font(.title2)
                 .foregroundStyle(Theme.Colors.brand)
-                .frame(height: 28)
+                .frame(minHeight: shortcutIconHeight)
             Text(shortcut.title)
                 .font(.caption)
                 .foregroundStyle(Theme.Colors.textSecondary)
-                .lineLimit(1)
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
                 .minimumScaleFactor(0.8)
         }
         .frame(maxWidth: .infinity)

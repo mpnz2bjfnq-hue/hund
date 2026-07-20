@@ -22,6 +22,7 @@ struct NewHealthEventView: View {
     @State private var injuryStatus: HealingStatus = .active
     @State private var weightText = ""
     @State private var temperatureText = ""
+    @State private var saveError: String?
 
     init(dog: Dog, initialType: HealthEventType = .vetVisit) {
         self.dog = dog
@@ -127,6 +128,7 @@ struct NewHealthEventView: View {
             .bottomActionButton("Spara", disabled: !isValid, celebratesSave: true) {
                 save()
             }
+            .saveErrorAlert($saveError)
         }
     }
 
@@ -147,7 +149,10 @@ struct NewHealthEventView: View {
             event.injuryStatus = injuryStatus
         }
         modelContext.insert(event)
-        try? modelContext.save()
+        if let message = modelContext.saveOrMessage() {
+            saveError = message
+            return
+        }
         SyncCoordinator.shared.entryTouched(event, dog: dog)
         dismiss()
     }

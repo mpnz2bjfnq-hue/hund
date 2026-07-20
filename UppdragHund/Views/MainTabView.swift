@@ -34,12 +34,29 @@ private struct QuickLogRequest: Identifiable {
     let dog: Dog
 }
 
+/// Vart ett notistryck leder. Innehållet hämtas asynkront ur Firestore innan
+/// bladet visas, så länken funkar även när vyn inte redan har datat.
+private enum PushDestination: Identifiable {
+    case team(Team)
+    case meetup(Meetup)
+    case friends
+
+    var id: String {
+        switch self {
+        case .team(let team): "team-\(team.id ?? "")"
+        case .meetup(let meetup): "meetup-\(meetup.id ?? "")"
+        case .friends: "friends"
+        }
+    }
+}
+
 struct MainTabView: View {
     @Environment(ActiveDogStore.self) private var activeDogStore
     @Environment(DeepLinkStore.self) private var deepLinks
     @Query private var dogs: [Dog]
     @State private var selectedTab: MainTab = .hem
     @State private var quickLog: QuickLogRequest?
+    @State private var pushDestination: PushDestination?
 
     var body: some View {
         TabView(selection: $selectedTab) {
@@ -115,6 +132,25 @@ struct MainTabView: View {
             case .promenad: WalkTrackerView(dog: request.dog, autoStart: true)
             }
         }
+        .sheet(item: $pushDestination) { destination in
+            switch destination {
+            case .team(let team):
+                // TeamPageView pushas normalt in i en stack — som blad behöver
+                // den en egen, plus ett sätt att stänga.
+                NavigationStack {
+                    TeamPageView(team: team)
+                        .toolbar {
+                            ToolbarItem(placement: .confirmationAction) {
+                                Button("Klar") { pushDestination = nil }
+                            }
+                        }
+                }
+            case .meetup(let meetup):
+                MeetupDetailView(meetup: meetup)
+            case .friends:
+                FriendsView()
+            }
+        }
     }
 
     private func consumePendingDeepLink() {
@@ -125,11 +161,34 @@ struct MainTabView: View {
 
     /// Widget-djuplänkar: canine360://hem och
     /// canine360://logga/{halsa|foder|traning|dagbok}?dog={remoteID}.
+    /// Notisdjuplänkar (via PushRoute): canine360://team?id=…, ://meetup?id=…,
+    /// ://vanner och ://socialt.
     private func handleDeepLink(_ url: URL) {
         guard url.scheme == WidgetDeepLink.scheme else { return }
         switch url.host() {
         case "hem":
             selectedTab = .hem
+        case "socialt":
+            selectedTab = .flode
+        case "vanner":
+            selectedTab = .profil
+            pushDestination = .friends
+        case "team":
+            selectedTab = .flode
+            guard let id = queryValue(url, name: "id") else { return }
+            Task {
+                if let team = await TeamsRepository.shared.team(id: id) {
+                    pushDestination = .team(team)
+                }
+            }
+        case "meetup":
+            selectedTab = .flode
+            guard let id = queryValue(url, name: "id") else { return }
+            Task {
+                if let meetup = await TeamsRepository.shared.meetup(id: id) {
+                    pushDestination = .meetup(meetup)
+                }
+            }
         case "logga":
             guard let dog = resolveDog(from: url),
                   let route = QuickLogRoute(rawValue: url.lastPathComponent),
@@ -145,10 +204,14 @@ struct MainTabView: View {
         }
     }
 
+    private func queryValue(_ url: URL, name: String) -> String? {
+        URLComponents(url: url, resolvingAgainstBaseURL: false)?
+            .queryItems?.first { $0.name == name }?.value
+    }
+
     /// Hunden ur länkens ?dog=-parameter (kontots hundar), annars den aktiva.
     private func resolveDog(from url: URL) -> Dog? {
-        guard let id = URLComponents(url: url, resolvingAgainstBaseURL: false)?
-            .queryItems?.first(where: { $0.name == "dog" })?.value else {
+        guard let id = queryValue(url, name: "dog") else {
             return activeDogStore.activeDog
         }
         return AccountScope.dogs(for: AuthService.shared.currentUserID, in: dogs)

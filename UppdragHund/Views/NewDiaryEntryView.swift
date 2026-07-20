@@ -21,6 +21,7 @@ struct NewDiaryEntryView: View {
     @State private var mood: DiaryMood = .neutral
     @State private var photoPickerItem: PhotosPickerItem?
     @State private var photoData: Data?
+    @State private var saveError: String?
 
     var body: some View {
         NavigationStack {
@@ -66,6 +67,7 @@ struct NewDiaryEntryView: View {
             .bottomActionButton("Spara", celebratesSave: true) {
                 save()
             }
+            .saveErrorAlert($saveError)
             .onChange(of: photoPickerItem) { _, newValue in
                 Task {
                     if let data = try? await newValue?.loadTransferable(type: Data.self),
@@ -112,7 +114,10 @@ struct NewDiaryEntryView: View {
             dog: dog
         )
         modelContext.insert(entry)
-        try? modelContext.save()
+        if let message = modelContext.saveOrMessage() {
+            saveError = message
+            return
+        }
         SyncCoordinator.shared.entryTouched(entry, dog: dog)
         dismiss()
     }

@@ -23,19 +23,37 @@ async function tokensForUser(uid: string): Promise<string[]> {
   return snap.docs.map((d) => d.id);
 }
 
+/** Språken pusharna finns på. Appen skriver users/{uid}.language. */
+export type Lang = "sv" | "en";
+
+/** En textrad på båda språken. Rena strängar accepteras fortfarande. */
+export type Localized = string | Record<Lang, string>;
+
+/** Mottagarens språk; svenska om fältet saknas (alla konton före 1.1). */
+async function languageForUser(uid: string): Promise<Lang> {
+  const doc = await db.collection("users").doc(uid).get();
+  return doc.get("language") === "en" ? "en" : "sv";
+}
+
+function pick(value: Localized, lang: Lang): string {
+  return typeof value === "string" ? value : value[lang];
+}
+
 /** Skickar en notis till en användares alla enheter och städar ogiltiga tokens. */
 async function sendToUser(
   uid: string,
-  title: string,
-  body: string,
+  title: Localized,
+  body: Localized,
   data: Record<string, string> = {}
 ): Promise<void> {
   const tokens = await tokensForUser(uid);
   if (tokens.length === 0) return;
 
+  const lang = await languageForUser(uid);
+
   const response = await getMessaging().sendEachForMulticast({
     tokens,
-    notification: { title, body },
+    notification: { title: pick(title, lang), body: pick(body, lang) },
     data,
     apns: { payload: { aps: { sound: "default", badge: 1 } } },
   });
@@ -84,10 +102,15 @@ export const onNewPost = onDocumentCreated(
 
     await Promise.all(
       friendsSnap.docs.map((friend) =>
-        sendToUser(friend.id, `${authorName} delade en uppdatering`, snippet, {
-          type: "post",
-          authorUid,
-        })
+        sendToUser(
+          friend.id,
+          {
+            sv: `${authorName} delade en uppdatering`,
+            en: `${authorName} shared an update`,
+          },
+          snippet,
+          { type: "post", authorUid }
+        )
       )
     );
   }
@@ -107,8 +130,11 @@ export const onDogShared = onDocumentCreated(
 
     await sendToUser(
       recipientUid,
-      "Ny delad hund",
-      `${ownerName} delade ${dogName} med dig.`,
+      { sv: "Ny delad hund", en: "A dog was shared with you" },
+      {
+        sv: `${ownerName} delade ${dogName} med dig.`,
+        en: `${ownerName} shared ${dogName} with you.`,
+      },
       { type: "share", dogRemoteID: share.dogRemoteID ?? "" }
     );
   }
@@ -174,8 +200,14 @@ export const adminSetInstructor = onCall({ region: REGION }, async (request) => 
   if (instructor) {
     await sendToUser(
       targetUid,
-      "Grattis — du är nu instruktör! 🎓",
-      "Du kan nu skapa hundkurser och konsulentteam i Canine360.",
+      {
+        sv: "Grattis — du är nu instruktör! 🎓",
+        en: "Congratulations — you are now an instructor! 🎓",
+      },
+      {
+        sv: "Du kan nu skapa hundkurser och konsulentteam i Canine360.",
+        en: "You can now create dog courses and consultant teams in Canine360.",
+      },
       { type: "instructorGranted" }
     ).catch(() => undefined);
   }
@@ -437,8 +469,11 @@ export const joinTeamWithCode = onCall({ region: REGION }, async (request) => {
   // Säg till ägaren att någon anslutit.
   await sendToUser(
     team.ownerUid,
-    `Ny medlem i ${team.name}`,
-    `${name} gick med via inbjudningskoden.`,
+    { sv: `Ny medlem i ${team.name}`, en: `New member in ${team.name}` },
+    {
+      sv: `${name} gick med via inbjudningskoden.`,
+      en: `${name} joined using the invite code.`,
+    },
     { type: "teamMemberJoined", teamId }
   ).catch(() => undefined);
 
@@ -504,9 +539,12 @@ export const onTicketResolved = onDocumentWritten(
     const uid: string = after.uid;
     const subject: string = after.subject ?? "ditt ärende";
     if (!uid) return;
-    await sendToUser(uid, "Supportärende löst ✅", `Vi har löst: ${subject}`, {
-      type: "supportTicketResolved",
-    });
+    await sendToUser(
+      uid,
+      { sv: "Supportärende löst ✅", en: "Support ticket resolved ✅" },
+      { sv: `Vi har löst: ${subject}`, en: `We resolved: ${subject}` },
+      { type: "supportTicketResolved" }
+    );
   }
 );
 
@@ -525,10 +563,15 @@ export const onTeamInvite = onDocumentWritten(
     const teamName: string = after.teamName ?? "ett team";
     if (!toUid) return;
 
-    await sendToUser(toUid, "Team-inbjudan", `${fromName} bjuder in dig till ${teamName}.`, {
-      type: "teamInvite",
-      teamId: after.teamId ?? "",
-    });
+    await sendToUser(
+      toUid,
+      { sv: "Team-inbjudan", en: "Team invitation" },
+      {
+        sv: `${fromName} bjuder in dig till ${teamName}.`,
+        en: `${fromName} is inviting you to ${teamName}.`,
+      },
+      { type: "teamInvite", teamId: after.teamId ?? "" }
+    );
   }
 );
 
@@ -552,10 +595,12 @@ export const onNewTeamPost = onDocumentCreated(
       members
         .filter((uid) => uid !== post.authorUid)
         .map((uid) =>
-          sendToUser(uid, `${authorName} i ${team.name}`, snippet, {
-            type: "teamPost",
-            teamId: event.params.teamId,
-          })
+          sendToUser(
+            uid,
+            { sv: `${authorName} i ${team.name}`, en: `${authorName} in ${team.name}` },
+            snippet,
+            { type: "teamPost", teamId: event.params.teamId }
+          )
         )
     );
   }
@@ -581,10 +626,12 @@ export const onNewTeamTask = onDocumentCreated(
       members
         .filter((uid) => uid !== task.createdByUid)
         .map((uid) =>
-          sendToUser(uid, `Ny uppgift i ${team.name}`, `${byName}: ${title}`, {
-            type: "teamTask",
-            teamId: event.params.teamId,
-          })
+          sendToUser(
+            uid,
+            { sv: `Ny uppgift i ${team.name}`, en: `New task in ${team.name}` },
+            `${byName}: ${title}`,
+            { type: "teamTask", teamId: event.params.teamId }
+          )
         )
     );
   }
@@ -600,24 +647,36 @@ export const onNewMeetup = onDocumentCreated(
     if (meetup.seriesIndex && meetup.seriesIndex > 1) return;
 
     const ownerName: string = meetup.ownerName ?? "En vän";
-    let title: string = meetup.title ?? "hundträff";
-    if (meetup.seriesCount && meetup.seriesCount > 1) {
-      title = `${title} (${meetup.seriesCount} tillfällen)`;
-    }
+    const baseTitle: string = meetup.title ?? "hundträff";
+    const times = meetup.seriesCount && meetup.seriesCount > 1 ? meetup.seriesCount : 0;
+    const titleSv = times ? `${baseTitle} (${times} tillfällen)` : baseTitle;
+    const titleEn = times ? `${baseTitle} (${times} sessions)` : baseTitle;
     const location: string = meetup.locationName ?? "";
-    const when = meetup.date?.toDate?.()
-      ? new Intl.DateTimeFormat("sv-SE", { dateStyle: "medium", timeStyle: "short" }).format(meetup.date.toDate())
-      : "";
+    // Datumet formateras per språk — inte hårdkodat sv-SE.
+    const date = meetup.date?.toDate?.();
+    const formatWhen = (locale: string) =>
+      date
+        ? new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }).format(date)
+        : "";
+    const bodyFor = (locale: string) => {
+      const when = formatWhen(locale);
+      return `${location}${when ? ` · ${when}` : ""}`;
+    };
     const invited: string[] = meetup.invitedUids ?? [];
 
     await Promise.all(
       invited
         .filter((uid) => uid !== meetup.ownerUid)
         .map((uid) =>
-          sendToUser(uid, `${ownerName} bjuder in till ${title}`, `${location}${when ? ` · ${when}` : ""}`, {
-            type: "meetup",
-            meetupId: event.params.meetupId,
-          })
+          sendToUser(
+            uid,
+            {
+              sv: `${ownerName} bjuder in till ${titleSv}`,
+              en: `${ownerName} is inviting you to ${titleEn}`,
+            },
+            { sv: bodyFor("sv-SE"), en: bodyFor("en-GB") },
+            { type: "meetup", meetupId: event.params.meetupId }
+          )
         )
     );
   }
@@ -634,10 +693,15 @@ export const onFriendRequest = onDocumentCreated(
     const fromName: string = req.fromDisplayName ?? "Någon";
     if (!toUid) return;
 
-    await sendToUser(toUid, "Ny vänförfrågan", `${fromName} vill bli din vän.`, {
-      type: "friendRequest",
-      fromUid: req.fromUid ?? "",
-    });
+    await sendToUser(
+      toUid,
+      { sv: "Ny vänförfrågan", en: "New friend request" },
+      {
+        sv: `${fromName} vill bli din vän.`,
+        en: `${fromName} wants to be your friend.`,
+      },
+      { type: "friendRequest", fromUid: req.fromUid ?? "" }
+    );
   }
 );
 
