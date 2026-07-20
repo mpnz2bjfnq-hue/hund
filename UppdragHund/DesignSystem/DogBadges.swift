@@ -8,7 +8,7 @@
 
 import SwiftUI
 
-struct DogBadge: Identifiable, Equatable {
+nonisolated struct DogBadge: Identifiable, Equatable {
     let id: String
     let text: String
     let icon: String
