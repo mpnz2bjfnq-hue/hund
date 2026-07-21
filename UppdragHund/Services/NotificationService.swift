@@ -137,7 +137,8 @@ enum NotificationService {
         let id = insuranceRenewalIdentifier(for: dog)
         center.removePendingNotificationRequests(withIdentifiers: [id])
 
-        guard let renewal = dog.insuranceRenewalDate else { return }
+        // Änglar behöver ingen påminnelse — försäkringen är rimligen avslutad.
+        guard let renewal = dog.insuranceRenewalDate, !dog.isDeceased else { return }
         let early = calendar.date(byAdding: .day, value: -daysBefore, to: renewal) ?? renewal
         let fireDay = early > .now ? early : renewal
         let comps = triggerDateComponents(for: fireDay, calendar: calendar)
@@ -161,6 +162,14 @@ enum NotificationService {
         UNUserNotificationCenter.current().removePendingNotificationRequests(
             withIdentifiers: [insuranceRenewalIdentifier(for: dog)]
         )
+    }
+
+    /// Självläkande svep vid inloggning: schemat lever inte i molnbackupen,
+    /// så efter en återställning/ominstallation byggs notiserna upp igen här.
+    static func syncInsuranceRenewalReminders(dogs: [Dog]) async {
+        for dog in dogs where !dog.isShared {
+            await scheduleInsuranceRenewalNotification(for: dog)
+        }
     }
 
     // MARK: - Daglig träningspåminnelse

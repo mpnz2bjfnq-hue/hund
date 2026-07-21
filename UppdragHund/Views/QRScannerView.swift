@@ -6,6 +6,7 @@
 //  Anropar onCode med första lästa koden och slutar sedan lyssna.
 //
 
+import AVFoundation
 import SwiftUI
 import Vision
 import VisionKit
@@ -13,10 +14,21 @@ import VisionKit
 struct QRScannerView: UIViewControllerRepresentable {
     var onCode: (String) -> Void
 
-    /// Kräver A12+ och kamera — falskt i simulatorn, så anroparen kan
-    /// dölja skanningsknappen där den inte fungerar.
+    /// Hårdvarustöd (A12+ med kamera) — falskt i simulatorn, så anroparen
+    /// kan dölja skanningsknappen där den inte fungerar. Avsiktligt UTAN
+    /// isAvailable: den blir falsk även vid nekad kamerabehörighet, och då
+    /// ska knappen synas och leda till "öppna Inställningar"-vyn i stället
+    /// för att tyst försvinna.
     static var isSupported: Bool {
-        DataScannerViewController.isSupported && DataScannerViewController.isAvailable
+        DataScannerViewController.isSupported
+    }
+
+    /// Har användaren aktivt nekat (eller föräldrar spärrat) kameran?
+    static var isCameraBlocked: Bool {
+        switch AVCaptureDevice.authorizationStatus(for: .video) {
+        case .denied, .restricted: true
+        default: false
+        }
     }
 
     func makeUIViewController(context: Context) -> DataScannerViewController {

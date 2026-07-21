@@ -90,6 +90,7 @@ struct ContentView: View {
                 if let uid = authService.currentUserID {
                     await NotificationService.syncMeetupReminders(for: uid)
                 }
+                await NotificationService.syncInsuranceRenewalReminders(dogs: accountDogs)
                 await WidgetDataService.refresh(
                     dogs: activatableDogs,
                     activeDog: activeDogStore.activeDog,

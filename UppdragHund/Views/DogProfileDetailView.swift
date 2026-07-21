@@ -113,7 +113,7 @@ struct DogProfileDetailView: View {
             if let reg = dog.registrationNumber, !reg.isEmpty {
                 Button {
                     UIPasteboard.general.string = reg
-                    withAnimation { didCopyReg = true }
+                    flashCopyConfirmation($didCopyReg)
                 } label: {
                     HStack(spacing: 6) {
                         Text(reg)
@@ -173,7 +173,7 @@ struct DogProfileDetailView: View {
                 // egen rad, nedskalat vid behov så hela alltid syns.
                 Button {
                     UIPasteboard.general.string = number
-                    withAnimation { didCopyInsurance = true }
+                    flashCopyConfirmation($didCopyInsurance)
                 } label: {
                     HStack(spacing: Theme.Spacing.m) {
                         Text(number)
@@ -215,6 +215,15 @@ struct DogProfileDetailView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .cardStyle()
+    }
+
+    /// Visar ✓ en stund efter kopiering och återgår sedan till kopiera-ikonen.
+    private func flashCopyConfirmation(_ flag: Binding<Bool>) {
+        withAnimation { flag.wrappedValue = true }
+        Task {
+            try? await Task.sleep(for: .seconds(1.5))
+            withAnimation { flag.wrappedValue = false }
+        }
     }
 
     /// tel:-URL av telefonnumret (siffror, + och # behålls — mellanslag/bindestreck rensas).

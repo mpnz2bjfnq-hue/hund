@@ -218,11 +218,30 @@ struct JoinTeamByCodeView: View {
             }
             .sheet(isPresented: $isPresentingScanner) {
                 NavigationStack {
-                    QRScannerView { scanned in
-                        code = Self.extractCode(from: scanned)
-                        isPresentingScanner = false
+                    Group {
+                        if QRScannerView.isCameraBlocked {
+                            // Nekad kamera ger annars bara svart bild.
+                            ContentUnavailableView {
+                                Label("Kameran är avstängd", systemImage: "video.slash")
+                            } description: {
+                                Text("Tillåt kameraåtkomst för Canine360 i Inställningar för att kunna skanna QR-koder.")
+                            } actions: {
+                                Button("Öppna Inställningar") {
+                                    if let url = URL(string: UIApplication.openSettingsURLString) {
+                                        UIApplication.shared.open(url)
+                                    }
+                                }
+                                .buttonStyle(.borderedProminent)
+                                .tint(Theme.Colors.brand)
+                            }
+                        } else {
+                            QRScannerView { scanned in
+                                code = Self.extractCode(from: scanned)
+                                isPresentingScanner = false
+                            }
+                            .ignoresSafeArea()
+                        }
                     }
-                    .ignoresSafeArea()
                     .navigationTitle("Skanna QR-kod")
                     .navigationBarTitleDisplayMode(.inline)
                     .toolbar {

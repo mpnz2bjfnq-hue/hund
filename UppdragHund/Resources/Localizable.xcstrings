@@ -4040,6 +4040,16 @@
         }
       }
     },
+    "Kameran är avstängd": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Camera is off"
+          }
+        }
+      }
+    },
     "Kan inte": {
       "localizations": {
         "en": {
@@ -7801,6 +7811,16 @@
         }
       }
     },
+    "Tillåt kameraåtkomst för Canine360 i Inställningar för att kunna skanna QR-koder.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Allow camera access for Canine360 in Settings to scan QR codes."
+          }
+        }
+      }
+    },
     "Tips (valfritt) — t.ex. vattenskål ute, hundgodis i disken": {
       "extractionState": "stale",
       "localizations": {
@@ -9262,6 +9282,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Open"
+          }
+        }
+      }
+    },
+    "Öppna Inställningar": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open Settings"
           }
         }
       }
