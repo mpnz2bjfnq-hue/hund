@@ -131,7 +131,7 @@ final class SyncCoordinator {
         if !dog.isShared, let dogRemoteID = dog.remoteID {
             context.insert(SyncTombstone(dogRemoteID: dogRemoteID, module: "dog"))
         }
-        NotificationService.cancelInsuranceRenewalNotification(for: dog)
+        NotificationService.cancelAllNotifications(for: dog)
         context.delete(dog)
         schedulePush()
     }

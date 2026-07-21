@@ -112,8 +112,13 @@ struct HealthLogView: View {
                         }
                     }
                     .onDelete { offsets in
-                        for index in offsets {
-                            SyncCoordinator.shared.delete(filteredEvents[index], of: dog, in: modelContext)
+                        // Snapshot FÖRE loopen — delete muterar relationsarrayen
+                        // synkront, så indexering direkt i filteredEvents skulle
+                        // träffa fel poster vid flerval.
+                        let doomed = offsets.map { filteredEvents[$0] }
+                        for event in doomed {
+                            NotificationService.cancelHealthEventNotification(for: event)
+                            SyncCoordinator.shared.delete(event, of: dog, in: modelContext)
                         }
                     }
                 }

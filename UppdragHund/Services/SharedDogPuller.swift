@@ -286,6 +286,9 @@ final class SharedDogPuller {
         // Revoke/ägarradering: lokala delade hundar utan kvarvarande share försvinner.
         let remoteDogIDs = keepDogIDs ?? Set(snapshots.compactMap { UUID(uuidString: $0.share.dogRemoteID) })
         for dog in sharedDogs where dog.remoteID == nil || !remoteDogIDs.contains(dog.remoteID!) {
+            // Schemalagda notiser (löp/hälsa) för hunden blir annars
+            // oavbokbara spöken när objektet raderas.
+            NotificationService.cancelAllNotifications(for: dog)
             context.delete(dog)
         }
 
@@ -404,6 +407,10 @@ final class SharedDogPuller {
         }
         for id in plan.deleteLocal {
             if let entry = localByID[id] {
+                // Fjärraderade hälsohändelser: avboka bokningsnotisen också.
+                if let event = entry as? HealthEvent {
+                    NotificationService.cancelHealthEventNotification(for: event)
+                }
                 context.delete(entry)
             }
         }

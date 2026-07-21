@@ -91,6 +91,10 @@ struct ContentView: View {
                     await NotificationService.syncMeetupReminders(for: uid)
                 }
                 await NotificationService.syncInsuranceRenewalReminders(dogs: accountDogs)
+                await NotificationService.syncHeatReminders(dogs: accountDogs)
+                // Städa Live Activity-spöken efter force-quit/krasch mitt i
+                // en promenad — annars tickar låsskärmskortet i timmar.
+                WalkLiveActivityController.shared.endAllStale()
                 await WidgetDataService.refresh(
                     dogs: activatableDogs,
                     activeDog: activeDogStore.activeDog,
@@ -150,6 +154,10 @@ struct ContentView: View {
                 // här är auth redan borta och skrivningar nekas av reglerna.
                 SessionCleanupService.handleSignOut(context: modelContext, activeDogStore: activeDogStore)
                 ensureActiveDogSelected()
+                // Rent bord: förra kontots hundnotiser får inte läcka till
+                // nästa konto på samma enhet. Inloggningssvepen (försäkring/
+                // löp/träffar/träningspåminnelse) bygger upp rätt notiser igen.
+                UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
                 Task { await WidgetDataService.refresh(dogs: [], activeDog: nil, uid: nil) }
             }
         }

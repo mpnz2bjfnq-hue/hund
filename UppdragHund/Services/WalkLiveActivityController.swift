@@ -76,8 +76,9 @@ final class WalkLiveActivityController {
         }
     }
 
-    /// Avslutar alla aktiviteter av vår typ — försäkring mot spöken efter krasch.
-    private func endAllStale() {
+    /// Avslutar alla aktiviteter av vår typ — försäkring mot spöken efter
+    /// krasch/force-quit. Anropas vid promenadstart OCH vid applansering.
+    func endAllStale() {
         for stale in Activity<WalkActivityAttributes>.activities {
             Task { await stale.end(nil, dismissalPolicy: .immediate) }
         }

@@ -172,6 +172,37 @@ enum NotificationService {
         }
     }
 
+    /// Avbokar ALLA notiser knutna till en hund (löpprognos, pågående löp,
+    /// försäkring, hälsohändelser). Anropas när hunden försvinner — radering,
+    /// återkallad delning — eftersom identifierarna inte går att återskapa
+    /// när objektet väl är borta.
+    static func cancelAllNotifications(for dog: Dog) {
+        cancelHeatPredictionNotification(for: dog)
+        cancelOngoingHeatNotifications(for: dog)
+        cancelInsuranceRenewalNotification(for: dog)
+        for event in dog.healthEvents {
+            cancelHealthEventNotification(for: event)
+        }
+    }
+
+    /// Löpnotis-svep vid inloggning (samma logik som KalenderView, som annars
+    /// bara läker när fliken öppnas): prognosnotis + pågående-löp-notiser för
+    /// alla egna tikar. Respekterar löppåminnelse-inställningen.
+    static func syncHeatReminders(dogs: [Dog]) async {
+        guard UserDefaults.standard.object(forKey: "heatRemindersEnabled") as? Bool ?? true else { return }
+        for dog in dogs where !dog.isShared && dog.tracksHeat {
+            let completed = dog.heatCycles.filter { !$0.isOngoing }
+            let reference = BreedDataService.shared.reference(forBreed: dog.breed)
+            let prediction = HeatPredictor.predict(completedCycles: completed, breedReference: reference)
+            if let nextStart = prediction.nextExpectedStartDate {
+                await scheduleHeatPredictionNotification(for: dog, predictedStartDate: nextStart)
+            }
+            if let ongoing = dog.heatCycles.first(where: { $0.isOngoing }) {
+                await scheduleOngoingHeatNotifications(for: dog, cycleStart: ongoing.startDate)
+            }
+        }
+    }
+
     // MARK: - Daglig träningspåminnelse
 
     static let trainingReminderID = "daily-training-reminder"
@@ -243,8 +274,10 @@ enum NotificationService {
 
     // MARK: - Hälsohändelser / bokade besök
 
-    static func healthEventIdentifier(_ event: HealthEvent) -> String {
-        "health-event-\(event.remoteID?.uuidString ?? "\(ObjectIdentifier(event).hashValue)")"
+    /// nil när remoteID saknas — ett ObjectIdentifier-baserat fallback-id vore
+    /// olika per applansering och skulle ge oavbokbara dubblettnotiser.
+    static func healthEventIdentifier(_ event: HealthEvent) -> String? {
+        event.remoteID.map { "health-event-\($0.uuidString)" }
     }
 
     /// Notis på morgonen för en framtida hälsohändelse (t.ex. bokat vet-besök).
@@ -253,8 +286,8 @@ enum NotificationService {
         calendar: Calendar = .current,
         hour: Int = 9
     ) async {
+        guard let id = healthEventIdentifier(event) else { return }
         let center = UNUserNotificationCenter.current()
-        let id = healthEventIdentifier(event)
         center.removePendingNotificationRequests(withIdentifiers: [id])
 
         guard event.date > .now else { return }
@@ -273,8 +306,9 @@ enum NotificationService {
     }
 
     static func cancelHealthEventNotification(for event: HealthEvent) {
+        guard let id = healthEventIdentifier(event) else { return }
         UNUserNotificationCenter.current().removePendingNotificationRequests(
-            withIdentifiers: [healthEventIdentifier(event)]
+            withIdentifiers: [id]
         )
     }
 

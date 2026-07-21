@@ -9,6 +9,7 @@
 import SwiftUI
 import SwiftData
 import LocalAuthentication
+import UserNotifications
 #if DEBUG
 import FirebaseCore
 import FirebaseAppCheck
@@ -170,6 +171,9 @@ struct SettingsView: View {
     /// Rensar all lokal data efter att kontot raderats i molnet.
     @MainActor
     private func wipeLocalData() {
+        // Ett raderat konto ska inte fortsätta få lokala notiser
+        // (daglig träningspåminnelse, löp, försäkring, bokningar …).
+        UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
         do {
             for dog in try modelContext.fetch(FetchDescriptor<Dog>()) {
                 modelContext.delete(dog)

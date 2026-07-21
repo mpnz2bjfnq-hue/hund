@@ -39,7 +39,9 @@ enum WidgetDataService {
             for event in dog.healthEvents where event.date > now {
                 items.append(WidgetSnapshot.Item(
                     date: event.date,
-                    title: event.title,
+                    // Titeln kan vara tom — då blir typen huvudtext (samma
+                    // fallback som notiscentret) i stället för en tom rad.
+                    title: event.title.isEmpty ? event.type.displayName : event.title,
                     subtitle: event.type.displayName,
                     kind: .health
                 ))
