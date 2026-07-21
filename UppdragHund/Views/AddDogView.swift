@@ -28,6 +28,11 @@ struct AddDogView: View {
     @State private var registrationNumber: String
     @State private var chipNumber: String
     @State private var breeder: String
+    @State private var insuranceCompany: String
+    @State private var insuranceNumber: String
+    @State private var insurancePhone: String
+    @State private var hasInsuranceRenewalDate: Bool
+    @State private var insuranceRenewalDate: Date
     @State private var hdResult: String
     @State private var edResult: String
     @State private var mentalTestDone: Bool
@@ -63,6 +68,11 @@ struct AddDogView: View {
         _registrationNumber = State(initialValue: dogToEdit?.registrationNumber ?? "")
         _chipNumber = State(initialValue: dogToEdit?.chipNumber ?? "")
         _breeder = State(initialValue: dogToEdit?.breeder ?? "")
+        _insuranceCompany = State(initialValue: dogToEdit?.insuranceCompany ?? "")
+        _insuranceNumber = State(initialValue: dogToEdit?.insuranceNumber ?? "")
+        _insurancePhone = State(initialValue: dogToEdit?.insurancePhone ?? "")
+        _hasInsuranceRenewalDate = State(initialValue: dogToEdit?.insuranceRenewalDate != nil)
+        _insuranceRenewalDate = State(initialValue: dogToEdit?.insuranceRenewalDate ?? .now)
         _hdResult = State(initialValue: dogToEdit?.hdResult ?? "")
         _edResult = State(initialValue: dogToEdit?.edResult ?? "")
         _mentalTestDone = State(initialValue: dogToEdit?.mentalTestDone ?? false)
@@ -147,6 +157,22 @@ struct AddDogView: View {
                     TextField("Chipnummer", text: $chipNumber)
                         .keyboardType(.numberPad)
                     TextField("Uppfödare", text: $breeder)
+                }
+
+                Section {
+                    TextField("Försäkringsbolag", text: $insuranceCompany)
+                    TextField("Försäkringsnummer", text: $insuranceNumber)
+                        .autocorrectionDisabled()
+                    TextField("Telefon till bolaget", text: $insurancePhone)
+                        .keyboardType(.phonePad)
+                    Toggle("Förnyelsedatum", isOn: $hasInsuranceRenewalDate.animation())
+                    if hasInsuranceRenewalDate {
+                        DatePicker("Förnyas", selection: $insuranceRenewalDate, displayedComponents: .date)
+                    }
+                } header: {
+                    Text("Försäkring (valfritt)")
+                } footer: {
+                    Text("Visas som kort på hundens profil så du har uppgifterna till hands hos veterinären.")
                 }
 
                 Section {
@@ -238,6 +264,10 @@ struct AddDogView: View {
             dogToEdit.registrationNumber = trimmedOrNil(registrationNumber)
             dogToEdit.chipNumber = trimmedOrNil(chipNumber)
             dogToEdit.breeder = trimmedOrNil(breeder)
+            dogToEdit.insuranceCompany = trimmedOrNil(insuranceCompany)
+            dogToEdit.insuranceNumber = trimmedOrNil(insuranceNumber)
+            dogToEdit.insurancePhone = trimmedOrNil(insurancePhone)
+            dogToEdit.insuranceRenewalDate = hasInsuranceRenewalDate ? insuranceRenewalDate : nil
             dogToEdit.hdResult = hdResult.isEmpty ? nil : hdResult
             dogToEdit.edResult = edResult.isEmpty ? nil : edResult
             dogToEdit.mentalTestDone = mentalTestDone
@@ -262,6 +292,10 @@ struct AddDogView: View {
             dog.registrationNumber = trimmedOrNil(registrationNumber)
             dog.chipNumber = trimmedOrNil(chipNumber)
             dog.breeder = trimmedOrNil(breeder)
+            dog.insuranceCompany = trimmedOrNil(insuranceCompany)
+            dog.insuranceNumber = trimmedOrNil(insuranceNumber)
+            dog.insurancePhone = trimmedOrNil(insurancePhone)
+            dog.insuranceRenewalDate = hasInsuranceRenewalDate ? insuranceRenewalDate : nil
             dog.hdResult = hdResult.isEmpty ? nil : hdResult
             dog.edResult = edResult.isEmpty ? nil : edResult
             dog.mentalTestDone = mentalTestDone

@@ -15,9 +15,21 @@ struct DogProfileDetailView: View {
     @State private var currentUser = CurrentUserStore.shared
     @State private var isEditing = false
     @State private var didCopyReg = false
+    @State private var didCopyInsurance = false
 
     private var isRegistered: Bool {
         dog.registrationNumber?.isEmpty == false
+    }
+
+    /// Försäkringskortet visas bara på egna hundar (uppgifterna är ägarens),
+    /// och bara när minst ett fält är ifyllt.
+    private var showsInsurance: Bool {
+        !dog.isShared && (
+            dog.insuranceCompany?.isEmpty == false ||
+            dog.insuranceNumber?.isEmpty == false ||
+            dog.insurancePhone?.isEmpty == false ||
+            dog.insuranceRenewalDate != nil
+        )
     }
 
     private var ownerName: String? {
@@ -31,6 +43,9 @@ struct DogProfileDetailView: View {
                     memorialBanner
                 }
                 heroCard
+                if showsInsurance {
+                    insuranceCard
+                }
                 informationCard
             }
             .padding(Theme.Spacing.l)
@@ -120,6 +135,87 @@ struct DogProfileDetailView: View {
         }
         .frame(maxWidth: .infinity)
         .cardStyle(padding: Theme.Spacing.xl)
+    }
+
+    // MARK: - Försäkring
+
+    private var insuranceCard: some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.m) {
+            HStack(spacing: 6) {
+                Image(systemName: "shield.checkered")
+                    .font(.subheadline)
+                    .foregroundStyle(Theme.Colors.verified)
+                Text("Försäkring")
+                    .font(Theme.Typography.sectionTitle)
+                    .foregroundStyle(Theme.Colors.textPrimary)
+            }
+
+            if let company = dog.insuranceCompany, !company.isEmpty {
+                Text(company)
+                    .font(Theme.Typography.body.weight(.semibold))
+                    .foregroundStyle(Theme.Colors.textPrimary)
+            }
+
+            if let renewal = dog.insuranceRenewalDate {
+                HStack {
+                    Text("Förnyas")
+                        .font(Theme.Typography.body)
+                        .foregroundStyle(Theme.Colors.textSecondary)
+                    Spacer()
+                    Text(renewal.formatted(date: .abbreviated, time: .omitted))
+                        .font(Theme.Typography.body)
+                        .foregroundStyle(Theme.Colors.textPrimary)
+                }
+            }
+
+            HStack(spacing: Theme.Spacing.m) {
+                if let number = dog.insuranceNumber, !number.isEmpty {
+                    Button {
+                        UIPasteboard.general.string = number
+                        withAnimation { didCopyInsurance = true }
+                    } label: {
+                        HStack(spacing: 6) {
+                            Text(number)
+                                .font(.footnote.monospaced())
+                                .lineLimit(1)
+                            Image(systemName: didCopyInsurance ? "checkmark" : "doc.on.doc")
+                                .font(.caption)
+                        }
+                        .foregroundStyle(Theme.Colors.verified)
+                        .padding(.horizontal, Theme.Spacing.m)
+                        .padding(.vertical, 6)
+                        .background(Theme.Colors.verified.opacity(0.12), in: Capsule())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Kopiera försäkringsnummer")
+                }
+
+                if let phoneURL = insurancePhoneURL {
+                    Link(destination: phoneURL) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "phone.fill")
+                                .font(.caption)
+                            Text("Ring bolaget")
+                                .font(.footnote.weight(.semibold))
+                        }
+                        .foregroundStyle(Theme.Colors.brand)
+                        .padding(.horizontal, Theme.Spacing.m)
+                        .padding(.vertical, 6)
+                        .background(Theme.Colors.brand.opacity(0.12), in: Capsule())
+                    }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .cardStyle()
+    }
+
+    /// tel:-URL av telefonnumret (siffror, + och # behålls — mellanslag/bindestreck rensas).
+    private var insurancePhoneURL: URL? {
+        guard let phone = dog.insurancePhone, !phone.isEmpty else { return nil }
+        let cleaned = phone.filter { $0.isNumber || $0 == "+" || $0 == "#" || $0 == "*" }
+        guard !cleaned.isEmpty else { return nil }
+        return URL(string: "tel:\(cleaned)")
     }
 
     // MARK: - Information
