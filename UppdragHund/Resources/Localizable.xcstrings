@@ -1251,6 +1251,16 @@
         }
       }
     },
+    "Beräknad fas: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Estimated phase: %@"
+          }
+        }
+      }
+    },
     "Beskriv gärna vad som hände och vilken skärm du var på, så kan vi hjälpa dig snabbare.": {
       "localizations": {
         "en": {
@@ -2691,6 +2701,16 @@
         }
       }
     },
+    "Förväntat löp har passerat (%@) — registrera när det börjar.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The expected heat has passed (%@) — log it when it starts."
+          }
+        }
+      }
+    },
     "GPS BRA": {
       "localizations": {
         "en": {
@@ -2787,6 +2807,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Good afternoon with %@ 🐾"
+          }
+        }
+      }
+    },
+    "God förmiddag med %@ 🐾": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Good late morning with %@ 🐾"
           }
         }
       }
