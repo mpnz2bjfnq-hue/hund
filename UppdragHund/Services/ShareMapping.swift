@@ -31,6 +31,10 @@ enum ShareMapping {
             registrationNumber: dog.registrationNumber,
             chipNumber: dog.chipNumber,
             breeder: dog.breeder,
+            insuranceCompany: dog.insuranceCompany,
+            insuranceNumber: dog.insuranceNumber,
+            insurancePhone: dog.insurancePhone,
+            insuranceRenewalDate: dog.insuranceRenewalDate,
             hdResult: dog.hdResult,
             edResult: dog.edResult,
             mentalTestDone: dog.mentalTestDone,
@@ -70,6 +74,10 @@ enum ShareMapping {
         dog.registrationNumber = doc.registrationNumber
         dog.chipNumber = doc.chipNumber
         dog.breeder = doc.breeder
+        dog.insuranceCompany = doc.insuranceCompany
+        dog.insuranceNumber = doc.insuranceNumber
+        dog.insurancePhone = doc.insurancePhone
+        dog.insuranceRenewalDate = doc.insuranceRenewalDate
         dog.hdResult = doc.hdResult
         dog.edResult = doc.edResult
         dog.mentalTestDone = doc.mentalTestDone ?? false

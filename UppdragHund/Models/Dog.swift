@@ -41,6 +41,13 @@ final class Dog {
     var chipNumber: String? = nil
     var breeder: String? = nil
 
+    // Försäkring (valfritt) — visas som kort på hundprofilen så uppgifterna
+    // finns till hands hos veterinären (direktreglering).
+    var insuranceCompany: String? = nil
+    var insuranceNumber: String? = nil
+    var insurancePhone: String? = nil
+    var insuranceRenewalDate: Date? = nil
+
     // Meriter & hälsostatus — visas som badges på hundprofilen.
     var hdResult: String? = nil        // Höftledsröntgen: A–E
     var edResult: String? = nil        // Armbågsröntgen: 0–3

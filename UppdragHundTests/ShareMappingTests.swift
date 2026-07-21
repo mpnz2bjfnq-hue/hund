@@ -125,6 +125,35 @@ struct ShareMappingTests {
         #expect(target.breeder == "Kennel Example")
     }
 
+    @Test func dogRoundTripPreservesInsuranceFields() {
+        let renewal = stamp.addingTimeInterval(180 * 86_400)
+        let dog = Dog(name: "Sixten", breed: "Malinois", birthDate: .now, sex: .male)
+        dog.insuranceCompany = "Agria"
+        dog.insuranceNumber = "123456-7"
+        dog.insurancePhone = "0775-88 88 88"
+        dog.insuranceRenewalDate = renewal
+
+        let doc = ShareMapping.dogDoc(from: dog, owner: author)
+        let target = Dog(name: "", breed: "", birthDate: .now, sex: .female)
+        ShareMapping.apply(doc, to: target)
+
+        #expect(target.insuranceCompany == "Agria")
+        #expect(target.insuranceNumber == "123456-7")
+        #expect(target.insurancePhone == "0775-88 88 88")
+        #expect(target.insuranceRenewalDate == renewal)
+
+        // Gamla dokument utan försäkringsfält ska ge nil, inte krascha.
+        var legacy = doc
+        legacy.insuranceCompany = nil
+        legacy.insuranceNumber = nil
+        legacy.insurancePhone = nil
+        legacy.insuranceRenewalDate = nil
+        let legacyTarget = Dog(name: "", breed: "", birthDate: .now, sex: .female)
+        ShareMapping.apply(legacy, to: legacyTarget)
+        #expect(legacyTarget.insuranceCompany == nil)
+        #expect(legacyTarget.insuranceRenewalDate == nil)
+    }
+
     @Test func dogMeritsRoundTripAndDefaultToFalse() {
         let dog = Dog(name: "Sixten", breed: "Malinois", birthDate: .now, sex: .male)
         dog.hdResult = "A"

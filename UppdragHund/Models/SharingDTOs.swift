@@ -41,6 +41,11 @@ struct SharedDogDoc: Codable, Equatable {
     var registrationNumber: String? = nil
     var chipNumber: String? = nil
     var breeder: String? = nil
+    // Försäkring. Valfria av samma bakåtkompatibilitetsskäl.
+    var insuranceCompany: String? = nil
+    var insuranceNumber: String? = nil
+    var insurancePhone: String? = nil
+    var insuranceRenewalDate: Date? = nil
     // Meriter (badges). Valfria av samma bakåtkompatibilitetsskäl.
     var hdResult: String? = nil
     var edResult: String? = nil
