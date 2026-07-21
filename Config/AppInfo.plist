@@ -15,6 +15,8 @@
 	</array>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<key>NSCameraUsageDescription</key>
+	<string>Kameran används för att skanna QR-koder som bjuder in till team.</string>
 	<key>NSMotionUsageDescription</key>
 	<string>Stegräknaren kombineras med GPS så att promenadens sträcka blir mer exakt.</string>
 	<key>NSSupportsLiveActivities</key>

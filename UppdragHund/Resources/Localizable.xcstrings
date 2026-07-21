@@ -6663,6 +6663,16 @@
         }
       }
     },
+    "Skanna QR-kod": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scan QR code"
+          }
+        }
+      }
+    },
     "Skapa din profil": {
       "localizations": {
         "en": {

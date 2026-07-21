@@ -27,6 +27,12 @@ struct TeamInviteCodeSheet: View {
         return "\(code.prefix(4))-\(code.suffix(4))"
     }
 
+    /// Djuplänk i QR-koden — systemkameran kan då öppna appen direkt på
+    /// gå med-vyn med koden ifylld (kräver att appen är installerad).
+    private var joinLink: String {
+        "\(WidgetDeepLink.scheme)://team/join?code=\(code ?? "")"
+    }
+
     private var shareText: String {
         """
         Gå med i mitt team "\(team.name)" i Canine360! 🐾
@@ -64,7 +70,7 @@ struct TeamInviteCodeSheet: View {
                                 }
                             }
 
-                        if let qr = QRCodeImage.make(from: code) {
+                        if let qr = QRCodeImage.make(from: joinLink) {
                             Image(uiImage: qr)
                                 .interpolation(.none)
                                 .resizable()
@@ -148,13 +154,31 @@ struct JoinTeamByCodeView: View {
     var onJoined: () -> Void = {}
 
     @Environment(\.dismiss) private var dismiss
-    @State private var code = ""
+    @State private var code: String
     @State private var isJoining = false
     @State private var errorMessage: String?
     @State private var joinedTeamName: String?
+    @State private var isPresentingScanner = false
+
+    init(initialCode: String = "", onJoined: @escaping () -> Void = {}) {
+        self.onJoined = onJoined
+        _code = State(initialValue: initialCode)
+    }
 
     private var canJoin: Bool {
         code.filter(\.isLetter).count + code.filter(\.isNumber).count >= 6
+    }
+
+    /// QR:n kan innehålla antingen djuplänken (canine360://team/join?code=…)
+    /// eller, från äldre koder, bara själva koden.
+    static func extractCode(from scanned: String) -> String {
+        if let url = URL(string: scanned),
+           url.scheme == WidgetDeepLink.scheme,
+           let code = URLComponents(url: url, resolvingAgainstBaseURL: false)?
+               .queryItems?.first(where: { $0.name == "code" })?.value {
+            return code
+        }
+        return scanned
     }
 
     var body: some View {
@@ -165,6 +189,13 @@ struct JoinTeamByCodeView: View {
                         .textInputAutocapitalization(.characters)
                         .autocorrectionDisabled()
                         .font(.system(.title3, design: .monospaced))
+                    if QRScannerView.isSupported {
+                        Button {
+                            isPresentingScanner = true
+                        } label: {
+                            Label("Skanna QR-kod", systemImage: "qrcode.viewfinder")
+                        }
+                    }
                 } footer: {
                     Text("Koden får du av din hundinstruktör eller teamets ägare.")
                 }
@@ -184,6 +215,22 @@ struct JoinTeamByCodeView: View {
             }
             .bottomActionButton("Gå med", disabled: !canJoin, isBusy: isJoining) {
                 join()
+            }
+            .sheet(isPresented: $isPresentingScanner) {
+                NavigationStack {
+                    QRScannerView { scanned in
+                        code = Self.extractCode(from: scanned)
+                        isPresentingScanner = false
+                    }
+                    .ignoresSafeArea()
+                    .navigationTitle("Skanna QR-kod")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("Avbryt") { isPresentingScanner = false }
+                        }
+                    }
+                }
             }
             .alert(
                 "Välkommen! 🎉",

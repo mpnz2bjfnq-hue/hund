@@ -40,12 +40,14 @@ private enum PushDestination: Identifiable {
     case team(Team)
     case meetup(Meetup)
     case friends
+    case joinTeam(code: String)
 
     var id: String {
         switch self {
         case .team(let team): "team-\(team.id ?? "")"
         case .meetup(let meetup): "meetup-\(meetup.id ?? "")"
         case .friends: "friends"
+        case .joinTeam(let code): "join-team-\(code)"
         }
     }
 }
@@ -149,6 +151,8 @@ struct MainTabView: View {
                 MeetupDetailView(meetup: meetup)
             case .friends:
                 FriendsView()
+            case .joinTeam(let code):
+                JoinTeamByCodeView(initialCode: code)
             }
         }
     }
@@ -175,6 +179,11 @@ struct MainTabView: View {
             pushDestination = .friends
         case "team":
             selectedTab = .flode
+            // QR-inbjudan: canine360://team/join?code=… → gå med-vyn ifylld.
+            if url.lastPathComponent == "join", let code = queryValue(url, name: "code") {
+                pushDestination = .joinTeam(code: code)
+                return
+            }
             guard let id = queryValue(url, name: "id") else { return }
             Task {
                 if let team = await TeamsRepository.shared.team(id: id) {
