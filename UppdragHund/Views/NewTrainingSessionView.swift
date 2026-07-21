@@ -94,6 +94,7 @@ struct NewTrainingSessionView: View {
             return
         }
         SyncCoordinator.shared.entryTouched(session, dog: dog)
+        ReviewPrompter.registerMeaningfulEvent()
         dismiss()
     }
 }

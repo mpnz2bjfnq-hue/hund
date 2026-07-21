@@ -246,6 +246,8 @@ struct WalkTrackerView: View {
         session.steps = tracker.stepCount > 0 ? tracker.stepCount : nil
         modelContext.insert(session)
         SyncCoordinator.shared.entryTouched(session, dog: dog)
+        // En sparad promenad är ett bra ögonblick — kan trigga betygsfrågan.
+        ReviewPrompter.registerMeaningfulEvent()
         dismiss()
     }
 }

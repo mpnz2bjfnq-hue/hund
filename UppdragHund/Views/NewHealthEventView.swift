@@ -154,6 +154,7 @@ struct NewHealthEventView: View {
             return
         }
         SyncCoordinator.shared.entryTouched(event, dog: dog)
+        ReviewPrompter.registerMeaningfulEvent()
         dismiss()
     }
 }

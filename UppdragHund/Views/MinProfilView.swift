@@ -553,8 +553,16 @@ struct MinProfilView: View {
                     SettingsView()
                 }
                 rowDivider
-                ShareLink(item: "Kolla in Canine360 – appen för allt om din hund! 🐾") {
+                ShareLink(
+                    item: ReviewPrompter.appStoreURL,
+                    message: Text("Kolla in Canine360 – appen för allt om din hund! 🐾")
+                ) {
                     settingsRowLabel(icon: "square.and.arrow.up", title: "Dela appen")
+                }
+                .buttonStyle(.plain)
+                rowDivider
+                Link(destination: ReviewPrompter.writeReviewURL) {
+                    settingsRowLabel(icon: "star", title: "Betygsätt Canine360")
                 }
                 .buttonStyle(.plain)
                 rowDivider

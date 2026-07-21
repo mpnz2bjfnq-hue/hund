@@ -119,6 +119,7 @@ struct NewDiaryEntryView: View {
             return
         }
         SyncCoordinator.shared.entryTouched(entry, dog: dog)
+        ReviewPrompter.registerMeaningfulEvent()
         dismiss()
     }
 }
