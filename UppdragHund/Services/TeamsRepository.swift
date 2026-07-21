@@ -368,6 +368,10 @@ final class TeamsRepository {
         try await db.collection("meetups").document(meetupID).updateData([
             "goingUids": going ? FieldValue.arrayUnion([uid]) : FieldValue.arrayRemove([uid]),
             "declinedUids": going ? FieldValue.arrayRemove([uid]) : FieldValue.arrayUnion([uid]),
+            // Öppna stadsträffar: skriv in sig själv i invitedUids också —
+            // upcomingMeetups/påminnelserna frågar på den listan, annars
+            // syns träffen man tackat ja till aldrig under "Träffar".
+            "invitedUids": FieldValue.arrayUnion([uid]),
             "invitedNames.\(uid)": name
         ])
     }

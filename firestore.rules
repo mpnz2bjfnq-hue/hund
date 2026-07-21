@@ -125,10 +125,15 @@ service cloud.firestore {
                     && request.resource.data.authorUid == request.auth.uid
                     && request.resource.data.replyCount == 0;
       // Vid svar behöver vem som helst kunna räkna upp replyCount/aktivitet,
-      // men inget annat på tråden får röras av andra än författaren/admin.
+      // men inget annat på tråden får röras av andra än författaren/admin —
+      // och räknaren får bara stega ±1 (klienten gör increment(±1)), inte
+      // sättas till godtyckliga värden på andras trådar.
       allow update: if request.auth != null
                     && request.resource.data.diff(resource.data).affectedKeys()
-                         .hasOnly(['replyCount', 'lastActivityAt']);
+                         .hasOnly(['replyCount', 'lastActivityAt'])
+                    && (request.resource.data.replyCount == resource.data.replyCount + 1
+                        || request.resource.data.replyCount == resource.data.replyCount - 1)
+                    && request.resource.data.replyCount >= 0;
       allow delete: if (request.auth != null && request.auth.uid == resource.data.authorUid)
                     || isAdmin();
 
@@ -315,16 +320,53 @@ service cloud.firestore {
                             && (meetupTeam().get('teamType', '') == 'social'
                                 || request.auth.uid == meetupTeam().ownerUid
                                 || request.auth.uid in meetupTeam().get('consultantUids', []))));
+      // RSVP-arrayerna: bara det EGNA uid:t får läggas till/tas bort —
+      // annars kan en inbjuden skriva in eller radera ANDRAS svar
+      // (t.ex. fylla en kurs med falska deltagare).
+      function rsvpSelfOnly(field) {
+        return request.resource.data.get(field, []).toSet()
+                 .difference(resource.data.get(field, []).toSet())
+                 .hasOnly([request.auth.uid])
+            && resource.data.get(field, []).toSet()
+                 .difference(request.resource.data.get(field, []).toSet())
+                 .hasOnly([request.auth.uid]);
+      }
+      // invitedUids: man får lägga till SIG SJÄLV (öppna stadsträffar — så
+      // träffen syns i ens egen träfflista/påminnelser), aldrig ta bort någon.
+      function invitedAddSelfOnly() {
+        return request.resource.data.get('invitedUids', []).toSet()
+                 .difference(resource.data.get('invitedUids', []).toSet())
+                 .hasOnly([request.auth.uid])
+            && resource.data.get('invitedUids', []).toSet()
+                 .difference(request.resource.data.get('invitedUids', []).toSet())
+                 .size() == 0;
+      }
+      // maxSpots: att lägga till sig själv i goingUids kräver ledig plats.
+      // Reglerna utvärderas mot senast committade dokumentet, så två
+      // samtidiga "sista platsen"-svar kan inte längre överboka.
+      function withinCapacity() {
+        return resource.data.get('maxSpots', 0) == 0
+            || request.auth.uid in resource.data.get('goingUids', [])
+            || !(request.auth.uid in request.resource.data.get('goingUids', []))
+            || request.resource.data.get('goingUids', []).size() <= resource.data.get('maxSpots', 0);
+      }
       // Ägaren ändrar allt; inbjudna och stadens medlemmar svarar (going/
-      // declined) och får skriva sitt EGET namn i invitedNames — inte någon
-      // annans, och inga andra fält.
+      // declined), får lägga till sig i invitedUids och skriva sitt EGET
+      // namn i invitedNames — inte någon annans, och inga andra fält.
+      // get(..., {}) på invitedNames: stadsträffar kan sakna fältet helt.
       allow update: if request.auth != null
                     && (request.auth.uid == resource.data.ownerUid
                         || ((request.auth.uid in resource.data.invitedUids
                              || isCommunityMember(resource.data))
-                            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['goingUids', 'declinedUids', 'invitedNames'])
-                            && request.resource.data.invitedNames.diff(resource.data.invitedNames).affectedKeys().hasOnly([request.auth.uid])));
-      allow delete: if request.auth != null && request.auth.uid == resource.data.ownerUid;
+                            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['goingUids', 'declinedUids', 'invitedUids', 'invitedNames'])
+                            && rsvpSelfOnly('goingUids')
+                            && rsvpSelfOnly('declinedUids')
+                            && invitedAddSelfOnly()
+                            && withinCapacity()
+                            && request.resource.data.get('invitedNames', {}).diff(resource.data.get('invitedNames', {})).affectedKeys().hasOnly([request.auth.uid])));
+      // Admin behöver kunna ta bort rapporterade träffar.
+      allow delete: if (request.auth != null && request.auth.uid == resource.data.ownerUid)
+                    || isAdmin();
     }
 
     match /friendRequests/{requestId} {

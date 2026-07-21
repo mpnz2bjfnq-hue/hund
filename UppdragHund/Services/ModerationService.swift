@@ -203,6 +203,29 @@ final class AdminService {
 
     /// Raderar det anmälda innehållet (inlägg eller kommentar) som admin.
     func deleteReportedContent(_ report: ContentReport) async throws {
+        // Forum och träffar bor i egna toppkollektioner — de gamla post-
+        // sökvägarna nedan träffade obefintliga dokument ("lyckades" tyst).
+        switch report.contentType {
+        case "forumThread":
+            // Svaren följer inte med dokumentraderingen — töm dem först.
+            let threadRef = db.collection("forum").document(report.postID)
+            let replies = try await threadRef.collection("replies").getDocuments()
+            for doc in replies.documents {
+                try await doc.reference.delete()
+            }
+            try await threadRef.delete()
+            return
+        case "forumReply":
+            try await db.collection("forum").document(report.postID)
+                .collection("replies").document(report.contentID).delete()
+            return
+        case "meetup":
+            try await db.collection("meetups").document(report.postID).delete()
+            return
+        default:
+            break
+        }
+
         let postRef: DocumentReference
         if let teamId = report.teamId {
             postRef = db.collection("teams").document(teamId)

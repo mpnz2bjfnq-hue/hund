@@ -291,7 +291,16 @@ async function deleteAllUserData(uid: string): Promise<void> {
     db.collection("teams").where("ownerUid", "==", uid).get(),
     db.collection("teams").where("memberUids", "array-contains", uid).get(),
   ]);
-  await Promise.all(ownedTeams.docs.map((d) => d.ref.delete().catch(() => undefined)));
+  await Promise.all(
+    ownedTeams.docs.map((d) =>
+      Promise.all([
+        d.ref.delete().catch(() => undefined),
+        // Teamets inbjudningskod ligger i en egen kollektion — utan detta
+        // kan koden fortsätta släppa in folk i ett borttaget team-id.
+        db.collection("teamJoinCodes").doc(d.id).delete().catch(() => undefined),
+      ])
+    )
+  );
   await Promise.all(
     memberTeams.docs
       .filter((d) => d.data().ownerUid !== uid)
@@ -326,7 +335,53 @@ async function deleteAllUserData(uid: string): Promise<void> {
       )
   );
 
-  // 8) Själva inloggningskontot.
+  // 8) Privata molnbackuper (userBackups/{uid}/…) — separat toppkollektion
+  //    som recursiveDelete på users/{uid} INTE når. GDPR-kritiskt: här ligger
+  //    bl.a. hela träningspass-biblioteket.
+  await db.recursiveDelete(db.collection("userBackups").doc(uid)).catch(() => undefined);
+
+  // 9) Enhetstokens som pekar på kontot.
+  const tokens = await db.collection("deviceTokens").where("uid", "==", uid).get();
+  await Promise.all(tokens.docs.map((d) => d.ref.delete().catch(() => undefined)));
+
+  // 10) Forum: egna trådar (inkl. svar) raderas; egna svar i andras trådar tas bort.
+  const threads = await db.collection("forum").get();
+  await Promise.all(
+    threads.docs.map(async (t) => {
+      if (t.data().authorUid === uid) {
+        await db.recursiveDelete(t.ref).catch(() => undefined);
+        return;
+      }
+      const myReplies = await t.ref
+        .collection("replies")
+        .where("authorUid", "==", uid)
+        .get()
+        .catch(() => undefined);
+      if (!myReplies) return;
+      await Promise.all(myReplies.docs.map((r) => r.ref.delete().catch(() => undefined)));
+    })
+  );
+
+  // 11) Stadsgrupper: mitt medlemsdokument (delete triggar memberCount-omräkningen).
+  const communities = await db.collection("communities").get();
+  await Promise.all(
+    communities.docs.map((c) => c.ref.collection("members").doc(uid).delete().catch(() => undefined))
+  );
+
+  // 12) Teaminbjudningar, rapporter och supportärenden med mitt uid.
+  const [invitesFrom, invitesTo, myReports, myTickets] = await Promise.all([
+    db.collection("teamInvites").where("fromUid", "==", uid).get(),
+    db.collection("teamInvites").where("toUid", "==", uid).get(),
+    db.collection("reports").where("reporterUid", "==", uid).get(),
+    db.collection("supportTickets").where("uid", "==", uid).get(),
+  ]);
+  await Promise.all(
+    [...invitesFrom.docs, ...invitesTo.docs, ...myReports.docs, ...myTickets.docs].map((d) =>
+      d.ref.delete().catch(() => undefined)
+    )
+  );
+
+  // 13) Själva inloggningskontot.
   await getAuth().deleteUser(uid).catch(() => undefined);
 }
 
@@ -454,8 +509,9 @@ export const joinTeamWithCode = onCall({ region: REGION }, async (request) => {
   if (!team) {
     throw new HttpsError("not-found", "Teamet finns inte längre.");
   }
+  const teamName: string = team.name || "teamet";
   if ((team.memberUids ?? []).includes(uid)) {
-    return { ok: true, teamId, teamName: team.name, alreadyMember: true };
+    return { ok: true, teamId, teamName, alreadyMember: true };
   }
 
   const profile = await db.collection("users").doc(uid).get();
@@ -469,7 +525,7 @@ export const joinTeamWithCode = onCall({ region: REGION }, async (request) => {
   // Säg till ägaren att någon anslutit.
   await sendToUser(
     team.ownerUid,
-    { sv: `Ny medlem i ${team.name}`, en: `New member in ${team.name}` },
+    { sv: `Ny medlem i ${teamName}`, en: `New member in ${teamName}` },
     {
       sv: `${name} gick med via inbjudningskoden.`,
       en: `${name} joined using the invite code.`,
@@ -478,7 +534,7 @@ export const joinTeamWithCode = onCall({ region: REGION }, async (request) => {
   ).catch(() => undefined);
 
   logger.info(`${uid} gick med i team ${teamId} via kod`);
-  return { ok: true, teamId, teamName: team.name, alreadyMember: false };
+  return { ok: true, teamId, teamName, alreadyMember: false };
 });
 
 /** 10) Vänlista ändrad → uppdatera denormaliserat friendCount på profilen,
@@ -487,12 +543,14 @@ export const onFriendsChanged = onDocumentWritten(
   { document: "users/{uid}/friends/{friendId}", region: REGION },
   async (event) => {
     const uid = event.params.uid;
-    const snap = await db.collection("users").doc(uid).collection("friends").count().get();
-    await db
-      .collection("users")
-      .doc(uid)
-      .set({ friendCount: snap.data().count }, { merge: true })
-      .catch(() => undefined);
+    const userRef = db.collection("users").doc(uid);
+    // Kontoradering triggar också den här (friends-subkollektionen töms) —
+    // utan exists-vakten återuppstår ett spök-profildokument med bara
+    // friendCount efter att kontot raderats.
+    const userSnap = await userRef.get();
+    if (!userSnap.exists) return;
+    const snap = await userRef.collection("friends").count().get();
+    await userRef.set({ friendCount: snap.data().count }, { merge: true }).catch(() => undefined);
   }
 );
 

@@ -489,6 +489,14 @@ struct MeetupDetailView: View {
             }
             .task { await loadLinkedTasks() }
             .task { await loadMembership() }
+            .task {
+                // Hämta färskt läge vid öppning — RSVP-knappen får annars
+                // gate:as av ett gammalt snapshot (t.ex. "fullbokat" som inte
+                // stämmer, eller tvärtom).
+                if let id = meetup.id, let fresh = await TeamsRepository.shared.meetup(id: id) {
+                    meetup = fresh
+                }
+            }
         }
     }
 

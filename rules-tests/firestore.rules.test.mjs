@@ -17,7 +17,8 @@ import {
   assertFails,
 } from "@firebase/rules-unit-testing";
 import {
-  doc, getDoc, getDocs, setDoc, deleteDoc, collection, query, where,
+  doc, getDoc, getDocs, setDoc, deleteDoc, updateDoc, collection, query, where,
+  arrayUnion, arrayRemove, increment,
 } from "firebase/firestore";
 
 const OWNER = "owner-uid";
@@ -102,6 +103,36 @@ beforeEach(async () => {
       title: "Träna inkallning", note: null, dueDate: null,
       createdByUid: OWNER, createdByName: "Alex", createdAt: TASK_CREATED,
       completedUids: [],
+    });
+    // Träffar: vänträff med platser kvar, fullbokad träff, och en stadsträff
+    // som saknar invitedNames-fältet helt (nil-säkerheten i update-regeln).
+    await setDoc(doc(db, "meetups", "meetup-1"), {
+      title: "Träningsträff", locationName: "Parken", date: new Date(),
+      ownerUid: OWNER, ownerName: "Alex",
+      invitedUids: [FRIEND, STRANGER], invitedNames: { [OWNER]: "Alex" },
+      goingUids: [STRANGER], declinedUids: [], createdAt: new Date(), maxSpots: 2,
+    });
+    await setDoc(doc(db, "meetups", "meetup-full"), {
+      title: "Full kurs", locationName: "Hallen", date: new Date(),
+      ownerUid: OWNER, ownerName: "Alex",
+      invitedUids: [FRIEND, STRANGER], invitedNames: {},
+      goingUids: [STRANGER], declinedUids: [], createdAt: new Date(), maxSpots: 1,
+    });
+    await setDoc(doc(db, "communities", "city-1"), {
+      name: "Hundstaden", memberCount: 1, createdAt: new Date(),
+    });
+    await setDoc(doc(db, "communities", "city-1", "members", STRANGER), {
+      joinedAt: new Date(),
+    });
+    await setDoc(doc(db, "meetups", "meetup-city"), {
+      title: "Stadsträff", locationName: "Torget", date: new Date(),
+      ownerUid: OWNER, ownerName: "Alex", communityId: "city-1",
+      invitedUids: [], goingUids: [], declinedUids: [], createdAt: new Date(),
+    });
+    // Forumtråd för replyCount-hårdningen.
+    await setDoc(doc(db, "forum", "thread-1"), {
+      title: "Tråd", text: "Innehåll", authorUid: OWNER, authorName: "Alex",
+      replyCount: 3, lastActivityAt: new Date(), createdAt: new Date(),
     });
     // Väntande vänförfrågan OWNER → FRIEND (vänstatus-frågorna på profilen).
     await setDoc(doc(db, "friendRequests", "req-1"), {
@@ -372,4 +403,55 @@ test("främling kan inte fråga på andras förfrågningar", async () => {
     where("toUid", "==", FRIEND),
     where("status", "==", "pending")
   )));
+});
+
+// ===== meetups: RSVP-hårdningen =====
+
+test("inbjuden kan svara för SIG SJÄLV (going + invitedUids + invitedNames)", async () => {
+  await assertSucceeds(updateDoc(doc(asUser(FRIEND), "meetups", "meetup-1"), {
+    goingUids: arrayUnion(FRIEND),
+    declinedUids: arrayRemove(FRIEND),
+    invitedUids: arrayUnion(FRIEND),
+    ["invitedNames." + FRIEND]: "Vän",
+  }));
+});
+
+test("inbjuden kan INTE skriva in någon annans uid i goingUids", async () => {
+  await assertFails(updateDoc(doc(asUser(FRIEND), "meetups", "meetup-1"), {
+    goingUids: arrayUnion(OWNER),
+  }));
+});
+
+test("inbjuden kan INTE ta bort någon annans RSVP", async () => {
+  await assertFails(updateDoc(doc(asUser(FRIEND), "meetups", "meetup-1"), {
+    goingUids: arrayRemove(STRANGER),
+  }));
+});
+
+test("fullbokad träff nekar nya going-svar men tillåter avböj (maxSpots)", async () => {
+  await assertFails(updateDoc(doc(asUser(FRIEND), "meetups", "meetup-full"), {
+    goingUids: arrayUnion(FRIEND),
+  }));
+  await assertSucceeds(updateDoc(doc(asUser(FRIEND), "meetups", "meetup-full"), {
+    declinedUids: arrayUnion(FRIEND),
+  }));
+});
+
+test("stadsmedlem kan svara på stadsträff som saknar invitedNames-fältet", async () => {
+  await assertSucceeds(updateDoc(doc(asUser(STRANGER), "meetups", "meetup-city"), {
+    goingUids: arrayUnion(STRANGER),
+    invitedUids: arrayUnion(STRANGER),
+    ["invitedNames." + STRANGER]: "Främling",
+  }));
+});
+
+// ===== forum: replyCount-hårdningen =====
+
+test("replyCount får stegas ±1 men inte sättas godtyckligt på andras trådar", async () => {
+  await assertSucceeds(updateDoc(doc(asUser(FRIEND), "forum", "thread-1"), {
+    replyCount: increment(1), lastActivityAt: new Date(),
+  }));
+  await assertFails(updateDoc(doc(asUser(FRIEND), "forum", "thread-1"), {
+    replyCount: 999,
+  }));
 });
