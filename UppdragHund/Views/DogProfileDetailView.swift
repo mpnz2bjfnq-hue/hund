@@ -168,28 +168,35 @@ struct DogProfileDetailView: View {
                 }
             }
 
-            HStack(spacing: Theme.Spacing.m) {
-                if let number = dog.insuranceNumber, !number.isEmpty {
-                    Button {
-                        UIPasteboard.general.string = number
-                        withAnimation { didCopyInsurance = true }
-                    } label: {
-                        HStack(spacing: 6) {
-                            Text(number)
-                                .font(.footnote.monospaced())
-                                .lineLimit(1)
-                            Image(systemName: didCopyInsurance ? "checkmark" : "doc.on.doc")
-                                .font(.caption)
-                        }
-                        .foregroundStyle(Theme.Colors.verified)
-                        .padding(.horizontal, Theme.Spacing.m)
-                        .padding(.vertical, 6)
-                        .background(Theme.Colors.verified.opacity(0.12), in: Capsule())
+            if let number = dog.insuranceNumber, !number.isEmpty {
+                // Numret är det man läser upp hos veterinären — stort och på
+                // egen rad, nedskalat vid behov så hela alltid syns.
+                Button {
+                    UIPasteboard.general.string = number
+                    withAnimation { didCopyInsurance = true }
+                } label: {
+                    HStack(spacing: Theme.Spacing.m) {
+                        Text(number)
+                            .font(.title3.monospaced().weight(.semibold))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.5)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        Image(systemName: didCopyInsurance ? "checkmark" : "doc.on.doc")
+                            .font(.subheadline)
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Kopiera försäkringsnummer")
+                    .foregroundStyle(Theme.Colors.verified)
+                    .padding(.horizontal, Theme.Spacing.m)
+                    .padding(.vertical, Theme.Spacing.m)
+                    .background(
+                        Theme.Colors.verified.opacity(0.12),
+                        in: RoundedRectangle(cornerRadius: Theme.Radius.small, style: .continuous)
+                    )
                 }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Kopiera försäkringsnummer")
+            }
 
+            HStack(spacing: Theme.Spacing.m) {
                 if let phoneURL = insurancePhoneURL {
                     Link(destination: phoneURL) {
                         HStack(spacing: 6) {
