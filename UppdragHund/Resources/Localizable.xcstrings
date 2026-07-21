@@ -207,6 +207,38 @@
         }
       }
     },
+    "%@s försäkring förnyas %@. Bra läge att se över den.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@’s insurance renews %2$@. A good time to review it."
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "new",
+            "value": "%1$@s försäkring förnyas %2$@. Bra läge att se över den."
+          }
+        }
+      }
+    },
+    "%@s försäkring hos %@ förnyas %@. Bra läge att se över den.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@’s insurance with %2$@ renews %3$@. A good time to review it."
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "new",
+            "value": "%1$@s försäkring hos %2$@ förnyas %3$@. Bra läge att se över den."
+          }
+        }
+      }
+    },
     "%@s löp har varit registrerat i %lld dagar. Avsluta det i Kalender om det är över.": {
       "localizations": {
         "en": {
@@ -1889,6 +1921,16 @@
         }
       }
     },
+    "Ditt svar kunde inte sparas. Kontrollera din anslutning och försök igen.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your response couldn’t be saved. Check your connection and try again."
+          }
+        }
+      }
+    },
     "Djuraffär": {
       "extractionState": "stale",
       "localizations": {
@@ -2518,6 +2560,26 @@
         }
       }
     },
+    "Förnyas": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Renews"
+          }
+        }
+      }
+    },
+    "Förnyelsedatum": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Renewal date"
+          }
+        }
+      }
+    },
     "Förslag": {
       "localizations": {
         "en": {
@@ -2534,6 +2596,56 @@
           "stringUnit": {
             "state": "translated",
             "value": "The first day of bleeding. All days below are counted from here."
+          }
+        }
+      }
+    },
+    "Försäkring": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Insurance"
+          }
+        }
+      }
+    },
+    "Försäkring (valfritt)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Insurance (optional)"
+          }
+        }
+      }
+    },
+    "Försäkringen förnyas snart": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Insurance renews soon"
+          }
+        }
+      }
+    },
+    "Försäkringsbolag": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Insurance company"
+          }
+        }
+      }
+    },
+    "Försäkringsnummer": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Policy number"
           }
         }
       }
@@ -4171,6 +4283,16 @@
         }
       }
     },
+    "Kopiera försäkringsnummer": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy policy number"
+          }
+        }
+      }
+    },
     "Kopiera registreringsnummer": {
       "localizations": {
         "en": {
@@ -5608,6 +5730,16 @@
         }
       }
     },
+    "Närvaron kunde inte sparas. Kontrollera din anslutning och försök igen.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Attendance couldn’t be saved. Check your connection and try again."
+          }
+        }
+      }
+    },
     "Nästa förväntade löp: %@": {
       "localizations": {
         "en": {
@@ -5899,6 +6031,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Location access denied. Enable it under Settings → Canine360 → Location."
+          }
+        }
+      }
+    },
+    "Posten kunde inte sparas. Försök igen.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The entry couldn’t be saved. Try again."
           }
         }
       }
@@ -6378,6 +6520,16 @@
         }
       }
     },
+    "Ring bolaget": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Call the company"
+          }
+        }
+      }
+    },
     "Rubrik": {
       "localizations": {
         "en": {
@@ -6633,6 +6785,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Send feedback"
+          }
+        }
+      }
+    },
+    "Skicka kommentar": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Send comment"
           }
         }
       }
@@ -7488,6 +7650,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Phone"
+          }
+        }
+      }
+    },
+    "Telefon till bolaget": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Company phone number"
           }
         }
       }
@@ -8404,6 +8576,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Shown as badges on the dog's profile. The Microchipped badge appears automatically once a chip number is entered."
+          }
+        }
+      }
+    },
+    "Visas som kort på hundens profil så du har uppgifterna till hands hos veterinären.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shown as a card on your dog’s profile so you have the details at hand at the vet."
           }
         }
       }
