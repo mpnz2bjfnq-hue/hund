@@ -276,6 +276,8 @@ struct AddDogView: View {
             dogToEdit.normalTemperatureCelsius = parsedNormalTemp
             dogToEdit.passedAwayDate = isDeceased ? passedAwayDate : nil
             SyncCoordinator.shared.dogProfileTouched(dogToEdit)
+            let dog = dogToEdit
+            Task { await NotificationService.scheduleInsuranceRenewalNotification(for: dog) }
         } else {
             let dog = Dog(
                 name: trimmedName,
@@ -303,6 +305,10 @@ struct AddDogView: View {
             dog.vaccinated = vaccinated
             dog.normalTemperatureCelsius = parsedNormalTemp
             modelContext.insert(dog)
+            // Spara innan notisen schemaläggs — persistentModelID (notis-ID:t)
+            // blir permanent först då.
+            try? modelContext.save()
+            Task { await NotificationService.scheduleInsuranceRenewalNotification(for: dog) }
         }
         dismiss()
     }

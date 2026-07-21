@@ -118,6 +118,51 @@ enum NotificationService {
         UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: ids)
     }
 
+    // MARK: - Försäkringsförnyelse
+
+    static func insuranceRenewalIdentifier(for dog: Dog) -> String {
+        "insurance-renewal-\(String(describing: dog.persistentModelID))"
+    }
+
+    /// Notis 14 dagar före försäkringens förnyelsedatum (kl. 09:00) — hinner
+    /// jämföra pris/byta bolag. Är förnyelsen närmare än så notifieras
+    /// morgonen på förnyelsedagen i stället. Tar bort notisen om datumet
+    /// rensats.
+    static func scheduleInsuranceRenewalNotification(
+        for dog: Dog,
+        calendar: Calendar = .current,
+        daysBefore: Int = 14
+    ) async {
+        let center = UNUserNotificationCenter.current()
+        let id = insuranceRenewalIdentifier(for: dog)
+        center.removePendingNotificationRequests(withIdentifiers: [id])
+
+        guard let renewal = dog.insuranceRenewalDate else { return }
+        let early = calendar.date(byAdding: .day, value: -daysBefore, to: renewal) ?? renewal
+        let fireDay = early > .now ? early : renewal
+        let comps = triggerDateComponents(for: fireDay, calendar: calendar)
+        guard let fireDate = calendar.date(from: comps), fireDate > .now else { return }
+        guard await requestAuthorizationIfNeeded() else { return }
+
+        let content = UNMutableNotificationContent()
+        content.title = String(localized: "Försäkringen förnyas snart")
+        if let company = dog.insuranceCompany, !company.isEmpty {
+            content.body = String(localized: "\(dog.name)s försäkring hos \(company) förnyas \(renewal.formatted(date: .abbreviated, time: .omitted)). Bra läge att se över den.")
+        } else {
+            content.body = String(localized: "\(dog.name)s försäkring förnyas \(renewal.formatted(date: .abbreviated, time: .omitted)). Bra läge att se över den.")
+        }
+        content.sound = .default
+
+        let trigger = UNCalendarNotificationTrigger(dateMatching: comps, repeats: false)
+        try? await center.add(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
+    }
+
+    static func cancelInsuranceRenewalNotification(for dog: Dog) {
+        UNUserNotificationCenter.current().removePendingNotificationRequests(
+            withIdentifiers: [insuranceRenewalIdentifier(for: dog)]
+        )
+    }
+
     // MARK: - Daglig träningspåminnelse
 
     static let trainingReminderID = "daily-training-reminder"
