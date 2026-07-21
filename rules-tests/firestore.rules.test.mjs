@@ -103,6 +103,11 @@ beforeEach(async () => {
       createdByUid: OWNER, createdByName: "Alex", createdAt: TASK_CREATED,
       completedUids: [],
     });
+    // Väntande vänförfrågan OWNER → FRIEND (vänstatus-frågorna på profilen).
+    await setDoc(doc(db, "friendRequests", "req-1"), {
+      fromUid: OWNER, fromDisplayName: "Alex", fromHandle: "alex",
+      toUid: FRIEND, status: "pending", createdAt: new Date(),
+    });
     // Privat molnbackup: ett träningspass i ägarens eget område.
     await setDoc(doc(db, "userBackups", OWNER, "trainingPlans", "plan-1"), {
       title: "Morgonpass", note: null, createdAt: new Date(),
@@ -336,4 +341,35 @@ test("man kan inte sätta instructor-flaggan på sin egen profil", async () => {
   await assertFails(
     setDoc(doc(asUser(OWNER), "users", OWNER), { instructor: true }, { merge: true })
   );
+});
+
+// ===== friendRequests: vänstatus-frågorna på profilen =====
+
+test("avsändaren kan fråga på sina utgående förfrågningar (fromUid+toUid+status)", async () => {
+  const snap = await assertSucceeds(getDocs(query(
+    collection(asUser(OWNER), "friendRequests"),
+    where("fromUid", "==", OWNER),
+    where("toUid", "==", FRIEND),
+    where("status", "==", "pending")
+  )));
+  if (snap.size !== 1) throw new Error(`väntade 1 utgående förfrågan, fick ${snap.size}`);
+});
+
+test("mottagaren kan fråga på sina inkommande förfrågningar (toUid+fromUid+status)", async () => {
+  const snap = await assertSucceeds(getDocs(query(
+    collection(asUser(FRIEND), "friendRequests"),
+    where("toUid", "==", FRIEND),
+    where("fromUid", "==", OWNER),
+    where("status", "==", "pending")
+  )));
+  if (snap.size !== 1) throw new Error(`väntade 1 inkommande förfrågan, fick ${snap.size}`);
+});
+
+test("främling kan inte fråga på andras förfrågningar", async () => {
+  await assertFails(getDocs(query(
+    collection(asUser(STRANGER), "friendRequests"),
+    where("fromUid", "==", OWNER),
+    where("toUid", "==", FRIEND),
+    where("status", "==", "pending")
+  )));
 });

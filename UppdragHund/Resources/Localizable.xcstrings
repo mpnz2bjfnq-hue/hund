@@ -1221,6 +1221,16 @@
         }
       }
     },
+    "Bara vänner ser uppdateringar.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Only friends can see updates."
+          }
+        }
+      }
+    },
     "Behärskar": {
       "localizations": {
         "en": {

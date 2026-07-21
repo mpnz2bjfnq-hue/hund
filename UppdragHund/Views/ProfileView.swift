@@ -122,9 +122,7 @@ struct ProfileView: View {
                 if isLoading && posts.isEmpty {
                     HStack { Spacer(); ProgressView(); Spacer() }
                 } else if posts.isEmpty {
-                    Text(isOwnProfile
-                         ? "Du har inte delat något än. Tryck på pennan för att skriva din första uppdatering."
-                         : "Inga uppdateringar än.")
+                    Text(emptyPostsText)
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 } else {
@@ -190,7 +188,10 @@ struct ProfileView: View {
             EditProfileView(currentProfile: profile)
                 .onDisappear { Task { await load() } }
         }
-        .sheet(isPresented: $isPresentingFriends) {
+        .sheet(isPresented: $isPresentingFriends, onDismiss: {
+            // Vänstatusen kan ha ändrats därinne (accepterad förfrågan).
+            Task { await load() }
+        }) {
             FriendsView()
         }
         .sheet(item: $selectedDog) { dog in
@@ -284,6 +285,18 @@ struct ProfileView: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 8)
+    }
+
+    /// Tom-text för Uppdateringar: icke-vänner kan inte läsa inlägg alls
+    /// (per reglerna), så säg det i stället för "inga uppdateringar".
+    private var emptyPostsText: String {
+        if isOwnProfile {
+            return String(localized: "Du har inte delat något än. Tryck på pennan för att skriva din första uppdatering.")
+        }
+        if friendship == .friends {
+            return String(localized: "Inga uppdateringar än.")
+        }
+        return String(localized: "Bara vänner ser uppdateringar.")
     }
 
     /// Vänknappen på andras profiler: lägg till, skickad, svara eller "ni är vänner".
@@ -460,7 +473,18 @@ struct ProfileView: View {
                 fetched = try await FriendsRepository.shared.fetchMyProfile(uid: uid)
             }
             profile = fetched
-            posts = try await PostsRepository.shared.posts(forUid: uid)
+            // Vänstatus FÖRE inläggen: reglerna nekar icke-vänner att läsa
+            // inlägg, och det får inte sänka resten av laddningen (då skulle
+            // Lägg till vän-knappen aldrig visas — hela poängen på en
+            // icke-väns profil).
+            if !isOwnProfile, let myUid = authService.currentUserID {
+                friendship = await FriendsRepository.shared.friendshipStatus(myUid: myUid, otherUid: uid)
+            }
+            if isOwnProfile {
+                posts = try await PostsRepository.shared.posts(forUid: uid)
+            } else {
+                posts = (try? await PostsRepository.shared.posts(forUid: uid)) ?? []
+            }
             // Vänners vänlista är privat per reglerna — för andra läses det
             // denormaliserade friendCount från profilen i stället.
             friendCount = isOwnProfile
@@ -468,9 +492,6 @@ struct ProfileView: View {
                 : fetched?.friendCount
             if isOwnProfile, let profile {
                 CurrentUserStore.shared.setProfile(profile)
-            }
-            if !isOwnProfile, let myUid = authService.currentUserID {
-                friendship = await FriendsRepository.shared.friendshipStatus(myUid: myUid, otherUid: uid)
             }
             if isOwnProfile && profile == nil {
                 loadError = "Kunde inte ladda din profil. Kontrollera att Firestore-reglerna är publicerade."
