@@ -162,6 +162,16 @@ final class FriendsRepository {
             throw FriendsError.alreadyFriends
         }
 
+        // Skicka inte dubbletter — mottagaren skulle annars få identiska
+        // förfrågningar att besvara en och en.
+        let outbound = try await db.collection("friendRequests")
+            .whereField("fromUid", isEqualTo: myUid)
+            .whereField("toUid", isEqualTo: toUid)
+            .whereField("status", isEqualTo: FriendRequestStatus.pending.rawValue)
+            .limit(to: 1)
+            .getDocuments()
+        guard outbound.isEmpty else { return }
+
         let request = FriendRequest(
             fromUid: myUid,
             fromDisplayName: myDisplayName,

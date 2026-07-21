@@ -31,7 +31,7 @@ struct WalkLiveActivity: Widget {
                             .font(.caption.weight(.medium))
                             .foregroundStyle(.secondary)
                     } else {
-                        Text(timerInterval: context.state.timerStart...farFuture, countsDown: false)
+                        Text(timerInterval: context.state.timerStart...farFuture(after: context.state.timerStart), countsDown: false)
                             .font(.subheadline.monospacedDigit())
                             .foregroundStyle(.secondary)
                             .frame(maxWidth: 60)
@@ -89,7 +89,13 @@ struct WalkLiveActivity: Widget {
     }
 }
 
-private let farFuture = Date(timeIntervalSinceNow: 60 * 60 * 24)
+/// Övre gräns för den självtickande klockan — beräknas RELATIVT timerStart
+/// per anrop. En global Date(timeIntervalSinceNow:) fryses när widget-
+/// processen startar och kan hamna FÖRE timerStart i en långlivad process,
+/// vilket trapar ClosedRange och kraschar renderingen.
+private func farFuture(after start: Date) -> Date {
+    start.addingTimeInterval(60 * 60 * 24)
+}
 
 /// Låsskärmskortet: Garmin-känsla med tre mätare i rad.
 private struct LockScreenWalkView: View {
@@ -130,7 +136,7 @@ private struct LockScreenWalkView: View {
                         if context.state.isPaused {
                             Text(WalkFormatting.elapsed(context.state.elapsedSeconds))
                         } else {
-                            Text(timerInterval: context.state.timerStart...farFuture, countsDown: false)
+                            Text(timerInterval: context.state.timerStart...farFuture(after: context.state.timerStart), countsDown: false)
                         }
                     }
                     .font(.system(size: 30, weight: .bold, design: .rounded))

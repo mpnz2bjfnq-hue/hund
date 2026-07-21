@@ -23,6 +23,11 @@ final class ModerationService {
 
     // MARK: - Blockering
 
+    /// Töms vid utloggning — listan är per konto.
+    func clearCache() {
+        blockedUids = []
+    }
+
     @discardableResult
     func refreshBlocked(for uid: String) async -> Set<String> {
         let snapshot = try? await db.collection("users").document(uid)

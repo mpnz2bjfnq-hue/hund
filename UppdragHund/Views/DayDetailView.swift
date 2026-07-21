@@ -23,6 +23,19 @@ struct DayDetailView: View {
         }
     }
 
+    /// Beräknad löpfas för dagen — samma projektion som kalenderns färg-
+    /// kodning (som målar framåt i ett pågående löp). Utan den motsäger
+    /// sheeten kalendern: en dag målad som höglöp sa "Inget loggat".
+    private var projectedPhase: HeatPhase? {
+        guard cycleOnThisDay == nil else { return nil }
+        for cycle in dog.heatCycles {
+            if let phase = HeatPhase.phase(on: date, in: cycle, calendar: calendar) {
+                return phase
+            }
+        }
+        return nil
+    }
+
     private var diaryEntry: DiaryEntry? {
         dog.diaryEntries.first { calendar.isDate($0.date, inSameDayAs: date) }
     }
@@ -32,7 +45,7 @@ struct DayDetailView: View {
     }
 
     private var hasNothing: Bool {
-        cycleOnThisDay == nil && diaryEntry == nil && healthEventsThisDay.isEmpty
+        cycleOnThisDay == nil && projectedPhase == nil && diaryEntry == nil && healthEventsThisDay.isEmpty
     }
 
     var body: some View {
@@ -41,6 +54,11 @@ struct DayDetailView: View {
                 if let cycleOnThisDay {
                     Section("Löp") {
                         Label(cycleDescription(for: cycleOnThisDay), systemImage: "flame.fill")
+                            .foregroundStyle(.orange)
+                    }
+                } else if let projectedPhase {
+                    Section("Löp") {
+                        Label("Beräknad fas: \(projectedPhase.swedishCommon)", systemImage: "flame")
                             .foregroundStyle(.orange)
                     }
                 }

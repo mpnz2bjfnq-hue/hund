@@ -353,7 +353,8 @@ struct HemView: View {
         let hour = calendar.component(.hour, from: .now)
         switch hour {
         case 5..<10:  return ("sunrise.fill", String(localized: "God morgon! Redo för dagen med \(dog.name)?"))
-        case 10..<17: return ("sun.max.fill", String(localized: "God eftermiddag med \(dog.name) 🐾"))
+        case 10..<12: return ("sun.max.fill", String(localized: "God förmiddag med \(dog.name) 🐾"))
+        case 12..<17: return ("sun.max.fill", String(localized: "God eftermiddag med \(dog.name) 🐾"))
         case 17..<22: return ("sunset.fill", String(localized: "God kväll! Hur har dagen med \(dog.name) varit?"))
         default:      return ("moon.stars.fill", String(localized: "God natt – vila så ni orkar imorgon 🐾"))
         }
@@ -729,6 +730,10 @@ private struct TodayCarousel: View {
     let cards: [TodayCard]
 
     @State private var index = 0
+    /// Sant medan auto-rotationen själv flyttar index — så onChange kan
+    /// skilja användarens svep (ta över) från rotationens egna steg.
+    @State private var isAutoAdvancing = false
+    @State private var userTookOver = false
 
     var body: some View {
         VStack(spacing: Theme.Spacing.s) {
@@ -755,13 +760,20 @@ private struct TodayCarousel: View {
         }
         .task(id: cards.count) {
             guard cards.count > 1 else { return }
-            while !Task.isCancelled {
+            while !Task.isCancelled && !userTookOver {
                 try? await Task.sleep(for: .seconds(6))
-                if Task.isCancelled { break }
+                if Task.isCancelled || userTookOver { break }
+                isAutoAdvancing = true
                 withAnimation(.easeInOut(duration: 0.4)) {
                     index = (index + 1) % max(cards.count, 1)
                 }
+                isAutoAdvancing = false
             }
+        }
+        .onChange(of: index) { _, _ in
+            // Ändring som inte kom från rotations-tasken = användarens svep.
+            // Då slutar vi rotera — kortet ska inte ryckas ur händerna.
+            if !isAutoAdvancing { userTookOver = true }
         }
         .onChange(of: cards.count) { _, newCount in
             if index >= newCount { index = 0 }

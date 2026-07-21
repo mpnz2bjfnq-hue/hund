@@ -258,7 +258,13 @@ struct KalenderView: View {
                 .foregroundStyle(Theme.Colors.textPrimary)
 
             if let nextStart = prediction.nextExpectedStartDate {
-                Text("Nästa förväntade löp: \(nextStart.formatted(date: .abbreviated, time: .omitted))")
+                if nextStart > .now {
+                    Text("Nästa förväntade löp: \(nextStart.formatted(date: .abbreviated, time: .omitted))")
+                } else {
+                    // Beräknade datumet har passerat — säg det ärligt i stället
+                    // för att peka på ett datum bakåt i tiden.
+                    Text("Förväntat löp har passerat (\(nextStart.formatted(date: .abbreviated, time: .omitted))) — registrera när det börjar.")
+                }
             }
             Text("Intervall: \(prediction.predictedIntervalDays) dagar (\(basisText))")
             Text("Löplängd: ~\(prediction.predictedDurationDays) dagar (\(basisText))")
@@ -317,7 +323,8 @@ struct KalenderView: View {
     }
 
     private func isPredictedStartDate(_ date: Date) -> Bool {
-        guard let nextStart = prediction.nextExpectedStartDate else { return false }
+        // Passerade prognosdatum ringas inte in — markören lovar framtid.
+        guard let nextStart = prediction.nextExpectedStartDate, nextStart > .now else { return false }
         return calendar.isDate(date, inSameDayAs: nextStart)
     }
 

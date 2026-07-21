@@ -148,16 +148,22 @@ final class TeamsRepository {
         note: String?,
         dueDate: Date?,
         trainingPlan: SharedTrainingPlan? = nil,
-        meetup: Meetup? = nil
+        meetup: Meetup? = nil,
+        keepExistingMeetup: Bool = false
     ) async throws {
         var data: [String: Any] = [
             "title": title,
             "note": note ?? FieldValue.delete(),
-            "dueDate": dueDate.map { Timestamp(date: $0) } ?? FieldValue.delete(),
-            "meetupId": meetup?.id ?? FieldValue.delete(),
-            "meetupTitle": meetup?.title ?? FieldValue.delete(),
-            "meetupDate": meetup.map { Timestamp(date: $0.date) } ?? FieldValue.delete()
+            "dueDate": dueDate.map { Timestamp(date: $0) } ?? FieldValue.delete()
         ]
+        // keepExistingMeetup: träffkopplingen rörs inte alls — används när den
+        // kopplade träffen passerat och därför inte går att välja i redigerings-
+        // listan (annars skulle en textändring tyst radera kopplingen).
+        if !keepExistingMeetup {
+            data["meetupId"] = meetup?.id ?? FieldValue.delete()
+            data["meetupTitle"] = meetup?.title ?? FieldValue.delete()
+            data["meetupDate"] = meetup.map { Timestamp(date: $0.date) } ?? FieldValue.delete()
+        }
         if let trainingPlan, let encoded = try? Firestore.Encoder().encode(trainingPlan) {
             data["trainingPlan"] = encoded
         } else {

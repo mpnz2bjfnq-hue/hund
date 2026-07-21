@@ -278,7 +278,13 @@ struct PostDetailView: View {
     }
 
     private func load() async {
-        let blocked = ModerationService.shared.blockedUids
+        // Hämta blockeringslistan färsk — cachen är tom vid kallstart och
+        // skulle annars visa blockerade användares kommentarer.
+        let blocked = if let uid = authService.currentUserID {
+            await ModerationService.shared.refreshBlocked(for: uid)
+        } else {
+            ModerationService.shared.blockedUids
+        }
         comments = await PostsRepository.shared.comments(post: post)
             .filter { !blocked.contains($0.authorUid) }
         reactionCount = await PostsRepository.shared.reactionCount(post: post)
@@ -341,7 +347,10 @@ struct PostDetailView: View {
         newComment = ""
         do {
             try await PostsRepository.shared.addComment(post: post, authorUid: uid, authorName: name, text: text)
+            // Samma blockfilter som load() — omladdningen var ofiltrerad.
+            let blocked = ModerationService.shared.blockedUids
             comments = await PostsRepository.shared.comments(post: post)
+                .filter { !blocked.contains($0.authorUid) }
         } catch {
             newComment = text
         }

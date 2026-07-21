@@ -13,6 +13,9 @@ enum SessionCleanupService {
     @MainActor
     static func handleSignOut(context: ModelContext, activeDogStore: ActiveDogStore) {
         CurrentUserStore.shared.clear()
+        // Blockeringslistan är per konto — nästa inloggade konto ska inte
+        // filtrera innehåll mot förra kontots blockeringar.
+        ModerationService.shared.clearCache()
         do {
             // Delade hundar (ägda av någon annan) tas bort — cascade städar posterna.
             let sharedDogs = try context.fetch(

@@ -1061,6 +1061,9 @@ struct NewTeamTaskView: View {
     /// Uppgiften har ett kopplat pass som inte finns i mitt lokala bibliotek —
     /// då kan jag inte välja om det i listan, men det ska bevaras vid sparning.
     @State private var keepOriginalPlan = false
+    /// Uppgiftens kopplade träff har passerat (finns inte i väljarlistan) —
+    /// bevara kopplingen om användaren inte aktivt valt en annan träff.
+    @State private var keepOriginalMeetup = false
 
     private var isEditing: Bool { editingTask != nil }
 
@@ -1168,6 +1171,9 @@ struct NewTeamTaskView: View {
             }
         }
         selectedMeetupID = task.meetupId
+        if let meetupId = task.meetupId, !upcomingMeetups.contains(where: { $0.id == meetupId }) {
+            keepOriginalMeetup = true
+        }
     }
 
     /// Kopplat pass som ska sparas: valt lokalt pass, annars det ursprungliga
@@ -1193,7 +1199,8 @@ struct NewTeamTaskView: View {
                     note: noteValue,
                     dueDate: hasDueDate ? dueDate : nil,
                     trainingPlan: resolvedPlan,
-                    meetup: selectedMeetup
+                    meetup: selectedMeetup,
+                    keepExistingMeetup: keepOriginalMeetup && selectedMeetup == nil
                 )
             } else {
                 try? await TeamsRepository.shared.createTask(

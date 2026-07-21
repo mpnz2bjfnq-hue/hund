@@ -44,6 +44,9 @@ final class CurrentUserStore {
             try? await FriendsRepository.shared.ensureProfile(uid: uid, displayName: name, email: nil)
             fetched = try? await FriendsRepository.shared.fetchMyProfile(uid: uid)
         }
+        // Kontobyte medan hämtningen pågick? Skriv då inte in det GAMLA
+        // kontots profil som "min" — nästa refresh för rätt konto gäller.
+        guard AuthService.shared.currentUserID == uid else { return }
         profile = fetched
     }
 
