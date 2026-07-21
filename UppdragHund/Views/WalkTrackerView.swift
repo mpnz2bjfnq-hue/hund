@@ -160,8 +160,10 @@ struct WalkTrackerView: View {
                 ToolbarItem(placement: .confirmationAction) { Button("Spara") { save() }.disabled(!started) }
             }
             .onReceive(timer) { _ in
+                // Timern driver bara OMRITNINGEN — tiden ägs av trackern
+                // (datumbaserad), så bakgrundstid inte tappas när timern sover.
+                elapsed = tracker.elapsedSeconds
                 if tracker.isTracking {
-                    elapsed += 1
                     WalkLiveActivityController.shared.tick(
                         distanceMeters: tracker.meters, elapsedSeconds: elapsed, isPaused: false
                     )
@@ -169,7 +171,7 @@ struct WalkTrackerView: View {
             }
             .onDisappear {
                 tracker.stop()
-                WalkLiveActivityController.shared.end(distanceMeters: tracker.meters, elapsedSeconds: elapsed)
+                WalkLiveActivityController.shared.end(distanceMeters: tracker.meters, elapsedSeconds: tracker.elapsedSeconds)
             }
             .task {
                 // Från widget/kontroll: användaren har redan tryckt "starta".
@@ -183,6 +185,7 @@ struct WalkTrackerView: View {
     private func toggleTracking() {
         if tracker.isTracking {
             tracker.stop()
+            elapsed = tracker.elapsedSeconds
             WalkLiveActivityController.shared.tick(
                 distanceMeters: tracker.meters, elapsedSeconds: elapsed, isPaused: true
             )
@@ -190,6 +193,7 @@ struct WalkTrackerView: View {
             let isFirstStart = !started
             tracker.start()
             started = true
+            elapsed = tracker.elapsedSeconds
             if isFirstStart {
                 WalkLiveActivityController.shared.start(dogName: dog.name, elapsedSeconds: elapsed)
             } else {
@@ -228,7 +232,7 @@ struct WalkTrackerView: View {
             dismiss()
             return
         }
-        let minutes = max(1, Int((Double(elapsed) / 60).rounded()))
+        let minutes = max(1, Int((Double(tracker.elapsedSeconds) / 60).rounded()))
         let session = TrainingSession(
             date: .now,
             activity: "Promenad",

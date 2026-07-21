@@ -230,11 +230,23 @@ final class TeamsRepository {
 
     /// Tar bort en medlem (används både när man lämnar själv och när ägaren
     /// tar bort någon). Kommande träffar städas av onTeamMembersChanged.
+    /// Ägarens borttagning av en medlem — får röra konsulentlistan.
     func removeMember(teamID: String, uid: String) async throws {
         try await db.collection("teams").document(teamID).updateData([
             "memberUids": FieldValue.arrayRemove([uid]),
             "memberNames.\(uid)": FieldValue.delete(),
             "consultantUids": FieldValue.arrayRemove([uid])
+        ])
+    }
+
+    /// Medlem lämnar själv. Reglerna tillåter då BARA memberUids/memberNames —
+    /// arrayRemove på consultantUids (som removeMember gör) skulle ändra/skapa
+    /// det fältet och få hela uppdateringen tyst nekad. En kvarlämnad
+    /// konsulent-uid är ofarlig: rollen syns bara för medlemmar.
+    func leaveTeam(teamID: String, uid: String) async throws {
+        try await db.collection("teams").document(teamID).updateData([
+            "memberUids": FieldValue.arrayRemove([uid]),
+            "memberNames.\(uid)": FieldValue.delete()
         ])
     }
 

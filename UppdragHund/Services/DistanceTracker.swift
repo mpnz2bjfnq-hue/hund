@@ -27,6 +27,17 @@ final class DistanceTracker: NSObject, CLLocationManagerDelegate {
     /// Stegräknarens antal steg sedan start — visas i UI:t.
     var stepCount: Int = 0
 
+    // Tidsmätning: datumbaserad, INTE tick-baserad — en sekundtimer i vyn
+    // stannar när appen suspenderas och tappar då hela bakgrundstiden.
+    private var activeSince: Date?
+    private var accumulatedSeconds: TimeInterval = 0
+
+    /// Total aktiv promenadtid i sekunder (pauser exkluderade). Korrekt även
+    /// efter att appen legat i bakgrunden eller skärmen varit låst.
+    var elapsedSeconds: Int {
+        Int(accumulatedSeconds + (activeSince.map { Date.now.timeIntervalSince($0) } ?? 0))
+    }
+
     // Stegräknar-gaten: GPS-steg räknas bara när steg nyligen registrerats.
     private var lastStepCount = 0
     private var lastStepIncreaseAt = Date.distantPast
@@ -48,19 +59,32 @@ final class DistanceTracker: NSObject, CLLocationManagerDelegate {
             meters = 0
             route = []
             stepCount = 0
+            accumulatedSeconds = 0
             hasStarted = true
         }
         // Nollställ referenspunkten så en paus inte räknas som förflyttning.
         lastLocation = nil
         isTracking = true
         resumedAt = .now
+        activeSince = .now
         manager.requestWhenInUseAuthorization()
+        // Fortsätt mäta med skärmen låst — kräver UIBackgroundModes: location.
+        // Bara under aktiv spårning; blå statusindikatorn visar ärligt att
+        // positionen används.
+        manager.allowsBackgroundLocationUpdates = true
+        manager.showsBackgroundLocationIndicator = true
+        manager.pausesLocationUpdatesAutomatically = false
         manager.startUpdatingLocation()
         startPedometer()
     }
 
     func stop() {
+        if let activeSince {
+            accumulatedSeconds += Date.now.timeIntervalSince(activeSince)
+        }
+        activeSince = nil
         isTracking = false
+        manager.allowsBackgroundLocationUpdates = false
         manager.stopUpdatingLocation()
         pedometer.stopUpdates()
     }
@@ -74,6 +98,8 @@ final class DistanceTracker: NSObject, CLLocationManagerDelegate {
         lastStepCount = 0
         lastStepIncreaseAt = .distantPast
         resumedAt = .distantPast
+        activeSince = nil
+        accumulatedSeconds = 0
     }
 
     // MARK: - Stegräknare (rörelse-gate)

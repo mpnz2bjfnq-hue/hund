@@ -1017,13 +1017,20 @@ struct TeamPageView: View {
     private func leaveOrDelete() {
         guard let teamID = team.id, let uid = authService.currentUserID else { return }
         Task {
-            if isOwner {
-                try? await TeamsRepository.shared.deleteTeam(teamID: teamID)
-            } else {
-                try? await TeamsRepository.shared.removeMember(teamID: teamID, uid: uid)
+            do {
+                if isOwner {
+                    try await TeamsRepository.shared.deleteTeam(teamID: teamID)
+                } else {
+                    try await TeamsRepository.shared.leaveTeam(teamID: teamID, uid: uid)
+                }
+                onChanged()
+                dismiss()
+            } catch {
+                // Stäng INTE vyn på fel — annars ser det ut som att man lämnat.
+                errorMessage = isOwner
+                    ? "Kunde inte ta bort teamet: \(error.localizedDescription)"
+                    : "Kunde inte lämna teamet: \(error.localizedDescription)"
             }
-            onChanged()
-            dismiss()
         }
     }
 }
