@@ -47,8 +47,9 @@ enum TeamKind: String, CaseIterable, Identifiable {
 
     /// Uppgifter/hemläxor och konsulentroller.
     var hasTasks: Bool { self != .social }
-    /// Inbjudningskod för att få in en hel kursgrupp.
-    var hasJoinCode: Bool { self == .course }
+    /// Inbjudningskod — kurser och konsulentteam bjuder in deltagare/kunder
+    /// som inte behöver vara vänner i appen.
+    var hasJoinCode: Bool { self != .social }
 }
 
 struct Team: Codable, Identifiable, Equatable {

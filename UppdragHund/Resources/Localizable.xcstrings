@@ -2173,7 +2173,18 @@
         }
       }
     },
+    "En ny kod gör den gamla ogiltig — bra om koden spridits till fel personer.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A new code invalidates the old one — good if the code has spread to the wrong people."
+          }
+        }
+      }
+    },
     "En ny kod gör den gamla ogiltig — bra om koden spridits utanför kursen.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -5509,6 +5520,16 @@
         }
       }
     },
+    "Ni är vänner": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You are friends"
+          }
+        }
+      }
+    },
     "Normaltemp (°C)": {
       "localizations": {
         "en": {
@@ -7190,6 +7211,16 @@
         }
       }
     },
+    "Svara på vänförfrågan": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Respond to friend request"
+          }
+        }
+      }
+    },
     "Svep vänster på en händelse för att ta bort den": {
       "localizations": {
         "en": {
@@ -8520,7 +8551,18 @@
         }
       }
     },
+    "Visa QR-koden för den som ska gå med — den innehåller koden.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show the QR code to whoever is joining — it contains the code."
+          }
+        }
+      }
+    },
     "Visa QR-koden på kursen — den innehåller koden.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -8556,6 +8598,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "View dog profile"
+          }
+        }
+      }
+    },
+    "Visa profil för %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show profile for %@"
           }
         }
       }
@@ -8706,6 +8758,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Friend"
+          }
+        }
+      }
+    },
+    "Vänförfrågan skickad": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Friend request sent"
           }
         }
       }

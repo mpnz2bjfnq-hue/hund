@@ -27,6 +27,9 @@ struct ProfileView: View {
     @State private var postPendingDelete: ProfilePost?
     @State private var loadError: String?
     @State private var selectedDog: DogDisplay?
+    @State private var friendship: FriendsRepository.FriendshipStatus?
+    @State private var isSendingRequest = false
+    @State private var friendActionError: String?
 
     private var resolvedUID: String? {
         userID ?? authService.currentUserID
@@ -262,6 +265,9 @@ struct ProfileView: View {
                 .controlSize(.small)
                 .padding(.top, 2)
                 .disabled(profile == nil)
+            } else {
+                friendActionView
+                    .padding(.top, 2)
             }
             if let loadError {
                 VStack(spacing: 6) {
@@ -278,6 +284,73 @@ struct ProfileView: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 8)
+    }
+
+    /// Vänknappen på andras profiler: lägg till, skickad, svara eller "ni är vänner".
+    @ViewBuilder
+    private var friendActionView: some View {
+        switch friendship {
+        case .friends:
+            Label("Ni är vänner", systemImage: "checkmark.circle.fill")
+                .font(.footnote.weight(.medium))
+                .foregroundStyle(Theme.Colors.brand)
+        case .requestSent:
+            Label("Vänförfrågan skickad", systemImage: "paperplane.fill")
+                .font(.footnote.weight(.medium))
+                .foregroundStyle(.secondary)
+        case .requestReceived:
+            Button {
+                isPresentingFriends = true
+            } label: {
+                Label("Svara på vänförfrågan", systemImage: "person.crop.circle.badge.questionmark")
+                    .font(.footnote.weight(.medium))
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.small)
+            .tint(Theme.Colors.brand)
+        case .notFriends:
+            Button {
+                sendFriendRequest()
+            } label: {
+                Label("Lägg till vän", systemImage: "person.badge.plus")
+                    .font(.footnote.weight(.medium))
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.small)
+            .tint(Theme.Colors.brand)
+            .disabled(isSendingRequest)
+        case .ownProfile, nil:
+            EmptyView()
+        }
+
+        if let friendActionError {
+            Text(friendActionError)
+                .font(.caption)
+                .foregroundStyle(.red)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal)
+        }
+    }
+
+    private func sendFriendRequest() {
+        guard let myUid = authService.currentUserID, let toUid = resolvedUID else { return }
+        let myProfile = CurrentUserStore.shared.profile
+        isSendingRequest = true
+        friendActionError = nil
+        Task {
+            do {
+                try await FriendsRepository.shared.sendFriendRequest(
+                    from: myUid,
+                    myDisplayName: myProfile?.displayName ?? "Hundägare",
+                    myHandle: myProfile?.handle ?? "",
+                    toUid: toUid
+                )
+                withAnimation { friendship = .requestSent }
+            } catch {
+                friendActionError = error.localizedDescription
+            }
+            isSendingRequest = false
+        }
     }
 
     private var statsRow: some View {
@@ -395,6 +468,9 @@ struct ProfileView: View {
                 : fetched?.friendCount
             if isOwnProfile, let profile {
                 CurrentUserStore.shared.setProfile(profile)
+            }
+            if !isOwnProfile, let myUid = authService.currentUserID {
+                friendship = await FriendsRepository.shared.friendshipStatus(myUid: myUid, otherUid: uid)
             }
             if isOwnProfile && profile == nil {
                 loadError = "Kunde inte ladda din profil. Kontrollera att Firestore-reglerna är publicerade."

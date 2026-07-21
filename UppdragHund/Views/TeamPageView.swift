@@ -10,6 +10,11 @@ import SwiftUI
 import PhotosUI
 import SwiftData
 
+/// Identifiable-omslag så en medlems uid kan öppnas som profil-sheet.
+private struct MemberProfileTarget: Identifiable {
+    let id: String
+}
+
 struct TeamPageView: View {
     @State private var team: Team
     var onChanged: () -> Void = {}
@@ -65,6 +70,7 @@ struct TeamPageView: View {
     @State private var isPresentingJoinCode = false
     /// Medlem som ägaren är på väg att ta bort (bekräftas först).
     @State private var memberPendingRemoval: String?
+    @State private var memberProfileTarget: MemberProfileTarget?
     /// Träff öppnad från en uppgifts träff-koppling.
     @State private var taskMeetup: Meetup?
     @State private var isPresentingNewMeetup = false
@@ -152,6 +158,11 @@ struct TeamPageView: View {
         }
         .sheet(isPresented: $isPresentingAdd) {
             inviteSheet
+        }
+        .sheet(item: $memberProfileTarget) { target in
+            NavigationStack {
+                ProfileView(userID: target.id)
+            }
         }
         .sheet(item: $planToOpen) { plan in
             if let dog = activeDogStore.activeDog {
@@ -691,9 +702,21 @@ struct TeamPageView: View {
             VStack(spacing: 0) {
                 ForEach(Array(team.memberUids.enumerated()), id: \.element) { index, uid in
                     HStack(spacing: Theme.Spacing.m) {
-                        ProfileAvatar(photoData: memberPhotos[uid], size: 36)
-                        Text(team.memberNames[uid] ?? "Medlem")
-                            .foregroundStyle(Theme.Colors.textPrimary)
+                        // Tryck på en medlem → profilen (där man kan lägga
+                        // till varandra som vänner). Egen rad öppnar inget.
+                        Button {
+                            memberProfileTarget = MemberProfileTarget(id: uid)
+                        } label: {
+                            HStack(spacing: Theme.Spacing.m) {
+                                ProfileAvatar(photoData: memberPhotos[uid], size: 36)
+                                Text(team.memberNames[uid] ?? "Medlem")
+                                    .foregroundStyle(Theme.Colors.textPrimary)
+                            }
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(uid == authService.currentUserID)
+                        .accessibilityLabel("Visa profil för \(team.memberNames[uid] ?? "medlem")")
                         if uid == team.ownerUid {
                             roleBadge("Ägare", color: Theme.Colors.brand)
                         } else if team.isConsultant(uid) {

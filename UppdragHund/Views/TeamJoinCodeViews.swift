@@ -72,7 +72,7 @@ struct TeamInviteCodeSheet: View {
                                 .frame(width: 180, height: 180)
                                 .padding(Theme.Spacing.m)
                                 .background(.white, in: RoundedRectangle(cornerRadius: 14))
-                            Text("Visa QR-koden på kursen — den innehåller koden.")
+                            Text("Visa QR-koden för den som ska gå med — den innehåller koden.")
                                 .font(.caption2)
                                 .foregroundStyle(Theme.Colors.textSecondary)
                         }
@@ -95,7 +95,7 @@ struct TeamInviteCodeSheet: View {
                         .buttonStyle(.bordered)
                         .tint(Theme.Colors.brand)
 
-                        Text("En ny kod gör den gamla ogiltig — bra om koden spridits utanför kursen.")
+                        Text("En ny kod gör den gamla ogiltig — bra om koden spridits till fel personer.")
                             .font(.caption2)
                             .foregroundStyle(Theme.Colors.textSecondary)
                             .multilineTextAlignment(.center)

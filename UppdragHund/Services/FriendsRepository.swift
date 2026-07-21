@@ -146,7 +146,12 @@ final class FriendsRepository {
         guard let targetDoc = snapshot.documents.first else {
             throw FriendsError.userNotFound
         }
-        let toUid = targetDoc.documentID
+        try await sendFriendRequest(from: myUid, myDisplayName: myDisplayName, myHandle: myHandle, toUid: targetDoc.documentID)
+    }
+
+    /// Skickar en vänförfrågan direkt till ett uid — används när man redan
+    /// står på personens profil (t.ex. en teammedlem man inte är vän med).
+    func sendFriendRequest(from myUid: String, myDisplayName: String, myHandle: String, toUid: String) async throws {
         guard toUid != myUid else {
             throw FriendsError.cannotAddSelf
         }
@@ -166,6 +171,36 @@ final class FriendsRepository {
             createdAt: .now
         )
         _ = try db.collection("friendRequests").addDocument(from: request)
+    }
+
+    /// Vänskapsläget mellan mig och en annan användare — styr vilken knapp
+    /// profilen visar. Frågorna är formade så reglerna kan bevisa dem
+    /// (egna friends-subkollektionen + friendRequests filtrerade på mitt uid).
+    func friendshipStatus(myUid: String, otherUid: String) async -> FriendshipStatus {
+        guard myUid != otherUid else { return .ownProfile }
+
+        if let doc = try? await db.collection("users").document(myUid)
+            .collection("friends").document(otherUid).getDocument(), doc.exists {
+            return .friends
+        }
+
+        let outbound = try? await db.collection("friendRequests")
+            .whereField("fromUid", isEqualTo: myUid)
+            .whereField("toUid", isEqualTo: otherUid)
+            .whereField("status", isEqualTo: FriendRequestStatus.pending.rawValue)
+            .limit(to: 1)
+            .getDocuments()
+        if outbound?.isEmpty == false { return .requestSent }
+
+        let inbound = try? await db.collection("friendRequests")
+            .whereField("toUid", isEqualTo: myUid)
+            .whereField("fromUid", isEqualTo: otherUid)
+            .whereField("status", isEqualTo: FriendRequestStatus.pending.rawValue)
+            .limit(to: 1)
+            .getDocuments()
+        if inbound?.isEmpty == false { return .requestReceived }
+
+        return .notFriends
     }
 
     func pendingRequests(for uid: String) async throws -> [FriendRequest] {
@@ -226,6 +261,15 @@ final class FriendsRepository {
         let chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
         let suffix = String((0..<5).map { _ in chars.randomElement()! })
         return "DOG-\(suffix)"
+    }
+
+    /// Vänskapsläget mellan mig och en annan användare.
+    enum FriendshipStatus {
+        case ownProfile
+        case friends
+        case requestSent
+        case requestReceived
+        case notFriends
     }
 
     enum FriendsError: LocalizedError {
