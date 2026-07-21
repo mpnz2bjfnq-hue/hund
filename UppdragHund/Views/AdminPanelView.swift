@@ -11,6 +11,24 @@ import SwiftUI
 
 struct AdminPanelView: View {
     @State private var stats = AdminService.AdminStats()
+    @State private var isBackfilling = false
+    @State private var backfillResult: String?
+
+    private func runHandleBackfill() {
+        isBackfilling = true
+        backfillResult = nil
+        Task {
+            do {
+                let result = try await AdminService.shared.backfillHandles()
+                backfillResult = result.conflicts.isEmpty
+                    ? "Klart: \(result.registered) registrerade, \(result.skipped) fanns redan."
+                    : "Klart med \(result.conflicts.count) krock(ar): \(result.conflicts.joined(separator: "; "))"
+            } catch {
+                backfillResult = "Misslyckades: \(error.localizedDescription)"
+            }
+            isBackfilling = false
+        }
+    }
 
     var body: some View {
         List {
@@ -66,6 +84,24 @@ struct AdminPanelView: View {
                     AdminBroadcastView()
                 } label: {
                     Label("Skicka notis till alla", systemImage: "megaphone")
+                }
+            }
+
+            Section("Underhåll") {
+                Button {
+                    runHandleBackfill()
+                } label: {
+                    if isBackfilling {
+                        HStack { ProgressView(); Text("Migrerar handles…") }
+                    } else {
+                        Label("Migrera @handles till registret", systemImage: "at.badge.plus")
+                    }
+                }
+                .disabled(isBackfilling)
+                if let backfillResult {
+                    Text(backfillResult)
+                        .font(.caption)
+                        .foregroundStyle(Theme.Colors.textSecondary)
                 }
             }
         }

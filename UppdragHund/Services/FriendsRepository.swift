@@ -40,7 +40,12 @@ final class FriendsRepository {
             email: email,
             createdAt: existingCreatedAt ?? .now
         )
-        try ref.setData(from: profile, merge: true)
+        // Handle-claim + profilskrivning atomiskt — reglerna kräver (via
+        // getAfter) att ett nytt/ändrat handle är registrerat på skrivaren.
+        let batch = db.batch()
+        try await stageHandleClaim(handle, releasing: nil, uid: uid, in: batch)
+        try batch.setData(from: profile, forDocument: ref, merge: true)
+        try await batch.commit()
     }
 
     /// Speglar appens språk till profilen så Cloud Functions kan skicka pushar
@@ -62,18 +67,58 @@ final class FriendsRepository {
 
     /// Är användarnamnet ledigt? Ett namn som redan tillhör `excludingUid`
     /// (dvs. mitt eget nuvarande) räknas som ledigt.
+    /// Kollar BÅDE handle-registret (hård garanti, dokument-ID = handle) och
+    /// users-frågan (skyddsnät för konton från innan registret fanns).
     func isUsernameAvailable(_ handle: String, excludingUid: String) async throws -> Bool {
+        let registered = try await db.collection("handles").document(handle).getDocument()
+        if registered.exists, (registered.get("uid") as? String) != excludingUid {
+            return false
+        }
         let snapshot = try await db.collection("users")
             .whereField("handle", isEqualTo: handle)
             .getDocuments()
         return snapshot.documents.allSatisfy { $0.documentID == excludingUid }
     }
 
+    /// Lägger claim + ev. frisläppning av gammalt handle i `batch`. Kastar
+    /// handleTaken om registret säger att någon annan äger namnet. Själva
+    /// unikheten garanteras av att dokument-ID:t ÄR handlet — två samtidiga
+    /// batchar om samma namn kan inte båda lyckas (reglerna kräver via
+    /// getAfter att profilens handle är registrerat på skrivaren).
+    private func stageHandleClaim(
+        _ handle: String,
+        releasing oldHandle: String?,
+        uid: String,
+        in batch: WriteBatch
+    ) async throws {
+        let handleRef = db.collection("handles").document(handle)
+        let existing = try await handleRef.getDocument()
+        if existing.exists {
+            guard (existing.get("uid") as? String) == uid else {
+                throw FriendsError.handleTaken
+            }
+        } else {
+            batch.setData(["uid": uid], forDocument: handleRef)
+        }
+        if let oldHandle, oldHandle != handle {
+            let oldRef = db.collection("handles").document(oldHandle)
+            let oldDoc = try await oldRef.getDocument()
+            // Radera bara ett registrerat namn som är MITT — delete av ett
+            // saknat dokument skulle dessutom fälla hela batchen i reglerna.
+            if oldDoc.exists, (oldDoc.get("uid") as? String) == uid {
+                batch.deleteDocument(oldRef)
+            }
+        }
+    }
+
     /// Uppdaterar redigerbara profilfält. Skickar bara med fält som ändras.
+    /// Vid handle-byte MÅSTE `currentHandle` skickas med så det gamla namnet
+    /// släpps i registret; bytet sker atomiskt i en batch.
     func updateProfile(
         uid: String,
         displayName: String? = nil,
         handle: String? = nil,
+        currentHandle: String? = nil,
         photoData: Data?? = nil,
         coverPhotoData: Data?? = nil,
         bio: String?? = nil,
@@ -96,19 +141,24 @@ final class FriendsRepository {
             data["favoritePhotoDatas"] = (favoritePhotoDatas?.isEmpty == false ? favoritePhotoDatas : nil) ?? FieldValue.delete()
         }
         guard !data.isEmpty else { return }
-        try await db.collection("users").document(uid).setData(data, merge: true)
+        let userRef = db.collection("users").document(uid)
+        if let handle {
+            let batch = db.batch()
+            try await stageHandleClaim(handle, releasing: currentHandle, uid: uid, in: batch)
+            batch.setData(data, forDocument: userRef, merge: true)
+            try await batch.commit()
+        } else {
+            try await userRef.setData(data, merge: true)
+        }
     }
 
-    /// Räknar mina vänner och speglar antalet till profil-dokumentets
-    /// friendCount (läsbart för alla, till skillnad från själva vänlistan).
-    /// Returnerar antalet. Self-heal för konton från innan fältet fanns.
+    /// Räknar mina vänner (exakt, ur den privata vänlistan). Det publika
+    /// friendCount-fältet skrivs numera ENBART av servern (onFriendsChanged)
+    /// — klienten är spärrad i reglerna så antalet inte kan förfalskas.
     func syncFriendCount(uid: String) async throws -> Int {
-        let count = try await db.collection("users").document(uid)
+        try await db.collection("users").document(uid)
             .collection("friends").count.getAggregation(source: .server)
             .count.intValue
-        try? await db.collection("users").document(uid)
-            .setData(["friendCount": count], merge: true)
-        return count
     }
 
     /// Prefix-sökning på @handle och visningsnamn — för live-förslag när man
@@ -286,12 +336,14 @@ final class FriendsRepository {
         case userNotFound
         case cannotAddSelf
         case alreadyFriends
+        case handleTaken
 
         var errorDescription: String? {
             switch self {
             case .userNotFound: String(localized: "Ingen användare hittades med den koden.")
             case .cannotAddSelf: String(localized: "Du kan inte lägga till dig själv som vän.")
             case .alreadyFriends: String(localized: "Ni är redan vänner.")
+            case .handleTaken: String(localized: "Användarnamnet är upptaget.")
             }
         }
     }

@@ -1014,6 +1014,16 @@
         }
       }
     },
+    "Användarnamnet är upptaget.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "That username is taken."
+          }
+        }
+      }
+    },
     "Appen ersätter inte veterinärvård. Kontakta alltid veterinär vid frågor om din hunds hälsa.": {
       "localizations": {
         "en": {
@@ -1327,6 +1337,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Block %@"
+          }
+        }
+      }
+    },
+    "Blockerad användare": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Blocked user"
           }
         }
       }
@@ -2857,6 +2877,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Approve as instructor"
+          }
+        }
+      }
+    },
+    "Gå med i %@ för att se plats och deltagare.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Join %@ to see the location and attendees."
           }
         }
       }
@@ -5337,6 +5367,26 @@
         }
       }
     },
+    "Migrera @handles till registret": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Migrate @handles to the registry"
+          }
+        }
+      }
+    },
+    "Migrerar handles…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Migrating handles…"
+          }
+        }
+      }
+    },
     "Min profil": {
       "localizations": {
         "en": {
@@ -6082,6 +6132,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Location"
+          }
+        }
+      }
+    },
+    "Plats visas för medlemmar": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Location shown to members"
           }
         }
       }
@@ -8181,6 +8241,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "The type decides which features the team has — a walking group skips tasks and roles."
+          }
+        }
+      }
+    },
+    "Underhåll": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Maintenance"
           }
         }
       }

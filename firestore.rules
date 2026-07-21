@@ -20,12 +20,21 @@ service cloud.firestore {
       // Handles måste kunna slås upp för vänförfrågningar; profiler innehåller
       // bara displayName/handle/email.
       allow read: if request.auth != null;
-      // instructor-flaggan sätts ENDAST av servern (adminSetInstructor) —
-      // klienter får aldrig skriva den, inte ens på sitt eget dokument.
+      // Nytt/ändrat handle måste vara registrerat på skrivaren i handle-
+      // registret I SAMMA batch (getAfter) — det är detta som gör
+      // @användarnamn unika på riktigt (dokument-ID:t är namnet).
+      function handleClaimed() {
+        return getAfter(/databases/$(database)/documents/handles/$(request.resource.data.handle)).data.uid == request.auth.uid;
+      }
+      // instructor sätts ENDAST av servern (adminSetInstructor) och
+      // friendCount ENDAST av onFriendsChanged — klienter får aldrig skriva
+      // dem, inte ens på sitt eget dokument (annars kan antalet förfalskas).
       allow create: if request.auth != null && request.auth.uid == userId
-                    && !request.resource.data.keys().hasAny(['instructor']);
+                    && !request.resource.data.keys().hasAny(['instructor', 'friendCount'])
+                    && (!('handle' in request.resource.data) || handleClaimed());
       allow update: if request.auth != null && request.auth.uid == userId
-                    && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['instructor']);
+                    && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['instructor', 'friendCount'])
+                    && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['handle']) || handleClaimed());
 
       match /friends/{friendId} {
         allow read: if request.auth != null && request.auth.uid == userId;
@@ -78,6 +87,20 @@ service cloud.firestore {
       match /blocked/{blockedUid} {
         allow read, write: if request.auth != null && request.auth.uid == userId;
       }
+    }
+
+    // ===== Handle-register: unika @användarnamn =====
+    // Dokument-ID:t ÄR handlet, så två användare kan aldrig registrera samma
+    // namn. users-reglerna kräver via getAfter att profilens handle är
+    // registrerat på skrivaren i samma atomiska batch. Konton från innan
+    // registret backfillas av adminBackfillHandles.
+    match /handles/{handle} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+                    && request.resource.data.uid == request.auth.uid;
+      allow delete: if request.auth != null
+                    && resource.data.uid == request.auth.uid;
+      // update: aldrig — ett handle byter inte ägare, det släpps och tas om.
     }
 
     // Anmälningar av innehåll: vem som helst inloggad kan skapa sin egen;

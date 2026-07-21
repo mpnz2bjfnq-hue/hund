@@ -174,6 +174,7 @@ struct CompleteProfileView: View {
                     uid: uid,
                     displayName: trimmedName,
                     handle: normalized,
+                    currentHandle: profile.handle,
                     photoData: photoData != profile.photoData ? .some(photoData) : nil
                 )
                 CurrentUserStore.shared.apply(displayName: trimmedName, handle: normalized, photoData: .some(photoData))

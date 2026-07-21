@@ -715,8 +715,14 @@ struct TeamPageView: View {
                             .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
-                        .disabled(uid == authService.currentUserID)
+                        .disabled(uid == authService.currentUserID || ModerationService.shared.blockedUids.contains(uid))
                         .accessibilityLabel("Visa profil för \(team.memberNames[uid] ?? "medlem")")
+                        // Blockerade medlemmar döljs inte (närvaro i ett delat
+                        // team är relevant information) men markeras ärligt
+                        // och deras profil öppnas inte.
+                        if ModerationService.shared.blockedUids.contains(uid) {
+                            roleBadge("Blockerad", color: .red)
+                        }
                         if uid == team.ownerUid {
                             roleBadge("Ägare", color: Theme.Colors.brand)
                         } else if team.isConsultant(uid) {

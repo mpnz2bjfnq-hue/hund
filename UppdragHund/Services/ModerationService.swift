@@ -308,6 +308,18 @@ final class AdminService {
         ] as [String: Any])
     }
 
+    /// Engångsmigrering: registrerar alla befintliga @handles i handle-
+    /// registret. Idempotent. Returnerar (nya, befintliga, krockar).
+    func backfillHandles() async throws -> (registered: Int, skipped: Int, conflicts: [String]) {
+        let result = try await functions.httpsCallable("adminBackfillHandles").call()
+        let data = result.data as? [String: Any]
+        return (
+            (data?["registered"] as? Int) ?? 0,
+            (data?["skipped"] as? Int) ?? 0,
+            (data?["conflicts"] as? [String]) ?? []
+        )
+    }
+
     /// Skickar push till alla användare. Returnerar (tokens, levererade).
     func broadcast(title: String, body: String) async throws -> (tokens: Int, sent: Int) {
         let result = try await functions.httpsCallable("adminBroadcast").call([

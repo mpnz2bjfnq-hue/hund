@@ -215,6 +215,46 @@ export const adminSetInstructor = onCall({ region: REGION }, async (request) => 
   return { ok: true };
 });
 
+/** Engångsmigrering: registrera alla befintliga profilers handles i
+ *  handles/{handle}-registret (dokument-ID = handle ⇒ hård unikhet).
+ *  Idempotent — kan köras flera gånger. Vid krock (två konton med samma
+ *  handle, möjligt före registret) vinner först skrivna; övriga loggas
+ *  och returneras så admin kan hantera dem manuellt. */
+export const adminBackfillHandles = onCall({ region: REGION }, async (request) => {
+  const callerUid = request.auth?.uid;
+  if (!(await isAdminUid(callerUid))) {
+    throw new HttpsError("permission-denied", "Endast admin.");
+  }
+
+  const users = await db.collection("users").get();
+  let registered = 0;
+  let skipped = 0;
+  const conflicts: string[] = [];
+
+  for (const user of users.docs) {
+    const handle = user.data().handle;
+    if (typeof handle !== "string" || handle.length === 0) continue;
+    const ref = db.collection("handles").doc(handle);
+    const existing = await ref.get();
+    if (!existing.exists) {
+      await ref.set({ uid: user.id });
+      registered += 1;
+    } else if (existing.data()?.uid === user.id) {
+      skipped += 1;
+    } else {
+      conflicts.push(`${handle}: ${existing.data()?.uid} vs ${user.id}`);
+    }
+  }
+
+  logger.info(
+    `ADMIN ${callerUid} backfillade handles: ${registered} nya, ${skipped} fanns, ${conflicts.length} krockar`
+  );
+  if (conflicts.length > 0) {
+    logger.warn(`Handle-krockar: ${conflicts.join(", ")}`);
+  }
+  return { ok: true, registered, skipped, conflicts };
+});
+
 /** Admin: skicka en push-notis till ALLA användare. */
 export const adminBroadcast = onCall({ region: REGION }, async (request) => {
   const callerUid = request.auth?.uid;
@@ -381,7 +421,11 @@ async function deleteAllUserData(uid: string): Promise<void> {
     )
   );
 
-  // 13) Själva inloggningskontot.
+  // 13) Handle-registreringar som pekar på kontot.
+  const myHandles = await db.collection("handles").where("uid", "==", uid).get();
+  await Promise.all(myHandles.docs.map((d) => d.ref.delete().catch(() => undefined)));
+
+  // 14) Själva inloggningskontot.
   await getAuth().deleteUser(uid).catch(() => undefined);
 }
 

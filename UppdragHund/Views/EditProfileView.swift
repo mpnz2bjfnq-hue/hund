@@ -334,6 +334,7 @@ struct EditProfileView: View {
                     uid: uid,
                     displayName: trimmedName == currentProfile.displayName ? nil : trimmedName,
                     handle: usernameChanged ? normalizedUsername : nil,
+                    currentHandle: usernameChanged ? currentProfile.handle : nil,
                     photoData: photoChanged ? .some(photoData) : nil,
                     coverPhotoData: coverChanged ? .some(coverPhotoData) : nil,
                     bio: bioChanged ? .some(trimmedBio.isEmpty ? nil : trimmedBio) : nil,

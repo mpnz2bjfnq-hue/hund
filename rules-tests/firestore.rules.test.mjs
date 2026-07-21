@@ -18,7 +18,7 @@ import {
 } from "@firebase/rules-unit-testing";
 import {
   doc, getDoc, getDocs, setDoc, deleteDoc, updateDoc, collection, query, where,
-  arrayUnion, arrayRemove, increment,
+  arrayUnion, arrayRemove, increment, writeBatch,
 } from "firebase/firestore";
 
 const OWNER = "owner-uid";
@@ -134,6 +134,9 @@ beforeEach(async () => {
       title: "Tråd", text: "Innehåll", authorUid: OWNER, authorName: "Alex",
       replyCount: 3, lastActivityAt: new Date(), createdAt: new Date(),
     });
+    // Handle-registret: OWNERs eget namn + ett som tillhör FRIEND.
+    await setDoc(doc(db, "handles", "alex"), { uid: OWNER });
+    await setDoc(doc(db, "handles", "taget"), { uid: FRIEND });
     // Väntande vänförfrågan OWNER → FRIEND (vänstatus-frågorna på profilen).
     await setDoc(doc(db, "friendRequests", "req-1"), {
       fromUid: OWNER, fromDisplayName: "Alex", fromHandle: "alex",
@@ -454,4 +457,36 @@ test("replyCount får stegas ±1 men inte sättas godtyckligt på andras trådar
   await assertFails(updateDoc(doc(asUser(FRIEND), "forum", "thread-1"), {
     replyCount: 999,
   }));
+});
+
+
+// ===== handles: unika @användarnamn + friendCount-låset =====
+
+test("byte till ledigt handle med claim i samma batch tillåts", async () => {
+  const db = asUser(OWNER);
+  const batch = writeBatch(db);
+  batch.set(doc(db, "handles", "nytt-namn"), { uid: OWNER });
+  batch.delete(doc(db, "handles", "alex"));
+  batch.set(doc(db, "users", OWNER), { handle: "nytt-namn" }, { merge: true });
+  await assertSucceeds(batch.commit());
+});
+
+test("handlebyte utan registrering i samma batch nekas", async () => {
+  await assertFails(
+    setDoc(doc(asUser(OWNER), "users", OWNER), { handle: "oregistrerat" }, { merge: true })
+  );
+});
+
+test("någon annans registrerade handle kan inte tas", async () => {
+  const db = asUser(OWNER);
+  const batch = writeBatch(db);
+  batch.set(doc(db, "handles", "taget"), { uid: OWNER });
+  batch.set(doc(db, "users", OWNER), { handle: "taget" }, { merge: true });
+  await assertFails(batch.commit());
+});
+
+test("klienten kan inte skriva sitt eget friendCount", async () => {
+  await assertFails(
+    setDoc(doc(asUser(OWNER), "users", OWNER), { friendCount: 9999 }, { merge: true })
+  );
 });

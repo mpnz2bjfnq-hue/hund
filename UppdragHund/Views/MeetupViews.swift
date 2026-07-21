@@ -372,16 +372,35 @@ struct MeetupDetailView: View {
         return meetup.invitedUids.contains(myUid) || isCommunityMember
     }
 
+    /// Stadsträffar är öppna för UPPTÄCKT (titel/stad/datum), men exakt plats,
+    /// karta och deltagarnamn visas bara för stadens medlemmar, inbjudna och
+    /// ägaren — någon i en annan stad ska inte kunna läsa ut vilka som
+    /// kommer vart. Team-/vänträffar syns ändå bara för inblandade.
+    private var showsDetails: Bool {
+        guard meetup.communityId != nil else { return true }
+        if isOwner || isCommunityMember { return true }
+        return myUid.map { meetup.invitedUids.contains($0) } == true
+    }
+
     private var coordinate: CLLocationCoordinate2D? {
         guard let lat = meetup.latitude, let lng = meetup.longitude else { return nil }
         return CLLocationCoordinate2D(latitude: lat, longitude: lng)
     }
 
     private var goingNames: [String] {
-        meetup.goingUids.compactMap { meetup.invitedNames[$0] }
+        meetup.goingUids.compactMap { participantName(for: $0) }
     }
     private var declinedNames: [String] {
-        meetup.declinedUids.compactMap { meetup.invitedNames[$0] }
+        meetup.declinedUids.compactMap { participantName(for: $0) }
+    }
+
+    /// Blockerade deltagare visas anonymiserat — blockeringen lovar att man
+    /// slipper personens innehåll, och namnlistan är del av det.
+    private func participantName(for uid: String) -> String? {
+        guard let name = meetup.invitedNames[uid] else { return nil }
+        return ModerationService.shared.blockedUids.contains(uid)
+            ? String(localized: "Blockerad användare")
+            : name
     }
 
     var body: some View {
@@ -390,7 +409,7 @@ struct MeetupDetailView: View {
                 VStack(alignment: .leading, spacing: Theme.Spacing.m) {
                     header
 
-                    if let coordinate {
+                    if let coordinate, showsDetails {
                         mapCard(coordinate)
                     }
 
@@ -404,7 +423,11 @@ struct MeetupDetailView: View {
                         rsvpButtons
                     }
 
-                    attendeesCard
+                    if showsDetails {
+                        attendeesCard
+                    } else {
+                        memberOnlyHint
+                    }
 
                     if isOwner, !meetup.goingUids.isEmpty {
                         attendanceCard
@@ -558,11 +581,25 @@ struct MeetupDetailView: View {
         }
     }
 
+    /// Visas för icke-medlemmar i stället för deltagarlistan.
+    private var memberOnlyHint: some View {
+        Label {
+            Text("Gå med i \(meetup.communityName ?? "stadsgruppen") för att se plats och deltagare.")
+                .font(Theme.Typography.caption)
+                .foregroundStyle(Theme.Colors.textSecondary)
+        } icon: {
+            Image(systemName: "lock")
+                .foregroundStyle(Theme.Colors.textSecondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .cardStyle()
+    }
+
     private var infoCard: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.s) {
             Label {
-                Text(meetup.locationName)
-                    .foregroundStyle(Theme.Colors.textPrimary)
+                Text(showsDetails ? meetup.locationName : String(localized: "Plats visas för medlemmar"))
+                    .foregroundStyle(showsDetails ? Theme.Colors.textPrimary : Theme.Colors.textSecondary)
             } icon: {
                 Image(systemName: "mappin.and.ellipse")
                     .foregroundStyle(Theme.Colors.brand)
