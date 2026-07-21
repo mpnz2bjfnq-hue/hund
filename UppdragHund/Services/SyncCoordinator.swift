@@ -54,6 +54,10 @@ final class SyncCoordinator {
     @ObservationIgnored private var container: ModelContainer?
     @ObservationIgnored private var debouncedPush: Task<Void, Never>?
     @ObservationIgnored private var cachedOwnerAuthor: ShareMapping.Author?
+    /// Räknas upp vid varje mutation. Pushen jämför före/efter uppladdningen
+    /// så att en redigering som sker MEDAN en push pågår inte tyst tappas
+    /// när needsUpload nollställs.
+    @ObservationIgnored private var dirtyGeneration = 0
 
     private static let debounceNanoseconds: UInt64 = 3_000_000_000
 
@@ -153,25 +157,62 @@ final class SyncCoordinator {
     // MARK: - Push
 
     /// Svep: anropas från scenePhase-hanteringen och efter debounce.
+    /// Tre OBEROENDE faser — ett fel i en fas (t.ex. en enskild trasig
+    /// tombstone) får aldrig blockera de andra faserna för evigt.
     func pushDirtyDogs() async {
         guard let container, let uid = AuthService.shared.currentUserID else { return }
         let context = container.mainContext
-        let repository = SharingRepository.shared
 
+        await processDogTombstones(context: context, uid: uid)
+
+        // Mottagarsidan: egna poster/raderingar på delade hundar pushas
+        // per post — de täcks inte av ägarnas dirty-flagga nedan.
         do {
-            // Hela hundar som raderats lokalt städas först.
-            let dogTombstones = try context.fetch(
-                FetchDescriptor<SyncTombstone>(predicate: #Predicate { $0.module == "dog" })
-            )
-            for tombstone in dogTombstones {
-                try await repository.deleteDogCompletely(dogRemoteID: tombstone.dogRemoteID.uuidString, ownerUid: uid)
-                context.delete(tombstone)
-            }
-
-            // Mottagarsidan: egna poster/raderingar på delade hundar pushas
-            // per post — de täcks inte av ägarnas dirty-flagga nedan.
             try await pushFriendEntries(context: context, uid: uid)
+            try context.save()
+        } catch {
+            // Offline etc. — pendingUpload/tombstones ligger kvar till nästa svep.
+        }
 
+        await pushOwnDirtyDogs(context: context, uid: uid)
+    }
+
+    /// Hela hundar som raderats lokalt städas ur molnet — en tombstone i taget,
+    /// så en trasig aldrig blockerar de andra.
+    private func processDogTombstones(context: ModelContext, uid: String) async {
+        let repository = SharingRepository.shared
+        guard let dogTombstones = try? context.fetch(
+            FetchDescriptor<SyncTombstone>(predicate: #Predicate { $0.module == "dog" })
+        ) else { return }
+
+        for tombstone in dogTombstones {
+            do {
+                try await repository.deleteDogCompletely(dogRemoteID: tombstone.dogRemoteID.uuidString, ownerUid: uid)
+            } catch let error where error.isFirestorePermissionDenied {
+                // Hunddokumentet finns inte i molnet (hunden raderades innan
+                // första uppladdningen, eller en tidigare städning avbröts) —
+                // reglerna kan då inte bevisa åtkomsten och nekar. Molnet är
+                // redan rent; utan den här grenen skulle tombstonen ligga kvar
+                // och blockera ALL framtida synk.
+            } catch {
+                continue // offline — försök igen nästa svep
+            }
+            // Postnivå-tombstones för samma hund pekar in i det raderade
+            // molnträdet och kan aldrig pushas — släng dem också.
+            let dogID = tombstone.dogRemoteID
+            if let orphans = try? context.fetch(FetchDescriptor<SyncTombstone>(
+                predicate: #Predicate { $0.dogRemoteID == dogID && $0.module != "dog" }
+            )) {
+                orphans.forEach(context.delete)
+            }
+            context.delete(tombstone)
+        }
+        try? context.save()
+    }
+
+    private func pushOwnDirtyDogs(context: ModelContext, uid: String) async {
+        let repository = SharingRepository.shared
+        do {
             let dirtyDogs = try context.fetch(
                 FetchDescriptor<Dog>(predicate: #Predicate { !$0.isShared && $0.needsUpload })
             )
@@ -185,22 +226,35 @@ final class SyncCoordinator {
             for dog in dirtyDogs {
                 guard let dogRemoteID = dog.remoteID else { continue }
 
-                // Molnbackup: ägaren speglar ALLTID hela hunden (dokument +
-                // ALLA moduler) till sharedDogs, oavsett om den är delad.
-                // Reglerna gör backupen privat — bara ägaren läser den, och
-                // ev. mottagare ser bara modulerna i sin egen delning.
-                try await repository.upsertDogDoc(
-                    dogRemoteID: dogRemoteID.uuidString,
-                    doc: ShareMapping.dogDoc(from: dog, owner: owner)
-                )
-                try await push(modules: Set(SharedModule.allCases), of: dog, dogRemoteID: dogRemoteID, owner: owner, context: context)
+                // Stämpeln tas FÖRE uppladdningen: en post som redigeras medan
+                // pushen pågår får updatedAt > lastSyncedAt och kommer med i
+                // nästa svep i stället för att tyst filtreras bort som synkad.
+                let generation = dirtyGeneration
+                let syncStamp = Date.now
+                do {
+                    // Molnbackup: ägaren speglar ALLTID hela hunden (dokument +
+                    // ALLA moduler) till sharedDogs, oavsett om den är delad.
+                    // Reglerna gör backupen privat — bara ägaren läser den, och
+                    // ev. mottagare ser bara modulerna i sin egen delning.
+                    try await repository.upsertDogDoc(
+                        dogRemoteID: dogRemoteID.uuidString,
+                        doc: ShareMapping.dogDoc(from: dog, owner: owner)
+                    )
+                    try await push(modules: Set(SharedModule.allCases), of: dog, dogRemoteID: dogRemoteID, owner: owner, context: context)
 
-                dog.needsUpload = false
-                dog.lastSyncedAt = .now
+                    dog.lastSyncedAt = syncStamp
+                    // Muterades något under uppladdningen behålls flaggan så den
+                    // redan schemalagda debounce-pushen tar det varvet också.
+                    if dirtyGeneration == generation {
+                        dog.needsUpload = false
+                    }
+                } catch {
+                    continue // nästa hund kan fortfarande lyckas
+                }
             }
             try context.save()
         } catch {
-            // Offline etc. — needsUpload/tombstones ligger kvar till nästa svep.
+            // Offline etc. — needsUpload ligger kvar till nästa svep.
         }
     }
 
@@ -242,19 +296,43 @@ final class SyncCoordinator {
                 guard !pending.isEmpty else { continue }
 
                 var docs: [String: Encodable] = [:]
+                var uploaded: [(any SyncableEntry, Date?)] = []
                 for (entry, dto) in pending {
                     guard let id = entry.remoteID?.uuidString else { continue }
                     docs[id] = dto
+                    uploaded.append((entry, entry.updatedAt))
                 }
                 try await repository.upsertEntries(
                     dogRemoteID: dogRemoteID.uuidString,
                     module: module,
                     docs: docs
                 )
-                for (entry, _) in pending {
+                // Rensa bara flaggan om posten inte hann redigeras under
+                // uppladdningen — annars tappas den ändringen tyst.
+                for (entry, stamp) in uploaded where entry.updatedAt == stamp {
                     entry.pendingUpload = false
                 }
             }
+
+            // Tombstones för moduler som inte (längre) delas kan aldrig
+            // pushas (reglerna nekar) — släng dem så de inte läcker för evigt.
+            let sharedRaw = Set(dog.sharedModules.map(\.rawValue))
+            tombstones
+                .filter { $0.dogRemoteID == dogRemoteID && !sharedRaw.contains($0.module) }
+                .forEach(context.delete)
+        }
+
+        // Tombstones vars hund inte längre finns lokalt (t.ex. revokad
+        // delning) kan aldrig pushas — städa dem. Hundar med väntande
+        // dog-tombstone undantas: de städas i tombstone-fasen.
+        let knownDogIDs = Set(try context.fetch(FetchDescriptor<Dog>()).compactMap(\.remoteID))
+        let pendingDogTombstoneIDs = Set(try context.fetch(
+            FetchDescriptor<SyncTombstone>(predicate: #Predicate { $0.module == "dog" })
+        ).map(\.dogRemoteID))
+        for tombstone in tombstones
+        where !knownDogIDs.contains(tombstone.dogRemoteID)
+            && !pendingDogTombstoneIDs.contains(tombstone.dogRemoteID) {
+            context.delete(tombstone)
         }
     }
 
@@ -273,18 +351,25 @@ final class SyncCoordinator {
             let moduleTombstones = tombstones.filter { $0.module == module.rawValue }
             let tombstonedIDs = Set(moduleTombstones.compactMap(\.entryRemoteID))
 
-            let entries: [(UUID, Date?, Encodable)] = moduleEntries(module, of: dog).compactMap { entry, dto in
-                entry.remoteID.map { ($0, entry.updatedAt, dto) }
-            }
+            // ownAuthored: vänförfattade speglingsposter upsertas ALDRIG av
+            // ägaren — vännens original är källan. Annars kan ägarens äldre
+            // lokala kopia skriva över vännens nyare redigering i molnet.
+            // (Ägarens RADERINGAR av vänposter går däremot via tombstones.)
+            let entries: [(id: UUID, updatedAt: Date?, dto: Encodable, ownAuthored: Bool)] =
+                moduleEntries(module, of: dog).compactMap { entry, dto in
+                    entry.remoteID.map {
+                        ($0, entry.updatedAt, dto, entry.createdByUid == nil || entry.createdByUid == owner.uid)
+                    }
+                }
             let plan = PushPlanner.plan(
-                entries: entries.map { (id: $0.0, updatedAt: $0.1) },
+                entries: entries.map { (id: $0.id, updatedAt: $0.updatedAt) },
                 tombstoned: tombstonedIDs,
                 lastSyncedAt: dog.lastSyncedAt
             )
 
             let docs = Dictionary(
-                entries.filter { plan.upserts.contains($0.0) }
-                    .map { ($0.0.uuidString, $0.2) },
+                entries.filter { plan.upserts.contains($0.id) && $0.ownAuthored }
+                    .map { ($0.id.uuidString, $0.dto) },
                 uniquingKeysWith: { first, _ in first }
             )
             try await repository.upsertEntries(dogRemoteID: dogRemoteID.uuidString, module: module, docs: docs)
@@ -329,6 +414,7 @@ final class SyncCoordinator {
     }
 
     private func markDirty(_ dog: Dog) {
+        dirtyGeneration &+= 1
         dog.needsUpload = true
         schedulePush()
     }

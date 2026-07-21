@@ -98,26 +98,49 @@ final class SharingRepository {
     // MARK: - Module entries
 
     /// Skriver dokument batchat. `docs` mappar dokument-ID -> Encodable DTO.
+    /// En batch har utöver 500-operationstaket även ett bytetak (~10 MiB) —
+    /// spricker den (många fotoposter) skrivs dokumenten ett och ett i stället.
     func upsertEntries(dogRemoteID: String, module: SharedModule, docs: [String: Encodable]) async throws {
         let collection = moduleCollection(dogRemoteID, module)
         for chunk in Array(docs).chunked(into: Self.batchLimit) {
-            let batch = db.batch()
-            for (id, dto) in chunk {
-                try batch.setData(from: dto, forDocument: collection.document(id))
+            do {
+                let batch = db.batch()
+                for (id, dto) in chunk {
+                    try batch.setData(from: dto, forDocument: collection.document(id))
+                }
+                try await batch.commit()
+            } catch let error where error.isFirestoreInvalidArgument {
+                for (id, dto) in chunk {
+                    try await collection.document(id).setData(from: dto)
+                }
             }
-            try await batch.commit()
         }
     }
 
+    /// Raderar batchat. Mottagares delete av ett dokument som inte längre
+    /// finns kan inte bevisas av reglerna (resource saknas) → hela batchen
+    /// nekas. Då raderas ett och ett, och nekade hoppar vi över — molnet är
+    /// redan städat där. Utan detta blockerar en enda föräldralös tombstone
+    /// all framtida synk.
     func deleteEntries(dogRemoteID: String, module: SharedModule, ids: [String]) async throws {
         guard !ids.isEmpty else { return }
         let collection = moduleCollection(dogRemoteID, module)
         for chunk in ids.chunked(into: Self.batchLimit) {
-            let batch = db.batch()
-            for id in chunk {
-                batch.deleteDocument(collection.document(id))
+            do {
+                let batch = db.batch()
+                for id in chunk {
+                    batch.deleteDocument(collection.document(id))
+                }
+                try await batch.commit()
+            } catch let error where error.isFirestorePermissionDenied {
+                for id in chunk {
+                    do {
+                        try await collection.document(id).delete()
+                    } catch let single where single.isFirestorePermissionDenied {
+                        continue
+                    }
+                }
             }
-            try await batch.commit()
         }
     }
 
@@ -137,5 +160,22 @@ private extension Array {
         stride(from: 0, to: count, by: size).map {
             Array(self[$0..<Swift.min($0 + size, count)])
         }
+    }
+}
+
+extension Error {
+    /// Firestore permission denied — används för att skilja "dokumentet finns
+    /// inte / åtkomst kan inte bevisas" från nätverksfel i synkstädningen.
+    var isFirestorePermissionDenied: Bool {
+        let nsError = self as NSError
+        return nsError.domain == FirestoreErrorDomain
+            && nsError.code == FirestoreErrorCode.permissionDenied.rawValue
+    }
+
+    /// Firestore invalid argument — bl.a. när en batch spräcker bytetaket.
+    var isFirestoreInvalidArgument: Bool {
+        let nsError = self as NSError
+        return nsError.domain == FirestoreErrorDomain
+            && nsError.code == FirestoreErrorCode.invalidArgument.rawValue
     }
 }

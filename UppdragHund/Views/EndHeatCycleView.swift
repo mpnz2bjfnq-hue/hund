@@ -20,7 +20,15 @@ struct EndHeatCycleView: View {
     var body: some View {
         NavigationStack {
             Form {
-                DatePicker("Slutdatum", selection: $endDate, in: cycle.startDate...Date.now, displayedComponents: .date)
+                // min() skyddar mot krasch när startdatumet ligger efter
+                // enhetens klocka (synk från enhet med klockskevhet) —
+                // ClosedRange trapar om lower > upper.
+                DatePicker(
+                    "Slutdatum",
+                    selection: $endDate,
+                    in: min(cycle.startDate, .now)...Date.now,
+                    displayedComponents: .date
+                )
             }
             .navigationTitle("Avsluta löp")
             .navigationBarTitleDisplayMode(.inline)

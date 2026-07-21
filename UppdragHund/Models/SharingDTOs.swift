@@ -41,6 +41,11 @@ struct SharedDogDoc: Codable, Equatable {
     var registrationNumber: String? = nil
     var chipNumber: String? = nil
     var breeder: String? = nil
+    // Backupkompletteringar (2026-07-21): fält som tidigare tappades vid
+    // molnåterställning. Valfria av samma bakåtkompatibilitetsskäl.
+    var normalTemperatureCelsius: Double? = nil
+    var createdAt: Date? = nil
+    var passedAwayDate: Date? = nil
     // Försäkring. Valfria av samma bakåtkompatibilitetsskäl.
     var insuranceCompany: String? = nil
     var insuranceNumber: String? = nil

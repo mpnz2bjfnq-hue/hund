@@ -31,9 +31,18 @@ final class SharedDogPuller {
         var diary: [UUID: DiaryEntryDTO] = [:]
         var meals: [UUID: MealEntryDTO] = [:]
         var training: [UUID: TrainingSessionDTO] = [:]
+        /// Moduler vars hämtning faktiskt lyckades. En modul som INTE finns
+        /// här (men delas) får aldrig mergas — en tom dict skulle annars
+        /// tolkas som "allt raderat i molnet" och radera lokala poster.
+        /// nil = alla delade moduler hämtade (testers default).
+        var fetchedModules: Set<SharedModule>? = nil
 
         var modules: Set<SharedModule> {
             Set(share.modules.compactMap(SharedModule.init(rawValue:)))
+        }
+
+        func isFetched(_ module: SharedModule) -> Bool {
+            fetchedModules?.contains(module) ?? true
         }
     }
 
@@ -47,9 +56,14 @@ final class SharedDogPuller {
             return
         }
         do {
-            let shareCount = try await SharingRepository.shared.sharesWithMe(recipientUid: uid).count
-            let snapshots = try await fetchSnapshots(recipientUid: uid)
-            try apply(snapshots: snapshots, context: context)
+            let shares = try await SharingRepository.shared.sharesWithMe(recipientUid: uid)
+            let shareCount = shares.count
+            let snapshots = try await fetchSnapshots(shares: shares)
+            // Lokala hundar raderas BARA när själva delningen är borta
+            // (revoke/ägarradering) — ett saknat hunddokument kan vara en
+            // trasig uppladdning och får inte radera mottagarens kopia.
+            let keepIDs = Set(shares.compactMap { UUID(uuidString: $0.dogRemoteID) })
+            try apply(snapshots: snapshots, keepDogIDs: keepIDs, context: context)
             try await pullFriendContributions(ownerUid: uid, context: context)
             let time = Date.now.formatted(date: .omitted, time: .shortened)
             if shareCount > snapshots.count {
@@ -87,9 +101,21 @@ final class SharedDogPuller {
 
             // Självläkning: delningen finns men hunddokumentet saknas på servern
             // (avbruten uppladdning / raderat dokument) — ladda upp igen DIREKT
-            // så efterföljande modulläsningar fungerar.
-            if (try? await repository.fetchDogDoc(dogRemoteID: dogRemoteIDString)) == nil {
+            // så efterföljande modulläsningar fungerar. Nätverksfel ≠ saknat
+            // dokument: då hoppar vi över hunden i stället för att läka i blindo.
+            let healDoc: SharedDogDoc?
+            do {
+                healDoc = try await repository.fetchDogDoc(dogRemoteID: dogRemoteIDString)
+            } catch {
+                continue
+            }
+            if healDoc == nil {
                 dog.needsUpload = true
+                // Molnträdet är tomt — nollställ synkstämpeln så nästa push
+                // laddar upp ALLA poster, inte bara de nyligen ändrade.
+                // (Annars blir molnkopian ett tomt skal som mottagarens pull
+                // sedan tolkar som "allt raderat".)
+                dog.lastSyncedAt = nil
                 try? context.save()
                 needsReupload = true
                 await SyncCoordinator.shared.pushDirtyDogs()
@@ -200,22 +226,32 @@ final class SharedDogPuller {
         }
     }
 
-    private func fetchSnapshots(recipientUid: String) async throws -> [RemoteDogSnapshot] {
+    private func fetchSnapshots(shares: [ShareDoc]) async throws -> [RemoteDogSnapshot] {
         let repository = SharingRepository.shared
         var snapshots: [RemoteDogSnapshot] = []
 
-        for share in try await repository.sharesWithMe(recipientUid: recipientUid) {
-            // Saknat/oläsbart hunddokument = ägaren har raderat hunden (eller
-            // uppladdningen är trasig) — hoppa över just den delningen istället
-            // för att fälla hela synken.
-            guard let dogDoc = try? await repository.fetchDogDoc(dogRemoteID: share.dogRemoteID) else { continue }
-            var snapshot = RemoteDogSnapshot(share: share, dogDoc: dogDoc)
+        for share in shares {
+            // Saknat hunddokument (exists == false) = ägarens uppladdning är
+            // trasig — hoppa över delningen. Nätverks-/regelfel däremot
+            // PROPAGERAS: annars tolkas ett tillfälligt fel som "hunden är
+            // raderad" och mottagarens lokala kopia (inkl. egna opushade
+            // poster) cascade-raderas.
+            guard let dogDoc = try await repository.fetchDogDoc(dogRemoteID: share.dogRemoteID) else { continue }
+            var snapshot = RemoteDogSnapshot(share: share, dogDoc: dogDoc, fetchedModules: [])
 
             for module in snapshot.modules {
-                guard let documents = try? await repository.fetchEntryDocuments(
-                    dogRemoteID: share.dogRemoteID,
-                    module: module
-                ) else { continue }
+                let documents: [(id: String, snapshot: DocumentSnapshot)]
+                do {
+                    documents = try await repository.fetchEntryDocuments(
+                        dogRemoteID: share.dogRemoteID,
+                        module: module
+                    )
+                } catch let error where error.isFirestorePermissionDenied {
+                    // Regeln nekar modulen (t.ex. delningen ändrades nyss) —
+                    // hoppa över modulen utan att röra lokala poster.
+                    continue
+                }
+                snapshot.fetchedModules?.insert(module)
                 for (id, document) in documents {
                     guard let uuid = UUID(uuidString: id) else { continue }
                     switch module {
@@ -239,13 +275,16 @@ final class SharedDogPuller {
 
     /// Speglar fjärrläget i den lokala storen. Ren funktion över (snapshots, context):
     /// skapar/uppdaterar/raderar isShared-hundar och deras poster.
-    func apply(snapshots: [RemoteDogSnapshot], context: ModelContext) throws {
+    /// `keepDogIDs` = hundar vars delning fortfarande finns (även om hund-
+    /// dokumentet inte kunde hämtas) — de raderas inte lokalt. nil = härled
+    /// från snapshots (testernas gamla beteende).
+    func apply(snapshots: [RemoteDogSnapshot], keepDogIDs: Set<UUID>? = nil, context: ModelContext) throws {
         let sharedDogs = try context.fetch(
             FetchDescriptor<Dog>(predicate: #Predicate { $0.isShared })
         )
 
         // Revoke/ägarradering: lokala delade hundar utan kvarvarande share försvinner.
-        let remoteDogIDs = Set(snapshots.compactMap { UUID(uuidString: $0.share.dogRemoteID) })
+        let remoteDogIDs = keepDogIDs ?? Set(snapshots.compactMap { UUID(uuidString: $0.share.dogRemoteID) })
         for dog in sharedDogs where dog.remoteID == nil || !remoteDogIDs.contains(dog.remoteID!) {
             context.delete(dog)
         }
@@ -279,46 +318,63 @@ final class SharedDogPuller {
     private func mergeModules(snapshot: RemoteDogSnapshot, into dog: Dog, context: ModelContext) {
         let modules = snapshot.modules
 
+        // En modul som delas men vars hämtning misslyckades (isFetched == false)
+        // får INTE mergas — tomt innehåll skulle radera de lokala posterna.
+        // En modul som inte längre delas mergas mot [:] (avsiktlig rensning).
+        func shouldMerge(_ module: SharedModule) -> Bool {
+            !modules.contains(module) || snapshot.isFetched(module)
+        }
+
         // Hälsologg
-        merge(
-            remote: modules.contains(.health) ? snapshot.health : [:],
-            local: dog.healthEvents,
-            context: context,
-            update: { ShareMapping.apply($0, to: $1) },
-            insert: { context.insert(ShareMapping.makeHealthEvent(from: $0, remoteID: $1, dog: dog)) }
-        )
+        if shouldMerge(.health) {
+            merge(
+                remote: modules.contains(.health) ? snapshot.health : [:],
+                local: dog.healthEvents,
+                context: context,
+                update: { ShareMapping.apply($0, to: $1) },
+                insert: { context.insert(ShareMapping.makeHealthEvent(from: $0, remoteID: $1, dog: dog)) }
+            )
+        }
         // Löpcykler
-        merge(
-            remote: modules.contains(.heat) ? snapshot.heat : [:],
-            local: dog.heatCycles,
-            context: context,
-            update: { ShareMapping.apply($0, to: $1) },
-            insert: { context.insert(ShareMapping.makeHeatCycle(from: $0, remoteID: $1, dog: dog)) }
-        )
+        if shouldMerge(.heat) {
+            merge(
+                remote: modules.contains(.heat) ? snapshot.heat : [:],
+                local: dog.heatCycles,
+                context: context,
+                update: { ShareMapping.apply($0, to: $1) },
+                insert: { context.insert(ShareMapping.makeHeatCycle(from: $0, remoteID: $1, dog: dog)) }
+            )
+        }
         // Dagbok
-        merge(
-            remote: modules.contains(.diary) ? snapshot.diary : [:],
-            local: dog.diaryEntries,
-            context: context,
-            update: { ShareMapping.apply($0, to: $1) },
-            insert: { context.insert(ShareMapping.makeDiaryEntry(from: $0, remoteID: $1, dog: dog)) }
-        )
+        if shouldMerge(.diary) {
+            merge(
+                remote: modules.contains(.diary) ? snapshot.diary : [:],
+                local: dog.diaryEntries,
+                context: context,
+                update: { ShareMapping.apply($0, to: $1) },
+                insert: { context.insert(ShareMapping.makeDiaryEntry(from: $0, remoteID: $1, dog: dog)) }
+            )
+        }
         // Foder
-        merge(
-            remote: modules.contains(.meals) ? snapshot.meals : [:],
-            local: dog.mealEntries,
-            context: context,
-            update: { ShareMapping.apply($0, to: $1) },
-            insert: { context.insert(ShareMapping.makeMealEntry(from: $0, remoteID: $1, dog: dog)) }
-        )
+        if shouldMerge(.meals) {
+            merge(
+                remote: modules.contains(.meals) ? snapshot.meals : [:],
+                local: dog.mealEntries,
+                context: context,
+                update: { ShareMapping.apply($0, to: $1) },
+                insert: { context.insert(ShareMapping.makeMealEntry(from: $0, remoteID: $1, dog: dog)) }
+            )
+        }
         // Träning
-        merge(
-            remote: modules.contains(.training) ? snapshot.training : [:],
-            local: dog.trainingSessions,
-            context: context,
-            update: { ShareMapping.apply($0, to: $1) },
-            insert: { context.insert(ShareMapping.makeTrainingSession(from: $0, remoteID: $1, dog: dog)) }
-        )
+        if shouldMerge(.training) {
+            merge(
+                remote: modules.contains(.training) ? snapshot.training : [:],
+                local: dog.trainingSessions,
+                context: context,
+                update: { ShareMapping.apply($0, to: $1) },
+                insert: { context.insert(ShareMapping.makeTrainingSession(from: $0, remoteID: $1, dog: dog)) }
+            )
+        }
     }
 
     private func merge<Entry: SyncableEntry, DTO>(

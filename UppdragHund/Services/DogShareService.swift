@@ -60,7 +60,11 @@ final class DogShareService {
         try await repository.upsertShare(shareDoc)
 
         try await push(modules: modules, of: dog, owner: owner)
-        dog.lastSyncedAt = .now
+        // OBS: lastSyncedAt stämplas INTE här — bara de valda modulerna
+        // pushades. En stämpel skulle få nästa backup-svep att hoppa över
+        // opushade ändringar i övriga moduler. Markera i stället smutsig så
+        // det ordinarie svepet speglar hela hunden (idempotent).
+        SyncCoordinator.shared.dogProfileTouched(dog)
     }
 
     /// Uppdaterar en befintlig delning (moduler/behörighet). Data raderas
@@ -133,7 +137,11 @@ final class DogShareService {
                 for entry in dog.diaryEntries {
                     guard let id = entry.remoteID?.uuidString else { continue }
                     stampIfNeeded(&entry.updatedAt)
-                    docs[id] = ShareMapping.dto(from: entry, fallbackAuthor: owner)
+                    var dto = ShareMapping.dto(from: entry, fallbackAuthor: owner)
+                    // Skyddsnät: äldre fullstora foton skalas ned så dokumentet
+                    // ryms under Firestores 1 MB-tak (samma som backup-svepet).
+                    dto.photoData = BackupImage.fitted(dto.photoData)
+                    docs[id] = dto
                 }
             case .meals:
                 for meal in dog.mealEntries {

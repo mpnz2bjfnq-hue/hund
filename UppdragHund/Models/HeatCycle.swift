@@ -29,6 +29,14 @@ final class HeatCycle {
 
     var durationInDays: Int? {
         guard let endDate else { return nil }
-        return Calendar.current.dateComponents([.day], from: startDate, to: endDate).day
+        // Normalisera till dygnsgränser — annars golvas antalet av klockslagen
+        // (start kl 14 → slut kl 09 tappar en dag) och historiken motsäger
+        // kalenderns "Dag N"-räkning som redan räknar i startOfDay.
+        let calendar = Calendar.current
+        return calendar.dateComponents(
+            [.day],
+            from: calendar.startOfDay(for: startDate),
+            to: calendar.startOfDay(for: endDate)
+        ).day
     }
 }

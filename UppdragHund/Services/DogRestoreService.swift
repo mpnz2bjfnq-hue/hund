@@ -56,6 +56,10 @@ enum DogRestoreService {
             dog.remoteID = remoteID
             dog.ownerUid = uid
             dog.isShared = false
+            // Registrera hunden i contexten DIREKT — utan insert persisteras
+            // en summerings-återställd hund (utan relaterade poster som drar
+            // in den) aldrig av context.save(), trots att Result räknar den.
+            context.insert(dog)
 
             // Full återställning om hunden var delad (hela dokumentet + loggar).
             let enriched = try await enrichFromShareIfPossible(dog: dog, remoteID: idString, ownerUid: uid, context: context)

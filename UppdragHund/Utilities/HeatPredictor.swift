@@ -26,8 +26,14 @@ enum HeatPredictor {
     ) -> HeatPrediction {
         let sorted = completedCycles.sorted { $0.startDate < $1.startDate }
 
+        // Dygnsnormaliserat — annars golvas intervallet av klockslagen och
+        // prognosen driver en dag beroende på när på dygnet löpen registrerades.
         let intervals: [Int] = zip(sorted, sorted.dropFirst()).map { previous, next in
-            calendar.dateComponents([.day], from: previous.startDate, to: next.startDate).day ?? 0
+            calendar.dateComponents(
+                [.day],
+                from: calendar.startOfDay(for: previous.startDate),
+                to: calendar.startOfDay(for: next.startDate)
+            ).day ?? 0
         }
         let durations = sorted.compactMap(\.durationInDays)
 

@@ -31,6 +31,9 @@ enum ShareMapping {
             registrationNumber: dog.registrationNumber,
             chipNumber: dog.chipNumber,
             breeder: dog.breeder,
+            normalTemperatureCelsius: dog.normalTemperatureCelsius,
+            createdAt: dog.createdAt,
+            passedAwayDate: dog.passedAwayDate,
             insuranceCompany: dog.insuranceCompany,
             insuranceNumber: dog.insuranceNumber,
             insurancePhone: dog.insurancePhone,
@@ -74,6 +77,9 @@ enum ShareMapping {
         dog.registrationNumber = doc.registrationNumber
         dog.chipNumber = doc.chipNumber
         dog.breeder = doc.breeder
+        dog.normalTemperatureCelsius = doc.normalTemperatureCelsius
+        if let createdAt = doc.createdAt { dog.createdAt = createdAt }
+        dog.passedAwayDate = doc.passedAwayDate
         dog.insuranceCompany = doc.insuranceCompany
         dog.insuranceNumber = doc.insuranceNumber
         dog.insurancePhone = doc.insurancePhone

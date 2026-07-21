@@ -29,10 +29,11 @@ enum HeatCycleAnalyzer {
             }
 
             let priorCycles = Array(completed[0..<index])
+            // Dygnsnormaliserat, samma skäl som i HeatPredictor.
             let actualInterval = calendar.dateComponents(
                 [.day],
-                from: priorCycles.last!.startDate,
-                to: cycle.startDate
+                from: calendar.startOfDay(for: priorCycles.last!.startDate),
+                to: calendar.startOfDay(for: cycle.startDate)
             ).day ?? 0
             let prediction = HeatPredictor.predict(
                 completedCycles: priorCycles,

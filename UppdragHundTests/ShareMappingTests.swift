@@ -125,6 +125,34 @@ struct ShareMappingTests {
         #expect(target.breeder == "Kennel Example")
     }
 
+    @Test func dogRoundTripPreservesHealthAndLifecycleFields() {
+        let passed = stamp.addingTimeInterval(-30 * 86_400)
+        let dog = Dog(name: "Sixten", breed: "Malinois", birthDate: .now, sex: .male)
+        dog.normalTemperatureCelsius = 38.4
+        dog.passedAwayDate = passed
+        let created = dog.createdAt
+
+        let doc = ShareMapping.dogDoc(from: dog, owner: author)
+        let target = Dog(name: "", breed: "", birthDate: .now, sex: .female)
+        ShareMapping.apply(doc, to: target)
+
+        #expect(target.normalTemperatureCelsius == 38.4)
+        #expect(target.passedAwayDate == passed)
+        #expect(target.createdAt == created)
+
+        // Gamla dokument utan fälten ska ge nil/behållet createdAt, inte krascha.
+        var legacy = doc
+        legacy.normalTemperatureCelsius = nil
+        legacy.createdAt = nil
+        legacy.passedAwayDate = nil
+        let legacyTarget = Dog(name: "", breed: "", birthDate: .now, sex: .female)
+        let legacyCreated = legacyTarget.createdAt
+        ShareMapping.apply(legacy, to: legacyTarget)
+        #expect(legacyTarget.normalTemperatureCelsius == nil)
+        #expect(legacyTarget.passedAwayDate == nil)
+        #expect(legacyTarget.createdAt == legacyCreated)
+    }
+
     @Test func dogRoundTripPreservesInsuranceFields() {
         let renewal = stamp.addingTimeInterval(180 * 86_400)
         let dog = Dog(name: "Sixten", breed: "Malinois", birthDate: .now, sex: .male)
